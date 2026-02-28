@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { IconMap } from './IconMap';
 
+import { supabase } from '../supabaseClient';
+
 export default function SettingsModal({
     close, expenseCategories, incomeCategories, scheduleCategories,
     addCategory, deleteCategory, accounts, addAccount, updateAccount, deleteAccount,
-    userProfile, setUserProfile
+    userProfile, setUserProfile, session
 }) {
     const { Settings, X, Trash2, Plus } = IconMap;
     const [activeTab, setActiveTab] = useState('categories');
@@ -64,6 +66,31 @@ export default function SettingsModal({
                                     ))}
                                 </div>
                             </div>
+
+                            {session && (
+                                <div className="glass-card p-5 space-y-4">
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">계정 관리</h4>
+                                    <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-[#0f1115] rounded-xl border border-slate-200 dark:border-white/10">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-600 dark:text-indigo-400">
+                                                {session.user.email?.charAt(0).toUpperCase()}
+                                            </div>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-800 dark:text-slate-200">연결된 계정</span>
+                                                <span className="text-xs text-slate-500">{session.user.email}</span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            onClick={async () => {
+                                                if (supabase) await supabase.auth.signOut();
+                                            }}
+                                            className="px-4 py-2 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-lg transition-colors"
+                                        >
+                                            로그아웃
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                     {activeTab === 'categories' && (

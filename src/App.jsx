@@ -9,6 +9,8 @@ import SettingsModal from './components/SettingsModal';
 import { Toaster, toast } from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
 import { addDays, addWeeks, addMonths, parseISO, format } from 'date-fns';
+import { supabase } from './supabaseClient';
+import LoginView from './views/LoginView';
 
 const trackerUnits = [
   { category: '기본 설정', options: ['% (수동 퍼센트)', '개 (항목수)', '건 (프로젝트/계약)'] },
@@ -29,6 +31,29 @@ export default function App() {
     deleteCategory, addAccount, updateAccount, deleteAccount,
     userProfile, setUserProfile
   } = useAppData();
+
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    if (!supabase) {
+      setAuthLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -352,6 +377,18 @@ export default function App() {
     { id: 'goal', label: '목표', icon: Flag },
   ];
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f1115]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (supabase && !session) {
+    return <LoginView />;
+  }
+
   return (
     <div className="min-h-screen relative pb-28 overflow-x-hidden text-slate-800 dark:text-slate-100">
       <Toaster
@@ -628,6 +665,7 @@ export default function App() {
           deleteAccount={deleteAccount}
           userProfile={userProfile}
           setUserProfile={setUserProfile}
+          session={session}
         />
       )}
 
