@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { IconMap } from '../components/IconMap';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
 export default function ScheduleView({ schedules, setSchedules, currentDate }) {

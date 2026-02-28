@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { IconMap } from '../components/IconMap';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { toast } from 'react-hot-toast';
 

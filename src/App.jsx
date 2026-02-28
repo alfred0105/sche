@@ -7,7 +7,7 @@ import GoalView from './views/GoalView';
 import { IconMap } from './components/IconMap';
 import SettingsModal from './components/SettingsModal';
 import { Toaster, toast } from 'react-hot-toast';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { addDays, addWeeks, addMonths, parseISO, format } from 'date-fns';
 import { supabase } from './supabaseClient';
 import LoginView from './views/LoginView';

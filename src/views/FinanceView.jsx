@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { IconMap } from '../components/IconMap';
 import { isSameDay, isSameWeek, isSameMonth, parseISO } from 'date-fns';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, Legend } from 'recharts';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 
 export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate }) {
