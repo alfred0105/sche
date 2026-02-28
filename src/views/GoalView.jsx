@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { IconMap } from '../components/IconMap';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { toast } from 'react-hot-toast';

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { IconMap } from '../components/IconMap';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 

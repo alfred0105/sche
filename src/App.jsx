@@ -7,6 +7,7 @@ import GoalView from './views/GoalView';
 import { IconMap } from './components/IconMap';
 import SettingsModal from './components/SettingsModal';
 import { Toaster, toast } from 'react-hot-toast';
+// eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from 'framer-motion';
 import { addDays, addWeeks, addMonths, parseISO, format } from 'date-fns';
 import { supabase } from './supabaseClient';
@@ -21,6 +22,9 @@ const trackerUnits = [
 ];
 
 export default function App() {
+  const [session, setSession] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const {
     currentDate, filterDateStr,
     expenseCategories, incomeCategories, scheduleCategories, addCategory,
@@ -30,10 +34,7 @@ export default function App() {
     goals, setGoals,
     deleteCategory, addAccount, updateAccount, deleteAccount,
     userProfile, setUserProfile
-  } = useAppData();
-
-  const [session, setSession] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  } = useAppData(session);
 
   useEffect(() => {
     if (!supabase) {

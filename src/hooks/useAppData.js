@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
+import { supabase } from '../supabaseClient';
+import { toast } from 'react-hot-toast';
 
 function useLocalStorage(key, initialValue) {
     const [storedValue, setStoredValue] = useState(() => {
@@ -48,7 +50,6 @@ const defaultScheduleCats = [
     { id: 'appointment', label: '약속/동아리', icon: 'Utensils' },
 ];
 
-
 const defaultAccounts = [
     { id: 'cash', name: '현금', type: 'cash', default: true },
     { id: 'bank1', name: '국민은행 예금', type: 'bank' },
@@ -81,7 +82,7 @@ const defaultProfile = {
     accent: 'indigo'
 };
 
-export function useAppData() {
+export function useAppData(session) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const [expenseCategories, setExpenseCategories] = useLocalStorage('expenseCategories', defaultExpenseCats);
@@ -112,6 +113,70 @@ export function useAppData() {
     const [schedules, setSchedules] = useLocalStorage('schedules', defaultSchedules);
     const [goals, setGoals] = useLocalStorage('goals', defaultGoals);
     const [userProfile, setUserProfile] = useLocalStorage('userProfile', defaultProfile);
+
+    // ==========================================
+    // Cloud Sync Logic (Superfast Load & Save)
+    // ==========================================
+    const [cloudSyncStatus, setCloudSyncStatus] = useState('idle');
+
+    useEffect(() => {
+        if (!session?.user || !supabase) return;
+        let isMounted = true;
+
+        const loadCloudData = async () => {
+            try {
+                const { data } = await supabase.from('user_data').select('payload').eq('user_id', session.user.id).single();
+
+                if (isMounted && data?.payload) {
+                    const pl = data.payload;
+                    // Apply cloud data to local state silently without loading UI
+                    if (pl.expenseCategories) setExpenseCategories(pl.expenseCategories);
+                    if (pl.incomeCategories) setIncomeCategories(pl.incomeCategories);
+                    if (pl.scheduleCategories) setScheduleCategories(pl.scheduleCategories);
+                    if (pl.accounts) setAccounts(pl.accounts);
+                    if (pl.transactions) setTransactions(pl.transactions);
+                    if (pl.schedules) setSchedules(pl.schedules);
+                    if (pl.goals) setGoals(pl.goals);
+                    if (pl.userProfile) setUserProfile(pl.userProfile);
+
+                    toast.success('☁️ 기기 간 동기화가 완료되었습니다', { icon: '☁️' });
+                }
+            } catch (e) {
+                console.error('Cloud load fail', e);
+            } finally {
+                if (isMounted) setTimeout(() => setCloudSyncStatus('ready'), 2000);
+            }
+        };
+        loadCloudData();
+        return () => { isMounted = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [session?.user?.id]); // Runs only once when logging in
+
+    useEffect(() => {
+        // Debounced Auto-upload ensures no loading delays for user
+        if (cloudSyncStatus !== 'ready' || !session?.user || !supabase) return;
+
+        const uploadData = async () => {
+            const payload = {
+                expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, userProfile
+            };
+            try {
+                await supabase.from('user_data').upsert({
+                    user_id: session.user.id,
+                    payload: payload,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+            } catch (error) {
+                console.error('Cloud save fail', error);
+            }
+        };
+
+        const timerId = setTimeout(uploadData, 1500);
+        return () => clearTimeout(timerId);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [cloudSyncStatus, session?.user?.id, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, userProfile]);
+
+    // ==========================================
 
     const getCalculatedBalances = () => {
         let balances = { ...initialBalances };
