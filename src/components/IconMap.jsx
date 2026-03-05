@@ -3,17 +3,17 @@
  * All icons used across the app should be registered here.
  */
 import {
-    BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2, CheckSquare,
-    ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag, Landmark,
-    LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings, ShoppingBag,
-    Target, Train, Trash2, TrendingDown, TrendingUp, Utensils, Wallet, X,
-    BarChart3
+    BarChart3, BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2,
+    CheckSquare, ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag,
+    Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
+    ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
+    Wallet, X
 } from 'lucide-react';
 
 export const IconMap = {
-    BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2, CheckSquare,
-    ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag, Landmark,
-    LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings, ShoppingBag,
-    Target, Train, Trash2, TrendingDown, TrendingUp, Utensils, Wallet, X,
-    BarChart3
+    BarChart3, BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2,
+    CheckSquare, ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag,
+    Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
+    ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
+    Wallet, X
 };

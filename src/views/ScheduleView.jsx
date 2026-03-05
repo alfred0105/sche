@@ -133,8 +133,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                 </p>
                             </div>
                             <div className="flex-1 w-full max-w-sm" role="progressbar" aria-valuenow={completionRate} aria-valuemin={0} aria-valuemax={100}>
-                                <div className="h-3 md:h-4 w-full bg-indigo-900/30 rounded-full overflow-hidden border border-indigo-400/20">
-                                    <div className="h-full bg-white rounded-full transition-all duration-1000" style={{ width: `${completionRate}%` }} />
+                                <div className="h-4 md:h-5 w-full bg-white/20 rounded-full overflow-hidden border border-white/30 shadow-inner">
+                                    <div className="h-full bg-white rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(255,255,255,0.6)]" style={{ width: `${Math.max(completionRate, completionRate > 0 ? 3 : 0)}%`, minWidth: completionRate > 0 ? '12px' : '0' }} />
                                 </div>
                             </div>
                         </div>

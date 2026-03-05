@@ -174,16 +174,16 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             )}
                         </div>
                     </div>
-                    <div className="w-full md:w-60 h-28" aria-label="7일간 자산 추이 차트" role="img">
+                    <div className="w-full md:w-64 h-32 bg-slate-50/50 dark:bg-white/[0.02] rounded-2xl p-2 border border-slate-100 dark:border-white/5" aria-label="7일간 자산 추이 차트" role="img">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={assetChartData}>
                                 <defs>
                                     <linearGradient id="assetGrad" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-                                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.6} />
+                                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0.05} />
                                     </linearGradient>
                                 </defs>
-                                <Area type="monotone" dataKey="자산" stroke="#6366f1" fill="url(#assetGrad)" strokeWidth={2.5} dot={false} />
+                                <Area type="monotone" dataKey="자산" stroke="#6366f1" fill="url(#assetGrad)" strokeWidth={3} dot={false} />
                                 <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)', fontSize: '12px', fontWeight: 'bold', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                             </AreaChart>
                         </ResponsiveContainer>

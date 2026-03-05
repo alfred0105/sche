@@ -6,12 +6,14 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { motion } from 'framer-motion';
 import { IconMap } from './IconMap';
+import { differenceInDays, parseISO } from 'date-fns';
 
 function GoalCard({ goal, onClick }) {
     const { Target, CheckSquare } = IconMap;
     const cFrom = goal.colorFrom || 'from-slate-400';
     const cTo = goal.colorTo || 'to-slate-500';
     const hasTasks = goal.tasks && goal.tasks.length > 0;
+    const dDay = goal.deadline ? differenceInDays(parseISO(goal.deadline), new Date()) : null;
 
     return (
         <motion.div
@@ -23,13 +25,18 @@ function GoalCard({ goal, onClick }) {
             aria-label={`${goal.title} — ${goal.progress}% 완료`}
             onKeyDown={(e) => e.key === 'Enter' && onClick(goal.id)}
         >
-            <div className={`h-14 bg-gradient-to-r ${cFrom} ${cTo} opacity-80 relative`} aria-hidden="true">
-                <div className="absolute -bottom-5 left-4 w-10 h-10 bg-white dark:bg-[#1a1c23] rounded-xl flex items-center justify-center text-xl shadow-sm border border-slate-100 dark:border-white/10">
+            <div className={`h-20 bg-gradient-to-r ${cFrom} ${cTo} relative`} aria-hidden="true">
+                <div className="absolute -bottom-5 left-4 w-11 h-11 bg-white dark:bg-[#1a1c23] rounded-xl flex items-center justify-center text-xl shadow-md border border-slate-100 dark:border-white/10">
                     {goal.icon || '🎯'}
                 </div>
+                {dDay !== null && (
+                    <div className={`absolute top-2.5 right-2.5 text-[10px] font-black px-2 py-0.5 rounded-full backdrop-blur-sm ${dDay < 0 ? 'bg-red-500/80 text-white' : dDay <= 3 ? 'bg-orange-500/80 text-white' : 'bg-white/30 text-white'}`}>
+                        {dDay < 0 ? `D+${Math.abs(dDay)}` : dDay === 0 ? 'D-Day!' : `D-${dDay}`}
+                    </div>
+                )}
             </div>
 
-            <div className="p-4 pt-7 flex flex-col flex-1">
+            <div className="p-4 pt-8 flex flex-col flex-1">
                 <h3 className={`font-black text-[15px] mb-1 line-clamp-2 ${goal.progress === 100 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-100'}`}>
                     {goal.title} {goal.progress === 100 && '🏆'}
                 </h3>

@@ -136,12 +136,13 @@ export default function GoalView({ goals, setGoals }) {
     const handleGoalClick = useCallback((id) => setSelectedGoalId(id), []);
 
     const renderColumn = (type, label, dotColor, items) => (
-        <div className="flex-1 min-w-[300px] snap-center flex flex-col gap-3 bg-slate-50/50 dark:bg-white/[0.02] p-4 rounded-3xl border border-slate-100 dark:border-white/5">
-            <div className="flex items-center justify-between mb-2 px-1">
-                <h3 className="text-sm font-black text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                    <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} aria-hidden="true" /> {label}
+        <div className="flex-1 min-w-[300px] snap-center flex flex-col gap-3 bg-slate-50/50 dark:bg-white/[0.02] p-4 rounded-3xl border border-slate-100 dark:border-white/5 relative overflow-hidden">
+            <div className={`absolute top-0 left-0 right-0 h-1 ${dotColor}`} aria-hidden="true" />
+            <div className="flex items-center justify-between mb-2 px-1 pt-1">
+                <h3 className="text-base font-black text-slate-700 dark:text-slate-200 flex items-center gap-2">
+                    <span className={`w-3 h-3 rounded-full ${dotColor} shadow-sm`} aria-hidden="true" /> {label}
                 </h3>
-                <span className="bg-white dark:bg-white/5 text-slate-500 text-[10px] px-2 py-0.5 rounded-md font-bold" aria-label={`${items.length}개`}>{items.length}</span>
+                <span className="bg-white dark:bg-white/10 text-slate-600 dark:text-slate-300 text-xs px-2.5 py-0.5 rounded-lg font-black border border-slate-200 dark:border-white/10 shadow-sm" aria-label={`${items.length}개`}>{items.length}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3" role="list" aria-label={`${label} 목표 목록`}>
                 <AnimatePresence>

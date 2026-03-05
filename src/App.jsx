@@ -131,8 +131,10 @@ export default function App() {
 
         <div className="flex items-center justify-between pb-1 px-1">
           <div className="flex flex-col">
-            <span className="text-base md:text-lg font-black text-slate-800 dark:text-white">{displayDate}</span>
-            <span className="text-[10px] font-bold text-slate-400 -mt-1 uppercase tracking-wider">{currentDate.toDateString()}</span>
+            <span className="text-base md:text-lg font-black text-slate-800 dark:text-white">{displayDate} {['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()]}요일</span>
+            <span className="text-[11px] font-bold text-slate-400 -mt-0.5">
+              {currentDate.getHours() < 12 ? '☀️ 좋은 아침이에요' : currentDate.getHours() < 18 ? '🌤️ 좋은 오후에요' : '🌙 좋은 저녁이에요'}, {userProfile?.name || '사용자'}님!
+            </span>
           </div>
         </div>
 
