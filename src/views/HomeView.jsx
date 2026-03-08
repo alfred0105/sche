@@ -4,7 +4,7 @@
 import React, { useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
-import { format, isSameDay, subDays, parseISO } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, differenceInDays } from 'date-fns';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { CHART_DAYS_RANGE } from '../constants';
 
@@ -154,7 +154,12 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
                             <div className="flex items-center gap-3 mb-3">
                                 <span className="text-xl md:text-2xl" aria-hidden="true">{primaryGoal.icon || '🎯'}</span>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold tracking-tight text-slate-100 truncate">{primaryGoal.title}</p>
+                                    <div className="flex items-center gap-2 mb-0.5">
+                                        <p className="text-sm font-bold tracking-tight text-slate-100 truncate">{primaryGoal.title}</p>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${differenceInDays(parseISO(primaryGoal.deadline), new Date()) < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-indigo-500/10 text-indigo-400'}`}>
+                                            D{differenceInDays(parseISO(primaryGoal.deadline), new Date()) < 0 ? '+' : '-'}{Math.abs(differenceInDays(parseISO(primaryGoal.deadline), new Date()))}
+                                        </span>
+                                    </div>
                                     <p className="text-[11px] text-slate-400 font-bold">{primaryGoal.deadline} 까지</p>
                                 </div>
                                 <span className="text-lg font-bold tracking-tight text-indigo-400">{primaryGoal.progress}%</span>
