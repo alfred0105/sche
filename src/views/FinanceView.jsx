@@ -12,7 +12,7 @@ import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
 import { generateId } from '../utils/helpers';
 
-export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories }) {
+export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances }) {
     const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
@@ -24,6 +24,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const [quickUpdateState, setQuickUpdateState] = useState({ open: false, accId: null, type: '' });
     const [budgetModal, setBudgetModal] = useState({ open: false, categoryId: null, categoryLabel: '', currentBudget: 0 });
     const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
+    const [initBalanceModal, setInitBalanceModal] = useState({ open: false, accId: null, accName: '', currentInit: 0 });
 
     const filteredTxs = useMemo(() => {
         return transactions.filter((t) => {
@@ -144,6 +145,14 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         setResetConfirmOpen(false);
     }, [setBudgets]);
 
+    const handleInitBalanceUpdate = useCallback((valueStr) => {
+        const value = Number(valueStr);
+        if (isNaN(value)) return toast.error('올바른 금액을 입력해주세요!');
+        setInitialBalances(prev => ({ ...prev, [initBalanceModal.accId]: value }));
+        toast.success(`${initBalanceModal.accName} 초기 잔액 설정이 완료되었습니다.`);
+        setInitBalanceModal({ open: false, accId: null, accName: '', currentInit: 0 });
+    }, [initBalanceModal, setInitialBalances]);
+
     return (
         <section className="mb-8 space-y-6" aria-label="재정 관리">
             <ConfirmModal
@@ -190,6 +199,19 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 message="설정한 모든 내역을 초기화하시겠습니까?"
                 confirmText="초기화"
                 variant="danger"
+            />
+
+            <ConfirmModal
+                isOpen={initBalanceModal.open}
+                onClose={() => setInitBalanceModal({ open: false, accId: null, accName: '', currentInit: 0 })}
+                onConfirm={handleInitBalanceUpdate}
+                title={`${initBalanceModal.accName} 초기 금액 설정`}
+                message="이 계좌의 초기 시작 금액을 입력해주세요."
+                confirmText="설정"
+                variant="info"
+                showInput
+                inputPlaceholder="금액 (원)"
+                inputType="number"
             />
 
             {/* Total Assets Card */}
@@ -366,6 +388,9 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                                     <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" /> {acc.type === 'savings' ? '이자 수동반영' : '평가익 반영'}
                                                                 </button>
                                                             )}
+                                                            <button onClick={() => setInitBalanceModal({ open: true, accId: acc.id, accName: acc.name, currentInit: initialBalances[acc.id] || 0 })} className="flex items-center gap-1 text-xs font-bold bg-white dark:bg-[#1a1c23] border border-slate-200 dark:border-white/10 px-3 py-2 rounded-lg hover:border-slate-300 dark:hover:border-white/20 text-slate-500 transition-all shadow-sm">
+                                                                ⚙️ 초기 금액 설정
+                                                            </button>
                                                         </div>
                                                     </motion.div>
                                                 )}
@@ -448,4 +473,6 @@ FinanceView.propTypes = {
     budgets: PropTypes.object,
     setBudgets: PropTypes.func,
     expenseCategories: PropTypes.array,
+    initialBalances: PropTypes.object,
+    setInitialBalances: PropTypes.func,
 };

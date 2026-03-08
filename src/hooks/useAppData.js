@@ -69,7 +69,6 @@ const defaultSchedules = [
 const defaultGoals = [
     { id: 'goal-default-1', type: 'short', title: '오늘까지 내야 하는 과제', progress: 0, target: 100, deadline: format(new Date(), 'yyyy-MM-dd'), tasks: [], tracker: { type: 'checklist', unit: '% (수동 퍼센트)', current: 0, target: 100 } },
     { id: 'goal-default-2', type: 'mid', title: '이번 학기 학점 4.0', progress: 20, target: 100, deadline: '2026-06-30', tasks: [], tracker: { type: 'checklist', unit: '% (수동 퍼센트)', current: 0, target: 100 } },
-    { id: 'goal-default-3', type: 'long', title: '천만원 모으기 프로젝트', progress: 45, target: 100, targetAmount: 10000000, currentAmount: 4500000, deadline: '2026-12-31', tasks: [], tracker: { type: 'checklist', unit: '% (수동 퍼센트)', current: 0, target: 100 } },
 ];
 
 const defaultStudies = [
@@ -112,7 +111,7 @@ export function useAppData(session) {
     }, [setAccounts]);
     const deleteAccount = useCallback((id) => setAccounts((p) => p.filter((a) => a.id !== id)), [setAccounts]);
 
-    const [initialBalances] = useLocalStorage('initialBalances', DEFAULT_INITIAL_BALANCES);
+    const [initialBalances, setInitialBalances] = useLocalStorage('initialBalances', DEFAULT_INITIAL_BALANCES);
 
     const [transactions, setTransactions] = useLocalStorage('transactions', defaultTransactions);
     const [schedules, setSchedules] = useLocalStorage('schedules', defaultSchedules);
@@ -154,6 +153,7 @@ export function useAppData(session) {
                     if (pl.userProfile) setUserProfile(pl.userProfile);
                     if (pl.budgets) setBudgets(pl.budgets);
                     if (pl.reviews) setReviews(pl.reviews);
+                    if (pl.initialBalances) setInitialBalances(pl.initialBalances);
                     toast.success('기기 간 동기화가 완료되었습니다', { icon: '☁️' });
                 }
             } catch (e) {
@@ -170,7 +170,7 @@ export function useAppData(session) {
         };
         loadCloudData();
         return () => { isMounted = false; };
-    }, [session?.user, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile, setBudgets, setReviews]);
+    }, [session?.user, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile, setBudgets, setReviews, setInitialBalances]);
 
     useEffect(() => {
         if (cloudSyncStatus !== 'ready' || !session?.user || !supabase || cloudSyncRef.current) return;
@@ -178,7 +178,7 @@ export function useAppData(session) {
         const uploadData = async () => {
             const payload = {
                 expenseCategories, incomeCategories, scheduleCategories,
-                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews
+                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, initialBalances
             };
             try {
                 await supabase.from('user_data').upsert({
@@ -193,7 +193,7 @@ export function useAppData(session) {
 
         const timerId = setTimeout(uploadData, CLOUD_SYNC_DEBOUNCE_MS);
         return () => clearTimeout(timerId);
-    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews]);
+    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, initialBalances]);
 
     // ==========================================
     // Memoized Calculations
@@ -223,5 +223,6 @@ export function useAppData(session) {
         userProfile, setUserProfile,
         budgets, setBudgets,
         reviews, setReviews,
+        initialBalances, setInitialBalances,
     };
 }

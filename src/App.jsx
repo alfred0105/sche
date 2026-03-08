@@ -47,6 +47,7 @@ export default function App() {
     userProfile, setUserProfile,
     budgets, setBudgets,
     reviews, setReviews,
+    initialBalances, setInitialBalances,
   } = useAppData(session);
 
   // Run daily automations (interest, ticker sync)
@@ -210,7 +211,20 @@ export default function App() {
         >
           {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} />}
           {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} />}
-          {currentTab === 'finance' && <FinanceView transactions={transactions} setTransactions={setTransactions} getCalculatedBalances={getCalculatedBalances} accounts={accounts} currentDate={currentDate} budgets={budgets} setBudgets={setBudgets} expenseCategories={expenseCategories} />}
+          {currentTab === 'finance' &&
+            <FinanceView
+              transactions={transactions}
+              setTransactions={setTransactions}
+              getCalculatedBalances={getCalculatedBalances}
+              accounts={accounts}
+              currentDate={currentDate}
+              budgets={budgets}
+              setBudgets={setBudgets}
+              expenseCategories={expenseCategories}
+              initialBalances={initialBalances}
+              setInitialBalances={setInitialBalances}
+            />
+          }
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
           {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} />}
           {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} />}

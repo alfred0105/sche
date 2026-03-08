@@ -69,11 +69,11 @@ export const DEFAULT_ACCOUNTS = [
 ];
 
 export const DEFAULT_INITIAL_BALANCES = {
-  cash: 50000,
-  bank1: 5000000,
-  bank2: 1200000,
-  saving1: 3000000,
-  stock1: 2500000,
+  cash: 0,
+  bank1: 0,
+  bank2: 0,
+  saving1: 0,
+  stock1: 0,
 };
 
 // ============================================================
