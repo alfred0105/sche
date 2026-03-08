@@ -16,6 +16,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
     const [filterType, setFilterType] = useState('daily');
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'timeline'
     const [expandedId, setExpandedId] = useState(null);
+    const [editId, setEditId] = useState(null);
+    const [editForm, setEditForm] = useState(null);
     const [confirmState, setConfirmState] = useState({ open: false, id: null, isGroup: false });
 
     // Memoized filtered & sorted schedules
@@ -229,7 +231,17 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                         {schedule.completed ? <CheckCircle2 className="w-[20px] h-[20px] fill-indigo-100 dark:fill-indigo-500/20" /> : <Circle className="w-[20px] h-[20px]" />}
                                                     </div>
 
-                                                    <div className="flex-1 cursor-pointer select-none" onClick={() => setExpandedId(expandedId === schedule.id ? null : schedule.id)} role="button" tabIndex={0} aria-expanded={expandedId === schedule.id} onKeyDown={(e) => e.key === 'Enter' && setExpandedId(expandedId === schedule.id ? null : schedule.id)}>
+                                                    <div className="flex-1 cursor-pointer select-none" onClick={() => {
+                                                        const isExpanding = expandedId !== schedule.id;
+                                                        setExpandedId(isExpanding ? schedule.id : null);
+                                                        if (!isExpanding) setEditId(null);
+                                                    }} role="button" tabIndex={0} aria-expanded={expandedId === schedule.id} onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            const isExpanding = expandedId !== schedule.id;
+                                                            setExpandedId(isExpanding ? schedule.id : null);
+                                                            if (!isExpanding) setEditId(null);
+                                                        }
+                                                    }}>
                                                         <div className="flex flex-wrap items-center gap-2">
                                                             <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md text-slate-400 border border-slate-200/50 dark:border-white/5 shadow-none">{schedule.category}</span>
                                                             {schedule.priority && (
@@ -287,19 +299,47 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                             exit={{ height: 0, opacity: 0 }}
                                                             className="overflow-hidden"
                                                         >
-                                                            <div className="text-sm text-slate-400 bg-[#09090b] p-4 rounded-xl border border-slate-200/60 dark:border-white/5 leading-relaxed shadow-none mt-3 mb-2 relative">
-                                                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-l-xl" aria-hidden="true" />
-                                                                <p className="pl-2">{schedule.memo || '작성된 상세 메모가 없습니다.'}</p>
-                                                                <div className="mt-4 flex gap-2 pl-2">
-                                                                    <button
-                                                                        onClick={() => handleDeleteRequest(schedule.id)}
-                                                                        className="text-[11px] font-bold flex items-center gap-1 text-rose-500 dark:text-rose-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-rose-200 dark:hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-500/10 shadow-none transition-all"
-                                                                        aria-label={`${schedule.title} 삭제`}
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> 삭제하기
-                                                                    </button>
+                                                            {editId === schedule.id && editForm ? (
+                                                                <div className="bg-[#09090b] p-4 rounded-xl border border-indigo-500/30 mt-3 relative">
+                                                                    <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none" placeholder="일정 제목" />
+                                                                    <div className="flex gap-2 mb-2">
+                                                                        <input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none w-full" />
+                                                                        <input type="time" value={editForm.endTime || ''} onChange={e => setEditForm({ ...editForm, endTime: e.target.value })} className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none w-full" />
+                                                                    </div>
+                                                                    <input value={editForm.location || ''} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none" placeholder="장소 (선택)" />
+                                                                    <textarea value={editForm.memo || ''} onChange={e => setEditForm({ ...editForm, memo: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none resize-none" placeholder="상세 메모" rows={2} />
+                                                                    <div className="flex justify-end gap-2 mt-2">
+                                                                        <button onClick={(e) => { e.stopPropagation(); setEditId(null); }} className="px-3 py-1.5 text-[11px] font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10 transition-colors">취소</button>
+                                                                        <button onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            if (!editForm.title.trim()) return toast.error('일정 제목을 입력해주세요.');
+                                                                            setSchedules(prev => prev.map(s => s.id === editId ? editForm : s));
+                                                                            setEditId(null);
+                                                                            toast.success('일정이 수정되었습니다.', { icon: '✏️' });
+                                                                        }} className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-500 rounded-lg shadow-none hover:bg-indigo-600 transition-colors">저장 완료</button>
+                                                                    </div>
                                                                 </div>
-                                                            </div>
+                                                            ) : (
+                                                                <div className="text-sm text-slate-400 bg-[#09090b] p-4 rounded-xl border border-slate-200/60 dark:border-white/5 leading-relaxed shadow-none mt-3 mb-2 relative">
+                                                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-l-xl" aria-hidden="true" />
+                                                                    <p className="pl-2">{schedule.memo || '작성된 상세 메모가 없습니다.'}</p>
+                                                                    <div className="mt-4 flex gap-2 pl-2 relative z-10">
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); setEditForm({ ...schedule }); setEditId(schedule.id); }}
+                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
+                                                                        >
+                                                                            ✏️ 수정하기
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); handleDeleteRequest(schedule.id); }}
+                                                                            className="text-[11px] font-bold flex items-center gap-1 text-rose-500 dark:text-rose-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-rose-200 dark:hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-500/10 shadow-none transition-all"
+                                                                            aria-label={`${schedule.title} 삭제`}
+                                                                        >
+                                                                            <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> 삭제하기
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
                                                         </motion.div>
                                                     )}
                                                 </AnimatePresence>
