@@ -22,6 +22,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     // ConfirmModal states
     const [deleteConfirmState, setDeleteConfirmState] = useState({ open: false, txId: null, hasGroup: false });
     const [quickUpdateState, setQuickUpdateState] = useState({ open: false, accId: null, type: '' });
+    const [budgetModal, setBudgetModal] = useState({ open: false, categoryId: null, categoryLabel: '', currentBudget: 0 });
+    const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
 
     const filteredTxs = useMemo(() => {
         return transactions.filter((t) => {
@@ -128,6 +130,20 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         setQuickUpdateState({ open: false, accId: null, type: '' });
     }, [quickUpdateState, accounts, setTransactions, currentDate]);
 
+    const handleBudgetUpdate = useCallback((valueStr) => {
+        const num = Number(valueStr);
+        if (isNaN(num) || num < 0) return toast.error('올바른 예산 금액을 입력해주세요.');
+        setBudgets(prev => ({ ...prev, [budgetModal.categoryId]: num }));
+        toast.success(`${budgetModal.categoryLabel} 예산이 설정되었습니다.`);
+        setBudgetModal({ open: false, categoryId: null, categoryLabel: '', currentBudget: 0 });
+    }, [budgetModal, setBudgets]);
+
+    const handleResetBudgets = useCallback(() => {
+        setBudgets({});
+        toast.success('모든 예산이 초기화되었습니다.');
+        setResetConfirmOpen(false);
+    }, [setBudgets]);
+
     return (
         <section className="mb-8 space-y-6" aria-label="재정 관리">
             <ConfirmModal
@@ -151,6 +167,29 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 showInput
                 inputPlaceholder="금액 (원)"
                 inputType="number"
+            />
+
+            <ConfirmModal
+                isOpen={budgetModal.open}
+                onClose={() => setBudgetModal({ open: false, categoryId: null, categoryLabel: '', currentBudget: 0 })}
+                onConfirm={handleBudgetUpdate}
+                title={`${budgetModal.categoryLabel} 예산 설정`}
+                message="월간 목표 예산(원)을 입력해주세요."
+                confirmText="설정"
+                variant="info"
+                showInput
+                inputPlaceholder="예: 300000"
+                inputType="number"
+            />
+
+            <ConfirmModal
+                isOpen={resetConfirmOpen}
+                onClose={() => setResetConfirmOpen(false)}
+                onConfirm={handleResetBudgets}
+                title="예산 초기화"
+                message="설정한 모든 내역을 초기화하시겠습니까?"
+                confirmText="초기화"
+                variant="danger"
             />
 
             {/* Total Assets Card */}
@@ -340,12 +379,17 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {activeSubTab === 'budgets' && (
                         <div className="glass-card p-6 min-h-[400px]">
-                            <div className="flex justify-between items-center mb-5">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                                 <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2">
                                     <Target className="w-5 h-5 text-rose-500" aria-hidden="true" /> 카테고리별 예산 통제
                                 </h3>
-                                <div className="text-[11px] font-bold text-slate-500 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-lg shadow-sm">
-                                    {format(currentDate, 'yyyy년 M월')} 기준
+                                <div className="flex items-center gap-2">
+                                    <button onClick={() => setResetConfirmOpen(true)} className="text-[11px] font-bold text-slate-500 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500/50">
+                                        기본값 초기화
+                                    </button>
+                                    <div className="text-[11px] font-bold text-slate-500 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-lg shadow-sm">
+                                        {format(currentDate, 'yyyy년 M월')} 기준
+                                    </div>
                                 </div>
                             </div>
 
@@ -359,36 +403,29 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     const isWarning = rawPct >= 90 && !isExceeded;
 
                                     return (
-                                        <div key={cat.id} className="relative group">
+                                        <div key={cat.id} className="relative group p-2 -mx-2 rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                             <div className="flex justify-between items-end mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{cat.label}</span>
-                                                    {isExceeded && <span className="text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 flex items-center gap-1 py-0.5 rounded font-black border border-rose-200 dark:border-rose-500/30">초과 위험!</span>}
-                                                    {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded font-black border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
+                                                    {isExceeded && <span className="text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-black border border-rose-200 dark:border-rose-500/30">초과 위험!</span>}
+                                                    {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-black border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
                                                 </div>
-                                                <div className="text-right">
+                                                <div className="text-right flex items-center gap-3">
+                                                    <button onClick={() => setBudgetModal({ open: true, categoryId: cat.id, categoryLabel: cat.label, currentBudget: budget })} className="text-[11px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-all flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-md p-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100" aria-label={`${cat.label} 예산 수정`} >
+                                                        ⚙️ <span className="hidden sm:inline">예산 수정</span>
+                                                    </button>
                                                     <div className="text-sm font-black text-slate-800 dark:text-white">
-                                                        ₩{spent.toLocaleString()} <span className="text-[11px] text-slate-400 font-bold ml-1">/ ₩{budget.toLocaleString()}</span>
+                                                        ₩{spent.toLocaleString()} <span className="text-[11px] text-slate-400 font-bold ml-1">/ {budget > 0 ? `₩${budget.toLocaleString()}` : "미설정"}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div className="h-4 w-full bg-slate-100 dark:bg-[#0f1115] border border-slate-200/50 dark:border-white/5 rounded-full overflow-hidden flex relative" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                                                <div className={`h-full rounded-full transition-all duration-1000 ${isExceeded ? 'bg-rose-500' : isWarning ? 'bg-orange-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+                                                <div className={`h-full rounded-full transition-all duration-1000 ${budget === 0 ? 'bg-slate-300 dark:bg-slate-700' : isExceeded ? 'bg-rose-500' : isWarning ? 'bg-orange-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(pct, 2)}%` }} />
                                             </div>
-                                            <div className="mt-1 text-right flex justify-between items-center text-[11px] font-bold">
+                                            <div className="mt-2 flex justify-between items-center text-[11px] font-bold">
                                                 <span className={`text-slate-400 ${isExceeded ? 'text-rose-500' : ''}`}>
-                                                    {isExceeded ? `${(rawPct - 100).toFixed(1)}% 예산 초과` : `${pct}% 사용됨`}
+                                                    {budget === 0 ? '목표 예산이 설정되지 않았습니다' : isExceeded ? `${(rawPct - 100).toFixed(1)}% 예산 초과` : `${pct}% 사용됨`}
                                                 </span>
-                                                <button onClick={() => {
-                                                    const newBudget = prompt(`${cat.label} 예산 설정 (원)`, budget);
-                                                    if (newBudget !== null && !isNaN(newBudget)) {
-                                                        const numBudget = Number(newBudget);
-                                                        setBudgets(prev => ({ ...prev, [cat.id]: numBudget }));
-                                                        toast.success(`${cat.label} 예산이 변경되었습니다.`);
-                                                    }
-                                                }} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors opacity-0 group-hover:opacity-100">
-                                                    ⚙️ 예산 수정
-                                                </button>
                                             </div>
                                         </div>
                                     );

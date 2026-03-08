@@ -76,11 +76,7 @@ const defaultStudies = [
     { id: 'study-default-1', title: '매일 영단어 50개 암기', icon: 'BookOpen', totalDays: 30, logs: [format(new Date(), 'yyyy-MM-dd')] },
 ];
 
-const defaultBudgets = {
-    food: 300000,
-    shopping: 100000,
-    cafe: 50000
-};
+const defaultBudgets = {};
 
 const defaultReviews = [
     { id: 'review-default-1', date: format(new Date(), 'yyyy-MM-dd'), type: 'daily', score: 4, keep: '아침 일찍 일어나 루틴 성공!', problem: '오후에 카톡 하느라 시간 낭비함', try: '내일은 오후 2-4시 사이에 폰 무음으로 두기' }
