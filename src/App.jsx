@@ -47,6 +47,8 @@ export default function App() {
     userProfile, setUserProfile,
     budgets, setBudgets,
     reviews, setReviews,
+    studyTimes, setStudyTimes,
+    authPhotos, setAuthPhotos,
     initialBalances, setInitialBalances,
   } = useAppData(session);
 
@@ -259,7 +261,7 @@ export default function App() {
             />
           }
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
-          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} />}
+          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} />}
           {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} />}
         </motion.div>
       </main>

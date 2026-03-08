@@ -120,6 +120,8 @@ export function useAppData(session) {
     const [userProfile, setUserProfile] = useLocalStorage('userProfile', DEFAULT_PROFILE);
     const [budgets, setBudgets] = useLocalStorage('budgets', defaultBudgets);
     const [reviews, setReviews] = useLocalStorage('reviews', defaultReviews);
+    const [studyTimes, setStudyTimes] = useLocalStorage('studyTimes', {});
+    const [authPhotos, setAuthPhotos] = useLocalStorage('authPhotos', {});
 
     // ==========================================
     // Cloud Sync Logic
@@ -153,6 +155,8 @@ export function useAppData(session) {
                     if (pl.userProfile) setUserProfile(pl.userProfile);
                     if (pl.budgets) setBudgets(pl.budgets);
                     if (pl.reviews) setReviews(pl.reviews);
+                    if (pl.studyTimes) setStudyTimes(pl.studyTimes);
+                    if (pl.authPhotos) setAuthPhotos(pl.authPhotos);
                     if (pl.initialBalances) setInitialBalances(pl.initialBalances);
                     toast.success('기기 간 동기화가 완료되었습니다', { icon: '☁️' });
                 }
@@ -170,7 +174,7 @@ export function useAppData(session) {
         };
         loadCloudData();
         return () => { isMounted = false; };
-    }, [session?.user, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile, setBudgets, setReviews, setInitialBalances]);
+    }, [session?.user, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile, setBudgets, setReviews, setStudyTimes, setAuthPhotos, setInitialBalances]);
 
     useEffect(() => {
         if (cloudSyncStatus !== 'ready' || !session?.user || !supabase || cloudSyncRef.current) return;
@@ -178,7 +182,7 @@ export function useAppData(session) {
         const uploadData = async () => {
             const payload = {
                 expenseCategories, incomeCategories, scheduleCategories,
-                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, initialBalances
+                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances
             };
             try {
                 await supabase.from('user_data').upsert({
@@ -193,7 +197,7 @@ export function useAppData(session) {
 
         const timerId = setTimeout(uploadData, CLOUD_SYNC_DEBOUNCE_MS);
         return () => clearTimeout(timerId);
-    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, initialBalances]);
+    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances]);
 
     // ==========================================
     // Memoized Calculations
@@ -223,6 +227,8 @@ export function useAppData(session) {
         userProfile, setUserProfile,
         budgets, setBudgets,
         reviews, setReviews,
+        studyTimes, setStudyTimes,
+        authPhotos, setAuthPhotos,
         initialBalances, setInitialBalances,
     };
 }
