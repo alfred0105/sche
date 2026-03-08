@@ -8,6 +8,7 @@ import { toast } from 'react-hot-toast';
 import { IconMap } from './IconMap';
 import { TRACKER_UNITS, DEFAULT_RECURRING_COUNT } from '../constants';
 import { sanitizeRecurringCount } from '../utils/helpers';
+import { addMonths, parseISO, format } from 'date-fns';
 import { generateRecurringTransactions, generateRecurringSchedules } from '../utils/recurringGenerator';
 import { generateId } from '../utils/helpers';
 
@@ -49,6 +50,11 @@ export default function InputModal({
     const [goalTargetValue, setGoalTargetValue] = useState(100);
     const [hasInteracted, setHasInteracted] = useState(false);
 
+    // Advanced features
+    const [schedulePriority, setSchedulePriority] = useState('Medium');
+    const [taxDeductible, setTaxDeductible] = useState(false);
+    const [installmentMonths, setInstallmentMonths] = useState(1);
+
     // Reset form on open
     useEffect(() => {
         if (isOpen) {
@@ -66,6 +72,9 @@ export default function InputModal({
             setExcludeHolidays(false);
             setCustomRecurringDays([{ id: generateId(), val: 1, time: '09:00', endTime: '10:00' }]);
             setHasInteracted(false);
+            setSchedulePriority('Medium');
+            setTaxDeductible(false);
+            setInstallmentMonths(1);
         }
     }, [isOpen, filterDateStr, accounts, expenseCategories]);
 
@@ -91,6 +100,9 @@ export default function InputModal({
         setExcludeHolidays(false);
         setCustomRecurringDays([{ id: generateId(), val: 1, time: '09:00', endTime: '10:00' }]);
         setHasInteracted(false);
+        setSchedulePriority('Medium');
+        setTaxDeductible(false);
+        setInstallmentMonths(1);
         if (mode === 'expense') setActiveCategoryId(expenseCategories[0]?.id || '');
         if (mode === 'income') setActiveCategoryId(incomeCategories[0]?.id || '');
         if (mode === 'schedule') setActiveCategoryId(scheduleCategories[0]?.id || '');
@@ -134,12 +146,33 @@ export default function InputModal({
             }]);
             toast.success('새로운 목표가 생성되었습니다!', { icon: '🎯' });
         } else if (inputMode === 'expense' || inputMode === 'income') {
-            const amt = Number(inputValue);
-            if (!amt || amt <= 0) return toast.error('올바른 금액을 입력해주세요!');
+            const totalAmt = Number(inputValue);
+            if (!totalAmt || totalAmt <= 0) return toast.error('올바른 금액을 입력해주세요!');
 
             const config = { formDate, recurringType, count, excludeHolidays, customRecurringDays };
-            const txData = { type: inputMode, title: formTitle, amount: amt, category: catLabel, memo: formMemo, accountId: formAccount };
-            const newTx = generateRecurringTransactions(config, txData);
+            const baseTxData = { type: inputMode, title: formTitle, category: catLabel, memo: formMemo, accountId: formAccount, taxDeductible };
+
+            let newTx = [];
+            if (inputMode === 'expense' && installmentMonths > 1 && !isRecurring) {
+                const amtPerMonth = Math.floor(totalAmt / installmentMonths);
+                const remainder = totalAmt - (amtPerMonth * installmentMonths);
+                const groupId = generateId();
+                for (let i = 0; i < installmentMonths; i++) {
+                    const iDate = format(addMonths(parseISO(formDate), i), 'yyyy-MM-dd');
+                    newTx.push({
+                        id: generateId(),
+                        ...baseTxData,
+                        amount: i === 0 ? amtPerMonth + remainder : amtPerMonth,
+                        date: iDate,
+                        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+                        title: `${formTitle} (${i + 1}/${installmentMonths}개월 할부)`,
+                        groupId,
+                        installment: installmentMonths,
+                    });
+                }
+            } else {
+                newTx = generateRecurringTransactions(config, { ...baseTxData, amount: totalAmt, installment: 1 });
+            }
 
             setTransactions((prev) => [...prev, ...newTx]);
             toast.success(inputMode === 'expense'
@@ -155,6 +188,7 @@ export default function InputModal({
                 location: formLocation,
                 scheduleTime,
                 scheduleEndTime,
+                priority: schedulePriority,
             };
             const newSc = generateRecurringSchedules(config, scData);
 
@@ -257,21 +291,40 @@ export default function InputModal({
 
                     {/* Amount */}
                     {(inputMode === 'expense' || inputMode === 'income') && (
-                        <div>
-                            <label htmlFor="input-amount" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">가치 금액 *</label>
-                            <div className={`flex items-center bg-white dark:bg-[#1a1c23] border rounded-xl overflow-hidden transition-all shadow-sm outline-none px-4 ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500 focus-within:ring-4 focus-within:ring-red-500/10' : 'border-slate-200 dark:border-white/10 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
-                                <input
-                                    id="input-amount"
-                                    type="text"
-                                    autoFocus
-                                    value={inputValue ? Number(inputValue).toLocaleString() : ''}
-                                    onChange={handleAmountChange}
-                                    placeholder="0"
-                                    className="w-full bg-transparent py-3 text-2xl font-black text-rose-500 outline-none"
-                                    aria-required="true"
-                                    aria-label="금액"
-                                />
-                                <span className="font-bold text-slate-400 pl-2 select-none">원</span>
+                        <div className="space-y-3">
+                            <div>
+                                <label htmlFor="input-amount" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">가치 금액 *</label>
+                                <div className={`flex items-center bg-white dark:bg-[#1a1c23] border rounded-xl overflow-hidden transition-all shadow-sm outline-none px-4 ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500 focus-within:ring-4 focus-within:ring-red-500/10' : 'border-slate-200 dark:border-white/10 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
+                                    <input
+                                        id="input-amount"
+                                        type="text"
+                                        autoFocus
+                                        value={inputValue ? Number(inputValue).toLocaleString() : ''}
+                                        onChange={handleAmountChange}
+                                        placeholder="0"
+                                        className="w-full bg-transparent py-3 text-2xl font-black text-rose-500 outline-none"
+                                        aria-required="true"
+                                        aria-label="금액"
+                                    />
+                                    <span className="font-bold text-slate-400 pl-2 select-none">원</span>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 bg-slate-50 dark:bg-white/5 p-3 rounded-xl border border-slate-100 dark:border-white/5">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input type="checkbox" checked={taxDeductible} onChange={(e) => setTaxDeductible(e.target.checked)} className="w-4 h-4 text-rose-500 rounded border-slate-300 focus:ring-rose-500" />
+                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">연말정산/증빙 포함 (영수증)</span>
+                                </label>
+                                {inputMode === 'expense' && !isRecurring && (
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <span className="text-xs font-bold text-slate-500">할부</span>
+                                        <select value={installmentMonths} onChange={(e) => setInstallmentMonths(parseInt(e.target.value))} className="bg-white dark:bg-[#1a1c23] border border-slate-200 dark:border-white/10 text-xs font-bold p-1 rounded">
+                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(m => (
+                                                <option key={m} value={m}>{m === 1 ? '일시불' : `${m}개월`}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -346,9 +399,19 @@ export default function InputModal({
                     )}
 
                     {inputMode === 'schedule' && (
-                        <div>
-                            <label htmlFor="input-location" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">장소 (선택)</label>
-                            <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-white dark:bg-[#1a1c23] border border-slate-200 dark:border-white/10 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+                        <div className="flex gap-3">
+                            <div className="flex-1">
+                                <label htmlFor="input-location" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">장소 (선택)</label>
+                                <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-white dark:bg-[#1a1c23] border border-slate-200 dark:border-white/10 px-4 py-3 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 focus:border-indigo-500 outline-none transition-all shadow-sm" />
+                            </div>
+                            <div className="w-1/3">
+                                <label htmlFor="input-priority" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">중요도</label>
+                                <select id="input-priority" value={schedulePriority} onChange={(e) => setSchedulePriority(e.target.value)} className="w-full bg-white dark:bg-[#1a1c23] border border-slate-200 dark:border-white/10 px-3 py-3 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-200 focus:border-indigo-500 outline-none transition-all shadow-sm">
+                                    <option value="Low">낮음</option>
+                                    <option value="Medium">보통</option>
+                                    <option value="High">높음 (중요!)</option>
+                                </select>
+                            </div>
                         </div>
                     )}
 

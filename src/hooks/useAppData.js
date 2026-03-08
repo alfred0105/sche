@@ -38,15 +38,13 @@ function useLocalStorage(key, initialValue) {
         }
     });
 
-    // Keep a ref to the latest stored value to avoid stale closures
-    const storedValueRef = useRef(storedValue);
-    storedValueRef.current = storedValue;
-
     const setValue = useCallback((value) => {
         try {
-            const valueToStore = value instanceof Function ? value(storedValueRef.current) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+            setStoredValue((prevValue) => {
+                const valueToStore = value instanceof Function ? value(prevValue) : value;
+                window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                return valueToStore;
+            });
         } catch (error) {
             console.error(`[useLocalStorage] Failed to set key "${key}":`, error);
         }
@@ -78,11 +76,21 @@ const defaultStudies = [
     { id: 'study-default-1', title: '매일 영단어 50개 암기', icon: 'BookOpen', totalDays: 30, logs: [format(new Date(), 'yyyy-MM-dd')] },
 ];
 
+const defaultBudgets = {
+    food: 300000,
+    shopping: 100000,
+    cafe: 50000
+};
+
+const defaultReviews = [
+    { id: 'review-default-1', date: format(new Date(), 'yyyy-MM-dd'), type: 'daily', score: 4, keep: '아침 일찍 일어나 루틴 성공!', problem: '오후에 카톡 하느라 시간 낭비함', try: '내일은 오후 2-4시 사이에 폰 무음으로 두기' }
+];
+
 // ============================================================
 // Main Hook
 // ============================================================
 export function useAppData(session) {
-    const [currentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(new Date());
 
     const [expenseCategories, setExpenseCategories] = useLocalStorage('expenseCategories', DEFAULT_EXPENSE_CATEGORIES);
     const [incomeCategories, setIncomeCategories] = useLocalStorage('incomeCategories', DEFAULT_INCOME_CATEGORIES);
@@ -115,6 +123,8 @@ export function useAppData(session) {
     const [goals, setGoals] = useLocalStorage('goals', defaultGoals);
     const [studies, setStudies] = useLocalStorage('studies', defaultStudies);
     const [userProfile, setUserProfile] = useLocalStorage('userProfile', DEFAULT_PROFILE);
+    const [budgets, setBudgets] = useLocalStorage('budgets', defaultBudgets);
+    const [reviews, setReviews] = useLocalStorage('reviews', defaultReviews);
 
     // ==========================================
     // Cloud Sync Logic
@@ -146,6 +156,8 @@ export function useAppData(session) {
                     if (pl.goals) setGoals(pl.goals);
                     if (pl.studies) setStudies(pl.studies);
                     if (pl.userProfile) setUserProfile(pl.userProfile);
+                    if (pl.budgets) setBudgets(pl.budgets);
+                    if (pl.reviews) setReviews(pl.reviews);
                     toast.success('기기 간 동기화가 완료되었습니다', { icon: '☁️' });
                 }
             } catch (e) {
@@ -162,7 +174,7 @@ export function useAppData(session) {
         };
         loadCloudData();
         return () => { isMounted = false; };
-    }, [session?.user?.id, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile]);
+    }, [session?.user, setExpenseCategories, setIncomeCategories, setScheduleCategories, setAccounts, setTransactions, setSchedules, setGoals, setStudies, setUserProfile, setBudgets, setReviews]);
 
     useEffect(() => {
         if (cloudSyncStatus !== 'ready' || !session?.user || !supabase || cloudSyncRef.current) return;
@@ -170,7 +182,7 @@ export function useAppData(session) {
         const uploadData = async () => {
             const payload = {
                 expenseCategories, incomeCategories, scheduleCategories,
-                accounts, transactions, schedules, goals, studies, userProfile,
+                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews
             };
             try {
                 await supabase.from('user_data').upsert({
@@ -185,7 +197,7 @@ export function useAppData(session) {
 
         const timerId = setTimeout(uploadData, CLOUD_SYNC_DEBOUNCE_MS);
         return () => clearTimeout(timerId);
-    }, [cloudSyncStatus, session?.user?.id, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile]);
+    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews]);
 
     // ==========================================
     // Memoized Calculations
@@ -205,7 +217,7 @@ export function useAppData(session) {
     const filterDateStr = format(currentDate, 'yyyy-MM-dd');
 
     return {
-        currentDate, filterDateStr,
+        currentDate, setCurrentDate, filterDateStr,
         expenseCategories, incomeCategories, scheduleCategories, addCategory, deleteCategory,
         accounts, addAccount, updateAccount, deleteAccount, getCalculatedBalances, calculatedBalances, totalAssets,
         transactions, setTransactions,
@@ -213,5 +225,7 @@ export function useAppData(session) {
         goals, setGoals,
         studies, setStudies,
         userProfile, setUserProfile,
+        budgets, setBudgets,
+        reviews, setReviews,
     };
 }

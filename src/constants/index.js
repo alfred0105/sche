@@ -110,6 +110,7 @@ export const TABS = [
   { id: 'finance', label: '재정', icon: 'PieChart' },
   { id: 'goal', label: '목표', icon: 'Flag' },
   { id: 'study', label: '공부', icon: 'BookOpen' },
+  { id: 'review', label: '회고', icon: 'ClipboardList' },
 ];
 
 // ============================================================
@@ -118,6 +119,7 @@ export const TABS = [
 export const ICON_OPTIONS = [
   'Briefcase', 'BookOpen', 'Coffee', 'ShoppingBag', 'Utensils',
   'Train', 'Target', 'Calendar', 'Flag', 'PieChart', 'Check', 'Wallet',
+  'Activity', 'ClipboardList', 'Clock'
 ];
 
 // ============================================================

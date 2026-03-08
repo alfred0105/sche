@@ -7,7 +7,7 @@
  *  - Stats cards (total days, streak, completion rate)
  *  - PropTypes, useMemo, useCallback, ARIA
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
@@ -94,6 +94,40 @@ export default function StudyView({ studies, setStudies, currentDate }) {
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
+
+    // === Timer State Setup ===
+    const [timerState, setTimerState] = useState({ activeId: null, seconds: 0, isRunning: false });
+    const timerRef = useRef(null);
+
+    const toggleTimer = useCallback((studyId) => {
+        setTimerState(prev => {
+            if (prev.activeId === studyId) {
+                return { ...prev, isRunning: !prev.isRunning };
+            } else {
+                return { activeId: studyId, seconds: 0, isRunning: true };
+            }
+        });
+    }, []);
+
+    useEffect(() => {
+        if (timerState.isRunning) {
+            timerRef.current = window.setInterval(() => {
+                setTimerState(prev => ({ ...prev, seconds: prev.seconds + 1 }));
+            }, 1000);
+        } else if (timerRef.current) {
+            window.clearInterval(timerRef.current);
+        }
+        return () => window.clearInterval(timerRef.current);
+    }, [timerState.isRunning]);
+
+    const formatTime = (secs) => {
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60).toString().padStart(2, '0');
+        const s = (secs % 60).toString().padStart(2, '0');
+        if (h > 0) return `${h}:${m}:${s}`;
+        return `${m}:${s}`;
+    };
+    // ===========================
 
     const handleAdd = useCallback(() => {
         if (!newTitle.trim()) return toast.error('공부 목표 텍스트를 입력해주세요.');
@@ -278,6 +312,25 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                                     {isCheckedToday ? '출석 완료 🎉' : '아직 늦지 않았어요!'}
                                                 </span>
                                                 {streak >= 7 && <span className="text-[11px] font-bold text-orange-500 mt-1">🔥 {streak}일 연속 출석 중!</span>}
+
+                                                {/* Timer UI */}
+                                                <div className="mt-3 bg-white dark:bg-white/5 p-2 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 dark:border-white/5">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">집중 스톱워치</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-black text-indigo-500 font-mono tracking-wider min-w-[3rem] text-center">
+                                                            {timerState.activeId === study.id ? formatTime(timerState.seconds) : '00:00'}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => toggleTimer(study.id)}
+                                                            className={`px-3 py-1 rounded-lg text-[10px] font-bold active:scale-95 transition-all ${timerState.activeId === study.id && timerState.isRunning
+                                                                    ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30'
+                                                                    : 'bg-indigo-500 text-white shadow-md'
+                                                                }`}
+                                                        >
+                                                            {timerState.activeId === study.id && timerState.isRunning ? '일시정지' : '▶ 시작'}
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </div>
                                             <button
                                                 onClick={() => handleCheckIn(study)}

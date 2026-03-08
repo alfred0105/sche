@@ -4,16 +4,16 @@
  */
 import {
     BarChart3, BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2,
-    CheckSquare, ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag,
+    CheckSquare, ChevronDown, ChevronRight, ChevronLeft, Circle, Coffee, DollarSign, Flag,
     Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
     ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
-    Wallet, X
+    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity
 } from 'lucide-react';
 
 export const IconMap = {
     BarChart3, BookOpen, Briefcase, Calendar, CalendarCheck, Check, CheckCircle2,
-    CheckSquare, ChevronDown, ChevronRight, Circle, Coffee, DollarSign, Flag,
+    CheckSquare, ChevronDown, ChevronRight, ChevronLeft, Circle, Coffee, DollarSign, Flag,
     Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
     ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
-    Wallet, X
+    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity
 };

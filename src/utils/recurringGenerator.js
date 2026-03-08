@@ -39,14 +39,9 @@ export function generateRecurringTransactions(config, txData) {
                 if (excludeHolidays && isKoreanHoliday(targetYmd)) continue;
                 items.push({
                     id: generateId(),
-                    type: txData.type,
+                    ...txData,
                     date: targetYmd,
-                    title: txData.title,
-                    amount: txData.amount,
                     time: `${c.time}:00`,
-                    category: txData.category,
-                    memo: txData.memo,
-                    accountId: txData.accountId,
                     ...(groupId && { groupId }),
                 });
             }
@@ -60,14 +55,9 @@ export function generateRecurringTransactions(config, txData) {
                 if (excludeHolidays && isKoreanHoliday(targetYmd)) continue;
                 items.push({
                     id: generateId(),
-                    type: txData.type,
+                    ...txData,
                     date: targetYmd,
-                    title: txData.title,
-                    amount: txData.amount,
                     time: `${c.time}:00`,
-                    category: txData.category,
-                    memo: txData.memo,
-                    accountId: txData.accountId,
                     ...(groupId && { groupId }),
                 });
             }
@@ -76,14 +66,9 @@ export function generateRecurringTransactions(config, txData) {
             if (isDateMatchForRecurring(currentD, recurringType, excludeHolidays)) {
                 items.push({
                     id: generateId(),
-                    type: txData.type,
+                    ...txData,
                     date: ymd,
-                    title: txData.title,
-                    amount: txData.amount,
                     time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-                    category: txData.category,
-                    memo: txData.memo,
-                    accountId: txData.accountId,
                     ...(groupId && { groupId }),
                 });
                 added++;
@@ -121,14 +106,11 @@ export function generateRecurringSchedules(config, scData) {
                 if (excludeHolidays && isKoreanHoliday(targetYmd)) continue;
                 items.push({
                     id: generateId(),
+                    ...scData,
                     date: targetYmd,
                     time: formatScheduleTimeString(c.time),
                     endTime: formatScheduleTimeString(c.endTime),
-                    location: scData.location,
-                    category: scData.category,
-                    title: scData.title,
                     completed: false,
-                    memo: scData.memo,
                     ...(groupId && { groupId }),
                 });
             }
@@ -142,14 +124,11 @@ export function generateRecurringSchedules(config, scData) {
                 if (excludeHolidays && isKoreanHoliday(targetYmd)) continue;
                 items.push({
                     id: generateId(),
+                    ...scData,
                     date: targetYmd,
                     time: formatScheduleTimeString(c.time),
                     endTime: formatScheduleTimeString(c.endTime),
-                    location: scData.location,
-                    category: scData.category,
-                    title: scData.title,
                     completed: false,
-                    memo: scData.memo,
                     ...(groupId && { groupId }),
                 });
             }
@@ -158,14 +137,11 @@ export function generateRecurringSchedules(config, scData) {
             if (isDateMatchForRecurring(currentD, recurringType, excludeHolidays)) {
                 items.push({
                     id: generateId(),
+                    ...scData,
                     date: ymd,
                     time: formatScheduleTimeString(scData.scheduleTime),
                     endTime: formatScheduleTimeString(scData.scheduleEndTime),
-                    location: scData.location,
-                    category: scData.category,
-                    title: scData.title,
                     completed: false,
-                    memo: scData.memo,
                     ...(groupId && { groupId }),
                 });
                 added++;

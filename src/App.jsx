@@ -23,17 +23,20 @@ import StudyView from './views/StudyView';
 import { IconMap } from './components/IconMap';
 import SettingsModal from './components/SettingsModal';
 import InputModal from './components/InputModal';
+import ReviewView from './views/ReviewView';
+import SearchModal from './components/SearchModal';
 import { Toaster } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import LoginView from './views/LoginView';
 import { supabase } from './supabaseClient';
 import { TABS } from './constants';
+import { addDays, isSameDay } from 'date-fns';
 
 export default function App() {
   const { session, authLoading } = useAuth();
 
   const {
-    currentDate, filterDateStr,
+    currentDate, setCurrentDate, filterDateStr,
     expenseCategories, incomeCategories, scheduleCategories, addCategory,
     accounts, getCalculatedBalances, calculatedBalances, totalAssets,
     transactions, setTransactions,
@@ -42,6 +45,8 @@ export default function App() {
     studies, setStudies,
     deleteCategory, addAccount, updateAccount, deleteAccount,
     userProfile, setUserProfile,
+    budgets, setBudgets,
+    reviews, setReviews,
   } = useAppData(session);
 
   // Run daily automations (interest, ticker sync)
@@ -66,14 +71,15 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingOpen, setIsSettingOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Update document title on tab change
   useEffect(() => {
-    const tabLabels = { home: '홈', schedule: '일정', finance: '재정', goal: '목표', study: '공부' };
+    const tabLabels = { home: '홈', schedule: '일정', finance: '재정', goal: '목표', study: '공부', review: '회고' };
     document.title = `올라운더 — ${tabLabels[currentTab] || '홈'}`;
   }, [currentTab]);
 
-  const { LayoutDashboard, Plus } = IconMap;
+  const { LayoutDashboard, Plus, ChevronLeft, ChevronRight, Search } = IconMap;
   const displayDate = `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${currentDate.getDate()}일`;
 
   if (authLoading) {
@@ -120,19 +126,52 @@ export default function App() {
             </div>
             올라운더
           </h1>
-          <button
-            className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-sm flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => setIsSettingOpen(true)}
-            aria-label="설정 열기"
-          >
-            {userProfile?.name?.charAt(0) || '나'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="w-10 h-10 bg-slate-100 dark:bg-white/5 border border-transparent dark:border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="검색 열기"
+            >
+              <Search className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+            </button>
+            <button
+              className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-sm flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
+              onClick={() => setIsSettingOpen(true)}
+              aria-label="설정 열기"
+            >
+              {userProfile?.name?.charAt(0) || '나'}
+            </button>
+          </div>
         </header>
 
         <div className="flex items-center justify-between pb-1 px-1">
           <div className="flex flex-col">
-            <span className="text-base md:text-lg font-black text-slate-800 dark:text-white">{displayDate} {['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()]}요일</span>
-            <span className="text-[11px] font-bold text-slate-400 -mt-0.5">
+            <span className="text-base md:text-lg font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentDate(addDays(currentDate, -1))}
+                className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
+                aria-label="어제"
+              >
+                <ChevronLeft className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+              </button>
+              {displayDate} {['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()]}요일
+              <button
+                onClick={() => setCurrentDate(addDays(currentDate, 1))}
+                className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
+                aria-label="내일"
+              >
+                <ChevronRight className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+              </button>
+              {!isSameDay(currentDate, new Date()) && (
+                <button
+                  onClick={() => setCurrentDate(new Date())}
+                  className="ml-1 text-[11px] tracking-tight bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/30 shadow-sm active:scale-95"
+                >
+                  오늘
+                </button>
+              )}
+            </span>
+            <span className="text-[11px] font-bold text-slate-400 mt-0 ml-8">
               {currentDate.getHours() < 12 ? '☀️ 좋은 아침이에요' : currentDate.getHours() < 18 ? '🌤️ 좋은 오후에요' : '🌙 좋은 저녁이에요'}, {userProfile?.name || '사용자'}님!
             </span>
           </div>
@@ -169,11 +208,12 @@ export default function App() {
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
         >
-          {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} />}
+          {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} />}
           {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} />}
-          {currentTab === 'finance' && <FinanceView transactions={transactions} setTransactions={setTransactions} getCalculatedBalances={getCalculatedBalances} accounts={accounts} currentDate={currentDate} />}
+          {currentTab === 'finance' && <FinanceView transactions={transactions} setTransactions={setTransactions} getCalculatedBalances={getCalculatedBalances} accounts={accounts} currentDate={currentDate} budgets={budgets} setBudgets={setBudgets} expenseCategories={expenseCategories} />}
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
           {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} />}
+          {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} />}
         </motion.div>
       </main>
 
@@ -222,6 +262,17 @@ export default function App() {
           session={session}
         />
       )}
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        transactions={transactions}
+        schedules={schedules}
+        goals={goals}
+        setCurrentDate={setCurrentDate}
+        setCurrentTab={setCurrentTab}
+      />
     </div>
   );
 }

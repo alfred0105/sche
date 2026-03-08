@@ -12,8 +12,8 @@ import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
 import { generateId } from '../utils/helpers';
 
-export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate }) {
-    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3 } = IconMap;
+export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories }) {
+    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
     const [activeSubTab, setActiveSubTab] = useState('list');
@@ -194,7 +194,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             {/* Sub-tabs & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex gap-2" role="tablist" aria-label="재정 하위 탭">
-                    {[{ id: 'list', label: '거래 내역', icon: 'Wallet' }, { id: 'category', label: '카테고리별', icon: 'PieChart' }, { id: 'assets', label: '자산 현황', icon: 'BarChart3' }].map(({ id, label, icon }) => {
+                    {[{ id: 'list', label: '거래 내역', icon: 'Wallet' }, { id: 'category', label: '카테고리별', icon: 'PieChart' }, { id: 'assets', label: '자산 현황', icon: 'BarChart3' }, { id: 'budgets', label: '예산 통제', icon: 'Target' }].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
                             <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-white dark:bg-[#1a1c23] border-slate-200 dark:border-white/10 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
@@ -237,9 +237,10 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{tx.title}</p>
-                                                <p className="text-[10px] text-slate-400 font-bold flex flex-wrap gap-1.5">
+                                                <p className="text-[10px] text-slate-400 font-bold flex flex-wrap gap-1.5 mt-1">
                                                     <span>{tx.date}</span><span>{tx.time}</span>
                                                     <span className="bg-slate-100 dark:bg-white/5 px-1.5 py-0 rounded">{tx.category}</span>
+                                                    {tx.taxDeductible && <span className="text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-1.5 py-0 rounded border border-rose-200 dark:border-rose-500/30">영수증/연말정산</span>}
                                                     {tx.memo && <span className="truncate max-w-[80px]">{tx.memo}</span>}
                                                 </p>
                                             </div>
@@ -336,6 +337,65 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             </div>
                         </div>
                     )}
+
+                    {activeSubTab === 'budgets' && (
+                        <div className="glass-card p-6 min-h-[400px]">
+                            <div className="flex justify-between items-center mb-5">
+                                <h3 className="font-black text-lg text-slate-800 dark:text-white flex items-center gap-2">
+                                    <Target className="w-5 h-5 text-rose-500" aria-hidden="true" /> 카테고리별 예산 통제
+                                </h3>
+                                <div className="text-[11px] font-bold text-slate-500 px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-lg shadow-sm">
+                                    {format(currentDate, 'yyyy년 M월')} 기준
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                {expenseCategories.map(cat => {
+                                    const budget = budgets[cat.id] || 0;
+                                    const spent = categoryData.find(d => d.name === cat.label)?.value || 0;
+                                    const rawPct = budget > 0 ? (spent / budget) * 100 : 0;
+                                    const pct = Math.min(100, Math.round(rawPct));
+                                    const isExceeded = rawPct > 100;
+                                    const isWarning = rawPct >= 90 && !isExceeded;
+
+                                    return (
+                                        <div key={cat.id} className="relative group">
+                                            <div className="flex justify-between items-end mb-2">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold text-slate-700 dark:text-slate-200">{cat.label}</span>
+                                                    {isExceeded && <span className="text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 flex items-center gap-1 py-0.5 rounded font-black border border-rose-200 dark:border-rose-500/30">초과 위험!</span>}
+                                                    {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded font-black border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-black text-slate-800 dark:text-white">
+                                                        ₩{spent.toLocaleString()} <span className="text-[11px] text-slate-400 font-bold ml-1">/ ₩{budget.toLocaleString()}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="h-4 w-full bg-slate-100 dark:bg-[#0f1115] border border-slate-200/50 dark:border-white/5 rounded-full overflow-hidden flex relative" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                                                <div className={`h-full rounded-full transition-all duration-1000 ${isExceeded ? 'bg-rose-500' : isWarning ? 'bg-orange-400' : 'bg-emerald-400'}`} style={{ width: `${Math.max(pct, 2)}%` }} />
+                                            </div>
+                                            <div className="mt-1 text-right flex justify-between items-center text-[11px] font-bold">
+                                                <span className={`text-slate-400 ${isExceeded ? 'text-rose-500' : ''}`}>
+                                                    {isExceeded ? `${(rawPct - 100).toFixed(1)}% 예산 초과` : `${pct}% 사용됨`}
+                                                </span>
+                                                <button onClick={() => {
+                                                    const newBudget = prompt(`${cat.label} 예산 설정 (원)`, budget);
+                                                    if (newBudget !== null && !isNaN(newBudget)) {
+                                                        const numBudget = Number(newBudget);
+                                                        setBudgets(prev => ({ ...prev, [cat.id]: numBudget }));
+                                                        toast.success(`${cat.label} 예산이 변경되었습니다.`);
+                                                    }
+                                                }} className="text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors opacity-0 group-hover:opacity-100">
+                                                    ⚙️ 예산 수정
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
             </AnimatePresence>
         </section>
@@ -348,4 +408,7 @@ FinanceView.propTypes = {
     getCalculatedBalances: PropTypes.func.isRequired,
     accounts: PropTypes.array.isRequired,
     currentDate: PropTypes.instanceOf(Date).isRequired,
+    budgets: PropTypes.object,
+    setBudgets: PropTypes.func,
+    expenseCategories: PropTypes.array,
 };
