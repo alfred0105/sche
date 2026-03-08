@@ -185,22 +185,6 @@ export default function SettingsModal({
                                 />
                             </div>
 
-                            {/* Theme */}
-                            <div className="glass-card p-5 space-y-3">
-                                <h4 className="text-sm font-bold text-slate-400">디스플레이 테마</h4>
-                                <div className="grid grid-cols-3 gap-3">
-                                    {['light', 'dark', 'system'].map(t => (
-                                        <button
-                                            key={t}
-                                            onClick={() => setUserProfile(p => ({ ...p, theme: t }))}
-                                            className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${userProfile.theme === t ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-white/10 bg-[#09090b] text-slate-500 hover:bg-white/5'}`}
-                                        >
-                                            {t === 'light' ? '☀️ 밝은 화면' : t === 'dark' ? '🌙 어두운 화면' : '⚙️ 시스템'}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
                             {/* #87: Accent Color */}
                             <div className="glass-card p-5 space-y-3">
                                 <h4 className="text-sm font-bold text-slate-400">포인트 컬러</h4>

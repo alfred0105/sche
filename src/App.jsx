@@ -58,22 +58,10 @@ export default function App() {
   // Run daily automations (interest, ticker sync)
   useAutomation({ accounts, calculatedBalances, setTransactions, updateAccount });
 
-  // Theme management — dark/light/system based on userProfile.theme
+  // Theme management — dark mode fixed
   useEffect(() => {
-    const theme = userProfile?.theme || 'dark';
-    const applyTheme = (t) => {
-      const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.classList.toggle('dark', isDark);
-      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
-    };
-    applyTheme(theme);
-    if (theme === 'system') {
-      const mq = window.matchMedia('(prefers-color-scheme: dark)');
-      const handler = () => applyTheme('system');
-      mq.addEventListener('change', handler);
-      return () => mq.removeEventListener('change', handler);
-    }
-  }, [userProfile?.theme]);
+    document.documentElement.classList.add('dark');
+  }, []);
 
   // Accent color — set data-accent attribute on <html>
   useEffect(() => {
