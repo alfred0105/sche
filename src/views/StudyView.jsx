@@ -11,7 +11,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
-import { format, subDays, parseISO, differenceInDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval, isSameMonth } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { generateId } from '../utils/helpers';
@@ -88,37 +88,40 @@ function getStreak(logs, currentDate) {
 }
 
 export default function StudyView({ studies, setStudies, currentDate }) {
-    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame } = IconMap;
+    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon } = IconMap;
 
     const [isAddMode, setIsAddMode] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
-    // === Timer State Setup ===
-    const [timerState, setTimerState] = useState({ activeId: null, seconds: 0, isRunning: false });
+    // === Timer & Photo & Subject State Setup ===
+    const [timerState, setTimerState] = useState({ activeId: null, isRunning: false });
+    const [studyTimes, setStudyTimes] = useState({});
+    const [authPhotos, setAuthPhotos] = useState({});
+    const [currentSubjects, setCurrentSubjects] = useState({});
     const timerRef = useRef(null);
 
     const toggleTimer = useCallback((studyId) => {
         setTimerState(prev => {
             if (prev.activeId === studyId) {
-                return { ...prev, isRunning: !prev.isRunning };
+                return { activeId: studyId, isRunning: !prev.isRunning };
             } else {
-                return { activeId: studyId, seconds: 0, isRunning: true };
+                return { activeId: studyId, isRunning: true };
             }
         });
     }, []);
 
     useEffect(() => {
-        if (timerState.isRunning) {
+        if (timerState.isRunning && timerState.activeId) {
             timerRef.current = window.setInterval(() => {
-                setTimerState(prev => ({ ...prev, seconds: prev.seconds + 1 }));
+                setStudyTimes(prev => ({ ...prev, [timerState.activeId]: (prev[timerState.activeId] || 0) + 1 }));
             }, 1000);
         } else if (timerRef.current) {
             window.clearInterval(timerRef.current);
         }
         return () => window.clearInterval(timerRef.current);
-    }, [timerState.isRunning]);
+    }, [timerState.isRunning, timerState.activeId]);
 
     const formatTime = (secs) => {
         const h = Math.floor(secs / 3600);
@@ -127,6 +130,27 @@ export default function StudyView({ studies, setStudies, currentDate }) {
         if (h > 0) return `${h}:${m}:${s}`;
         return `${m}:${s}`;
     };
+
+    const handlePhotoUpload = (e, studyId) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const url = URL.createObjectURL(file);
+            setAuthPhotos(prev => ({ ...prev, [studyId]: url }));
+            toast.success('공부 인증 사진이 등록되었습니다!', { icon: '📸' });
+        }
+    };
+
+    const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
+    const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
+    const leaderboard = useMemo(() => {
+        const others = [
+            { id: '1', name: '의대생_도전', time: 14400, subject: '해부학 복습' },
+            { id: '2', name: '지독한독종', time: 7200, subject: '알고리즘 기출문제' },
+            { id: '3', name: '올라운더지망생', time: 3600, subject: '리액트 강의 수강' },
+        ];
+        const combined = [...others, { id: 'me', name: '나 (오늘)', time: totalUserTime, subject: activeSubject, isMe: true }];
+        return combined.sort((a, b) => b.time - a.time);
+    }, [totalUserTime, activeSubject]);
     // ===========================
 
     const handleAdd = useCallback(() => {
@@ -188,6 +212,29 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                     {isAddMode ? '취소' : <><Plus className="w-4 h-4 stroke-[3]" aria-hidden="true" /> 목표 추가</>}
                 </button>
             </header>
+
+            {/* Live Leaderboard */}
+            <div className="glass-card px-4 py-4 rounded-xl mb-6 bg-[#09090b] border border-white/10 shadow-none">
+                <h3 className="text-[14px] font-bold tracking-tight text-white mb-3 flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-orange-500" /> 오늘의 공부 라이브 랭킹
+                </h3>
+                <div className="flex flex-col gap-1.5">
+                    {leaderboard.map((user, idx) => (
+                        <div key={user.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border shadow-none ${user.isMe ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-[#111113]/50 border-white/5'}`}>
+                            <div className="flex items-center gap-3 w-1/2">
+                                <span className={`text-[12px] font-black w-4 text-center ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-600' : 'text-slate-500'}`}>{idx + 1}</span>
+                                <span className={`text-[13px] font-bold tracking-tight truncate ${user.isMe ? 'text-indigo-400' : 'text-slate-400'}`}>{user.name}</span>
+                            </div>
+                            <div className="flex items-center gap-2 justify-end">
+                                <span className={`text-[11px] font-bold truncate max-w-[100px] border border-white/5 px-2 py-0.5 rounded-full ${user.isMe ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 bg-white/5'}`}>{user.subject}</span>
+                                <span className={`text-sm font-mono tracking-wider font-bold w-16 text-right ${user.isMe ? 'text-indigo-400' : 'text-slate-500'}`}>
+                                    {formatTime(user.time)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
 
             {/* Add New Study Form */}
             <AnimatePresence>
@@ -314,22 +361,58 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                                 {streak >= 7 && <span className="text-[11px] font-bold text-orange-500 mt-1">🔥 {streak}일 연속 출석 중!</span>}
 
                                                 {/* Timer UI */}
-                                                <div className="mt-3 bg-[#111113] p-2 rounded-xl flex items-center justify-between shadow-none border border-white/10">
-                                                    <span className="text-[10px] font-bold text-slate-400 uppercase">집중 스톱워치</span>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-bold tracking-tight text-indigo-500 font-mono tracking-wider min-w-[3rem] text-center">
-                                                            {timerState.activeId === study.id ? formatTime(timerState.seconds) : '00:00'}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => toggleTimer(study.id)}
-                                                            className={`px-3 py-1 rounded-lg text-[10px] font-bold active:scale-95 transition-all ${timerState.activeId === study.id && timerState.isRunning
+                                                <div className="mt-3 bg-[#111113] p-3 rounded-xl flex flex-col gap-3 shadow-none border border-white/10">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase">집중 스톱워치</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-sm font-bold tracking-tight text-indigo-500 font-mono tracking-wider min-w-[3.5rem] text-right inline-block">
+                                                                {formatTime(studyTimes[study.id] || 0)}
+                                                            </span>
+                                                            <button
+                                                                onClick={() => toggleTimer(study.id)}
+                                                                className={`px-3 py-1 rounded-lg text-[10px] font-bold active:scale-95 transition-all w-16 text-center ${timerState.activeId === study.id && timerState.isRunning
                                                                     ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30'
                                                                     : 'bg-indigo-500 text-white shadow-none'
-                                                                }`}
-                                                        >
-                                                            {timerState.activeId === study.id && timerState.isRunning ? '일시정지' : '▶ 시작'}
-                                                        </button>
+                                                                    }`}
+                                                            >
+                                                                {timerState.activeId === study.id && timerState.isRunning ? '일시정지 ⏸' : '시작 ▶'}
+                                                            </button>
+                                                        </div>
                                                     </div>
+                                                    <div className="flex items-center border border-white/10 bg-[#09090b] rounded-lg px-2">
+                                                        <span className="text-[10px] font-bold text-slate-500 shrink-0 mr-2">현재 공부 중:</span>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="예: 영어 단어 1단원 암기"
+                                                            value={currentSubjects[study.id] || ''}
+                                                            onChange={(e) => setCurrentSubjects(prev => ({ ...prev, [study.id]: e.target.value }))}
+                                                            className="flex-1 bg-transparent border-none outline-none text-[11px] font-bold text-slate-300 py-1.5 placeholder-slate-600"
+                                                        />
+                                                    </div>
+                                                </div>
+
+                                                {/* Photo Auth UI */}
+                                                <div className="mt-2 text-left w-full">
+                                                    {authPhotos[study.id] ? (
+                                                        <div className="relative inline-block mt-2 group border border-indigo-500/30 rounded-lg p-1 bg-[#111113]">
+                                                            <div className="flex flex-col gap-1 items-center justify-center relative">
+                                                                <img src={authPhotos[study.id]} alt="인증" className="w-full max-w-[120px] max-h-[120px] object-cover rounded shadow-none opacity-90" />
+                                                                <span className="absolute bottom-0 bg-black/70 w-full text-center text-[9px] py-1 text-white font-bold tracking-tight rounded-b">오늘 인증 완료 🎉</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => setAuthPhotos(prev => { const n = { ...prev }; delete n[study.id]; return n; })}
+                                                                className="absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 rounded-full text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-none"
+                                                                aria-label="사진 삭제"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <label className="inline-flex cursor-pointer mt-2 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-2.5 rounded-xl transition-colors gap-1.5 items-center w-full justify-center">
+                                                            <Camera className="w-4 h-4" /> 오늘의 공부 인증 사진 등록
+                                                            <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, study.id)} className="hidden" />
+                                                        </label>
+                                                    )}
                                                 </div>
                                             </div>
                                             <button

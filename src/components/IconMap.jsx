@@ -7,7 +7,8 @@ import {
     CheckSquare, ChevronDown, ChevronRight, ChevronLeft, Circle, Coffee, DollarSign, Flag,
     Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
     ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
-    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity
+    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity,
+    Camera, Trophy, Image as ImageIcon, Users
 } from 'lucide-react';
 
 export const IconMap = {
@@ -15,5 +16,6 @@ export const IconMap = {
     CheckSquare, ChevronDown, ChevronRight, ChevronLeft, Circle, Coffee, DollarSign, Flag,
     Flame, Landmark, LayoutDashboard, List, PieChart, Plus, RefreshCw, Settings,
     ShoppingBag, Target, Train, Trash2, TrendingDown, TrendingUp, Utensils,
-    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity
+    Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity,
+    Camera, Trophy, ImageIcon, Users
 };
