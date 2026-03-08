@@ -5,13 +5,13 @@ import React, { useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
-import { isSameDay, isSameWeek, isSameMonth, parseISO, format } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, addDays } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { timeToMinutes } from '../utils/helpers';
 
 export default function ScheduleView({ schedules, setSchedules, currentDate }) {
-    const { Calendar, CheckCircle2, Circle, ChevronDown, Check, Trash2, Clock } = IconMap;
+    const { Calendar, CheckCircle2, Circle, ChevronDown, Check, Trash2, Clock, MoveRight } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'timeline'
@@ -53,6 +53,18 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
             if (isCompletedNow) toast.success('일정 완료!', { icon: '✨' });
             return updated;
         });
+    }, [setSchedules]);
+
+    const postponeToTomorrow = useCallback((e, id) => {
+        e.stopPropagation();
+        setSchedules(prev => prev.map(s => {
+            if (s.id === id) {
+                const nextDate = format(addDays(parseISO(s.date), 1), 'yyyy-MM-dd');
+                return { ...s, date: nextDate };
+            }
+            return s;
+        }));
+        toast.success('일정이 내일로 미뤄졌습니다.', { icon: '➡️' });
     }, [setSchedules]);
 
     const handleDeleteRequest = useCallback((id) => {
@@ -184,9 +196,14 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                     {schedule.completed && <CheckCircle2 className="w-4 h-4 text-indigo-500" />} {schedule.title}
                                                 </p>
                                                 {!isShort && (
-                                                    <button onClick={(e) => toggleSchedule(e, schedule.id)} className="p-1 text-indigo-400 hover:text-indigo-600 transition-colors">
-                                                        <Check className="w-5 h-5 stroke-[3]" />
-                                                    </button>
+                                                    <div className="flex gap-1 z-20">
+                                                        <button aria-label="내일로 미루기" onClick={(e) => postponeToTomorrow(e, schedule.id)} className="p-1 w-6 h-6 flex items-center justify-center bg-white/20 rounded-md text-indigo-400 hover:text-white hover:bg-indigo-500 transition-colors">
+                                                            <MoveRight className="w-3.5 h-3.5" />
+                                                        </button>
+                                                        <button onClick={(e) => toggleSchedule(e, schedule.id)} className="p-1 w-6 h-6 flex items-center justify-center bg-white/20 rounded-md text-indigo-400 hover:text-white hover:bg-emerald-500 transition-colors">
+                                                            <Check className="w-4 h-4 stroke-[3]" />
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                             <p className={`text-[10px] font-bold text-indigo-400 truncate ${isShort ? 'mt-0' : 'mt-1'}`}>
@@ -240,13 +257,26 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                         </div>
                                                     </div>
 
-                                                    <button
-                                                        onClick={(e) => toggleSchedule(e, schedule.id)}
-                                                        className={`ml-4 w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-indigo-500/10 text-indigo-400 border-indigo-200 dark:border-indigo-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400'}`}
-                                                        aria-label={schedule.completed ? '일정 완료 취소' : '일정 완료 처리'}
-                                                    >
-                                                        <Check className="w-5 h-5 stroke-[3]" aria-hidden="true" />
-                                                    </button>
+                                                    <div className="flex flex-col gap-1 ml-4 justify-center items-center h-full shrink-0 relative z-20">
+                                                        <button
+                                                            onClick={(e) => toggleSchedule(e, schedule.id)}
+                                                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-emerald-500/10 text-emerald-500 border-emerald-200 dark:border-emerald-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-emerald-300 hover:text-emerald-500 dark:hover:border-emerald-500/50 dark:hover:text-emerald-400'}`}
+                                                            aria-label={schedule.completed ? '일정 완료 취소' : '일정 완료 처리'}
+                                                        >
+                                                            <Check className="w-5 h-5 stroke-[3]" aria-hidden="true" />
+                                                        </button>
+
+                                                        {!schedule.completed && filterType === 'daily' && (
+                                                            <button
+                                                                onClick={(e) => postponeToTomorrow(e, schedule.id)}
+                                                                className="w-10 h-6 shrink-0 rounded-lg flex items-center justify-center text-[10px] bg-[#111113] text-slate-400 border border-white/10 hover:border-indigo-500/50 hover:text-indigo-400 transition-colors active:scale-95 group/postpone"
+                                                                aria-label="내일로 미루기"
+                                                                title="내일로 연기"
+                                                            >
+                                                                <MoveRight className="w-3.5 h-3.5 group-hover/postpone:translate-x-0.5 transition-transform" />
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
 
                                                 <AnimatePresence>

@@ -5,7 +5,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
-import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { toast } from 'react-hot-toast';
@@ -427,6 +427,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     const isExceeded = rawPct > 100;
                                     const isWarning = rawPct >= 90 && !isExceeded;
 
+                                    const daysInMonth = getDaysInMonth(currentDate);
+                                    const remainingDays = Math.max(1, daysInMonth - currentDate.getDate() + 1);
+                                    const remainingBudget = Math.max(0, budget - spent);
+                                    const dailySafeSpend = budget > 0 ? Math.floor(remainingBudget / remainingDays) : 0;
+
                                     return (
                                         <div key={cat.id} className="relative group p-2 -mx-2 rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                             <div className="flex justify-between items-end mb-2">
@@ -449,8 +454,13 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             </div>
                                             <div className="mt-2 flex justify-between items-center text-[11px] font-bold">
                                                 <span className={`text-slate-400 ${isExceeded ? 'text-rose-500' : ''}`}>
-                                                    {budget === 0 ? '목표 예산이 설정되지 않았습니다' : isExceeded ? `${(rawPct - 100).toFixed(1)}% 예산 초과` : `${pct}% 사용됨`}
+                                                    {budget === 0 ? '목표 예산이 설정되지 않았습니다' : isExceeded ? `${(rawPct - 100).toFixed(1)}% 초과 (통제 불능)` : `${pct}% 사용됨 / 남은 금액 ₩${remainingBudget.toLocaleString()}`}
                                                 </span>
+                                                {budget > 0 && !isExceeded && (
+                                                    <span className="text-indigo-400 px-2 py-0.5 bg-indigo-500/10 rounded-md">
+                                                        하루 권장: ₩{dailySafeSpend.toLocaleString()}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
                                     );
