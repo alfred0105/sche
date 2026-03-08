@@ -19,14 +19,14 @@ function GoalCard({ goal, onClick }) {
         <motion.div
             onClick={() => onClick(goal.id)}
             whileHover={{ y: -4, scale: 1.01 }}
-            className={`group cursor-pointer bg-white dark:bg-[#13151a] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-slate-200/60 dark:border-white/5 transition-all flex flex-col relative ${goal.progress === 100 ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-[#0f1115]' : ''}`}
+            className={`group cursor-pointer bg-[#111113] rounded-xl overflow-hidden shadow-none hover:shadow-none border border-slate-200/60 dark:border-white/5 transition-all flex flex-col relative ${goal.progress === 100 ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-[#0f1115]' : ''}`}
             role="button"
             tabIndex={0}
             aria-label={`${goal.title} — ${goal.progress}% 완료`}
             onKeyDown={(e) => e.key === 'Enter' && onClick(goal.id)}
         >
             <div className={`h-20 bg-gradient-to-r ${cFrom} ${cTo} relative`} aria-hidden="true">
-                <div className="absolute -bottom-5 left-4 w-11 h-11 bg-white dark:bg-[#1a1c23] rounded-xl flex items-center justify-center text-xl shadow-md border border-slate-100 dark:border-white/10">
+                <div className="absolute -bottom-5 left-4 w-11 h-11 bg-[#111113] rounded-xl flex items-center justify-center text-xl shadow-none border border-white/10">
                     {goal.icon || '🎯'}
                 </div>
                 {dDay !== null && (
@@ -37,10 +37,10 @@ function GoalCard({ goal, onClick }) {
             </div>
 
             <div className="p-4 pt-8 flex flex-col flex-1">
-                <h3 className={`font-black text-[15px] mb-1 line-clamp-2 ${goal.progress === 100 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-100'}`}>
+                <h3 className={`font-black text-[15px] mb-1 line-clamp-2 ${goal.progress === 100 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400'}`}>
                     {goal.title} {goal.progress === 100 && '🏆'}
                 </h3>
-                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mb-3">{goal.deadline} 까지</p>
+                <p className="text-[11px] font-bold text-slate-400 mb-3">{goal.deadline} 까지</p>
 
                 <div className="mt-auto">
                     <div className="flex justify-between text-[10px] items-end mb-1.5 font-bold uppercase tracking-wide">
@@ -51,9 +51,9 @@ function GoalCard({ goal, onClick }) {
                                 <><CheckSquare className="w-3 h-3 text-emerald-400" aria-hidden="true" /> {hasTasks ? `${goal.tasks.filter((t) => t.done).length}/${goal.tasks.length}` : '진행률'}</>
                             )}
                         </span>
-                        <span className={goal.progress === 100 ? 'text-emerald-500' : 'text-slate-700 dark:text-slate-300'}>{goal.progress}%</span>
+                        <span className={goal.progress === 100 ? 'text-emerald-500' : 'text-slate-200'}>{goal.progress}%</span>
                     </div>
-                    <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${goal.progress}%` }}

@@ -5,21 +5,26 @@
 
 @layer base {
   body {
-    @apply m-0 text-slate-800 bg-slate-50 transition-colors duration-500 antialiased;
+    @apply m-0 text-slate-300 bg-[#09090b] transition-colors duration-500 antialiased;
     font-family: 'Pretendard Variable', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
   }
 
-  .dark body {
-    @apply bg-[#0f1115] text-slate-100;
+  /* Force dark colors unconditionally */
+  html {
+    color-scheme: dark;
+  }
+  
+  * {
+    border-color: rgba(255, 255, 255, 0.08); /* Override border colors to be subtle dark-mode borders */
   }
 }
 
 .glass {
-  @apply bg-white/70 dark:bg-[#1a1c23]/70 backdrop-blur-xl border border-white/40 dark:border-white/5;
+  @apply bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/10;
 }
 
 .glass-card {
-  @apply bg-white dark:bg-[#1a1c23] shadow-[0_8px_30px_#0000000a] dark:shadow-[0_8px_30px_#00000033] border border-slate-100 dark:border-white/5 rounded-3xl transition-all duration-300;
+  @apply bg-[#111113] shadow-none border border-white/10 rounded-xl transition-all duration-300;
 }
 
 .fade-in {

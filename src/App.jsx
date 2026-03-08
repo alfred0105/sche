@@ -53,21 +53,10 @@ export default function App() {
   // Run daily automations (interest, ticker sync)
   useAutomation({ accounts, calculatedBalances, setTransactions, updateAccount });
 
-  // Theme management
+  // Theme management - strictly enforce dark mode
   useEffect(() => {
-    const root = document.documentElement;
-    if (userProfile?.theme === 'dark') {
-      root.classList.add('dark');
-    } else if (userProfile?.theme === 'light') {
-      root.classList.remove('dark');
-    } else {
-      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    }
-  }, [userProfile?.theme]);
+    document.documentElement.classList.add('dark');
+  }, []);
 
   const [currentTab, setCurrentTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,7 +74,7 @@ export default function App() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0f1115]" role="status" aria-label="로딩 중">
+      <div className="min-h-screen flex items-center justify-center bg-[#09090b]" role="status" aria-label="로딩 중">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" aria-hidden="true" />
         <span className="sr-only">로딩 중...</span>
       </div>
@@ -97,7 +86,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative pb-28 overflow-x-hidden text-slate-800 dark:text-slate-100">
+    <div className="min-h-screen relative pb-28 overflow-x-hidden text-slate-400">
       <Toaster
         position="top-right"
         toastOptions={{
@@ -120,23 +109,23 @@ export default function App() {
       </div>
 
       <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-3 md:gap-5 px-4 md:px-6 pt-4 md:pt-6 mb-6">
-        <header className="flex justify-between items-center glass p-4 rounded-3xl mt-2">
+        <header className="flex justify-between items-center glass p-4 rounded-xl mt-2">
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <div className="w-7 h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-sm" aria-hidden="true">
+            <div className="w-7 h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-none" aria-hidden="true">
               <LayoutDashboard className="w-4 h-4 text-white" />
             </div>
             올라운더
           </h1>
           <div className="flex items-center gap-2">
             <button
-              className="w-10 h-10 bg-slate-100 dark:bg-white/5 border border-transparent dark:border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+              className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => setIsSearchOpen(true)}
               aria-label="검색 열기"
             >
-              <Search className="w-4 h-4 text-slate-600 dark:text-slate-300" />
+              <Search className="w-4 h-4 text-slate-400" />
             </button>
             <button
-              className="w-10 h-10 bg-indigo-100 dark:bg-indigo-500/20 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-sm flex items-center justify-center font-black text-indigo-600 dark:text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
+              className="w-10 h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-black text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
               onClick={() => setIsSettingOpen(true)}
               aria-label="설정 열기"
             >
@@ -147,7 +136,7 @@ export default function App() {
 
         <div className="flex items-center justify-between pb-1 px-1">
           <div className="flex flex-col">
-            <span className="text-base md:text-lg font-black text-slate-800 dark:text-white flex items-center gap-1.5">
+            <span className="text-base md:text-lg font-black text-slate-100 flex items-center gap-1.5">
               <button
                 onClick={() => setCurrentDate(addDays(currentDate, -1))}
                 className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
@@ -166,7 +155,7 @@ export default function App() {
               {!isSameDay(currentDate, new Date()) && (
                 <button
                   onClick={() => setCurrentDate(new Date())}
-                  className="ml-1 text-[11px] tracking-tight bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/30 shadow-sm active:scale-95"
+                  className="ml-1 text-[11px] tracking-tight bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/30 shadow-none active:scale-95"
                 >
                   오늘
                 </button>
@@ -190,9 +179,9 @@ export default function App() {
                 aria-selected={isActive}
                 aria-controls={`panel-${tab.id}`}
                 onClick={() => setCurrentTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 md:px-5 py-2 md:py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition-all shrink-0 ${isActive ? 'bg-slate-800 dark:bg-indigo-500 text-white shadow-md' : 'bg-white/60 dark:bg-white/5 text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-white/10 shadow-sm border border-slate-200/50 dark:border-white/5 backdrop-blur-md'}`}
+                className={`flex items-center gap-1.5 px-4 md:px-5 py-2 md:py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition-all shrink-0 ${isActive ? 'bg-slate-800 dark:bg-indigo-500 text-white shadow-none' : 'bg-white/60 dark:bg-white/5 text-slate-400 hover:bg-white dark:hover:bg-white/10 shadow-none border border-slate-200/50 dark:border-white/5 backdrop-blur-md'}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400 dark:text-indigo-100' : 'text-slate-400 dark:text-slate-500'}`} aria-hidden="true" />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true" />
                 {tab.label}
               </button>
             );
@@ -235,7 +224,7 @@ export default function App() {
       {!isModalOpen && (
         <button
           onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-14 h-14 md:w-16 md:h-16 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-[0_8px_30px_rgba(15,23,42,0.4)] dark:shadow-[0_8px_30px_rgba(79,70,229,0.5)] transition-all active:scale-95 z-40 border border-slate-700 dark:border-indigo-500"
+          className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-14 h-14 md:w-16 md:h-16 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-none dark:shadow-none transition-all active:scale-95 z-40 border border-slate-700 dark:border-indigo-500"
           aria-label="새 기록 추가"
         >
           <Plus className="w-6 h-6 md:w-8 md:h-8" aria-hidden="true" />

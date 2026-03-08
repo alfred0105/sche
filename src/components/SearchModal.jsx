@@ -78,9 +78,9 @@ export default function SearchModal({
                 initial={{ opacity: 0, scale: 0.95, y: -20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                className="relative bg-white dark:bg-[#13151a] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-slate-200 dark:border-white/10"
+                className="relative bg-[#111113] w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden border border-white/10"
             >
-                <div className="flex items-center p-4 border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-[#0f1115]/50">
+                <div className="flex items-center p-4 border-b border-white/10 bg-slate-50/50 dark:bg-[#0f1115]/50">
                     <Search className="w-6 h-6 text-slate-400 ml-2" />
                     <input
                         ref={inputRef}
@@ -88,9 +88,9 @@ export default function SearchModal({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="일정, 재정, 목표, 메모 등을 검색하세요..."
-                        className="flex-1 bg-transparent border-none outline-none px-4 text-lg font-bold text-slate-800 dark:text-slate-100 placeholder-slate-400"
+                        className="flex-1 bg-transparent border-none outline-none px-4 text-lg font-bold text-slate-400 placeholder-slate-400"
                     />
-                    <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-white/10 rounded-full transition-colors">
+                    <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </div>
@@ -98,7 +98,7 @@ export default function SearchModal({
                 <div className="max-h-[60vh] overflow-y-auto p-2">
                     {query.trim() && results.length === 0 ? (
                         <div className="py-12 text-center text-slate-500 font-bold text-sm">
-                            <Search className="w-10 h-10 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+                            <Search className="w-10 h-10 text-slate-400 mx-auto mb-3" />
                             '{query}'에 대한 검색 결과가 없습니다.
                         </div>
                     ) : (
@@ -119,7 +119,7 @@ export default function SearchModal({
                                     </div>
                                     <div className="flex flex-col flex-1 overflow-hidden">
                                         <div className="flex justify-between items-start gap-2">
-                                            <span className="font-bold text-base text-slate-800 dark:text-slate-200 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                            <span className="font-bold text-base text-slate-400 truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                                 {item.title}
                                             </span>
                                             {item.amount && (
@@ -128,13 +128,13 @@ export default function SearchModal({
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="flex items-center gap-2 mt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                                        <div className="flex items-center gap-2 mt-1 text-[11px] font-bold text-slate-400">
                                             {(item.date || item.deadline) && (
-                                                <span className="bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                                                <span className="bg-white/5 px-1.5 py-0.5 rounded">
                                                     {format(parseISO(item.date || item.deadline), 'yyyy-MM-dd')}
                                                 </span>
                                             )}
-                                            {item.category && <span className="bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded">{item.category}</span>}
+                                            {item.category && <span className="bg-white/5 px-1.5 py-0.5 rounded">{item.category}</span>}
                                             {item.time && <span>{item.time}</span>}
                                         </div>
                                         {item.memo && <p className="text-xs font-medium text-slate-500 mt-1 truncate">{item.memo}</p>}

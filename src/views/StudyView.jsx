@@ -28,12 +28,12 @@ function AttendanceHeatmap({ logs, currentDate }) {
 
     return (
         <div className="w-full">
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 mb-2 uppercase tracking-wider">
+            <p className="text-[10px] font-black text-slate-400 mb-2 uppercase tracking-wider">
                 {format(currentDate, 'yyyy년 M월')} 출석 현황
             </p>
             <div className="grid grid-cols-7 gap-[3px]">
                 {weekDays.map((d) => (
-                    <div key={d} className="text-[9px] font-bold text-slate-400 dark:text-slate-600 text-center pb-1">{d}</div>
+                    <div key={d} className="text-[9px] font-bold text-slate-400 text-center pb-1">{d}</div>
                 ))}
                 {Array.from({ length: startPad }).map((_, i) => (
                     <div key={`pad-${i}`} />
@@ -48,10 +48,10 @@ function AttendanceHeatmap({ logs, currentDate }) {
                             key={ds}
                             className={`aspect-square rounded-[4px] text-[9px] font-bold flex items-center justify-center transition-all
                 ${checked
-                                    ? 'bg-indigo-500 dark:bg-indigo-400 text-white shadow-sm shadow-indigo-500/30'
+                                    ? 'bg-indigo-500 dark:bg-indigo-400 text-white shadow-none shadow-none-500/30'
                                     : isPast
-                                        ? 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-600'
-                                        : 'bg-slate-50 dark:bg-white/[0.02] text-slate-300 dark:text-slate-700'
+                                        ? 'bg-white/5 text-slate-400'
+                                        : 'bg-[#09090b][0.02] text-slate-400'
                                 }
                 ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-[#1a1c23]' : ''}
               `}
@@ -174,15 +174,15 @@ export default function StudyView({ studies, setStudies, currentDate }) {
             />
 
             <header className="flex items-center justify-between mb-2 px-1">
-                <h2 className="text-xl font-black text-slate-800 dark:text-white flex items-center gap-2">
-                    <div className="bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 p-2 rounded-xl" aria-hidden="true">
+                <h2 className="text-xl font-black text-slate-100 flex items-center gap-2">
+                    <div className="bg-indigo-500/10 text-text-indigo-400 p-2 rounded-xl" aria-hidden="true">
                         <BookOpen className="w-5 h-5" />
                     </div>
                     공부 및 출석부
                 </h2>
                 <button
                     onClick={() => setIsAddMode(!isAddMode)}
-                    className="px-4 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-md active:scale-95 transition-transform flex items-center gap-1.5"
+                    className="px-4 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-none active:scale-95 transition-transform flex items-center gap-1.5"
                     aria-label={isAddMode ? '추가 취소' : '새 목표 추가'}
                 >
                     {isAddMode ? '취소' : <><Plus className="w-4 h-4 stroke-[3]" aria-hidden="true" /> 목표 추가</>}
@@ -198,17 +198,17 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="glass-card p-5 rounded-3xl flex flex-col gap-4">
-                            <h3 className="text-sm font-black text-slate-500 dark:text-slate-400">새로운 공부/습관 트래커 추가</h3>
+                        <div className="glass-card p-5 rounded-xl flex flex-col gap-4">
+                            <h3 className="text-sm font-black text-slate-400">새로운 공부/습관 트래커 추가</h3>
                             <div>
                                 <label htmlFor="study-title" className="text-xs font-bold text-slate-400 mb-1 block">목표 내용</label>
-                                <input id="study-title" type="text" placeholder="예: 매일 알고리즘 1문제 풀기" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} className="w-full bg-slate-50 dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-700 dark:text-slate-200" />
+                                <input id="study-title" type="text" placeholder="예: 매일 알고리즘 1문제 풀기" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
                             </div>
                             <div>
                                 <label htmlFor="study-target" className="text-xs font-bold text-slate-400 mb-1 block">목표 달성 출석일수 (일)</label>
-                                <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-slate-50 dark:bg-[#0f1115] border border-slate-200 dark:border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-700 dark:text-slate-200" />
+                                <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
                             </div>
-                            <button onClick={handleAdd} className="w-full mt-2 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl shadow-md transition-colors">트래커 생성하기</button>
+                            <button onClick={handleAdd} className="w-full mt-2 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-black rounded-xl shadow-none transition-colors">트래커 생성하기</button>
                         </div>
                     </motion.div>
                 )}
@@ -216,9 +216,9 @@ export default function StudyView({ studies, setStudies, currentDate }) {
 
             {/* Empty State */}
             {(!studies || studies.length === 0) ? (
-                <div className="glass-card rounded-3xl p-10 flex flex-col items-center justify-center gap-3">
-                    <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-600" aria-hidden="true" />
-                    <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">등록된 공부 목표가 없습니다.</p>
+                <div className="glass-card rounded-xl p-10 flex flex-col items-center justify-center gap-3">
+                    <BookOpen className="w-12 h-12 text-slate-400" aria-hidden="true" />
+                    <p className="text-slate-400 font-bold text-sm">등록된 공부 목표가 없습니다.</p>
                     <button onClick={() => setIsAddMode(true)} className="text-indigo-500 text-sm font-bold hover:underline">+ 첫 번째 목표 추가하기</button>
                 </div>
             ) : (
@@ -236,7 +236,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                 key={study.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="glass-card p-0 rounded-3xl overflow-hidden relative group"
+                                className="glass-card p-0 rounded-xl overflow-hidden relative group"
                             >
                                 {/* Top gradient bar */}
                                 <div className={`h-1.5 w-full bg-gradient-to-r ${progress >= 100 ? 'from-emerald-400 to-emerald-500' : 'from-indigo-500 to-purple-500'}`} aria-hidden="true" />
@@ -245,14 +245,14 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                     {/* Header */}
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-start gap-3">
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-inner transition-all ${isCheckedToday ? 'bg-indigo-500 text-white' : 'bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500'}`} aria-hidden="true">
+                                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-none transition-all ${isCheckedToday ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400'}`} aria-hidden="true">
                                                 <BookOpen className="w-6 h-6" />
                                             </div>
                                             <div>
-                                                <h3 className="text-lg font-black text-slate-800 dark:text-white leading-tight">{study.title}</h3>
+                                                <h3 className="text-lg font-black text-slate-100 leading-tight">{study.title}</h3>
                                                 <p className="text-[12px] font-bold text-slate-400 mt-0.5 flex items-center gap-1.5">
                                                     <CalIcon className="w-3 h-3" aria-hidden="true" /> 목표 {study.totalDays}일 중 {study.logs.length}일 출석
-                                                    {remaining > 0 && <span className="text-indigo-500 dark:text-indigo-400">· 남은 {remaining}일</span>}
+                                                    {remaining > 0 && <span className="text-text-indigo-400">· 남은 {remaining}일</span>}
                                                 </p>
                                             </div>
                                         </div>
@@ -267,19 +267,19 @@ export default function StudyView({ studies, setStudies, currentDate }) {
 
                                     {/* Stats Row */}
                                     <div className="grid grid-cols-3 gap-3 mb-4">
-                                        <div className="bg-slate-50 dark:bg-white/[0.03] rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
+                                        <div className="bg-[#09090b][0.03] rounded-xl p-3 text-center border border-white/10">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">출석일</p>
-                                            <p className="text-xl font-black text-slate-800 dark:text-white">{study.logs.length}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span></p>
+                                            <p className="text-xl font-black text-slate-100">{study.logs.length}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span></p>
                                         </div>
-                                        <div className={`rounded-xl p-3 text-center border ${streak >= 3 ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20' : 'bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/5'}`}>
+                                        <div className={`rounded-xl p-3 text-center border ${streak >= 3 ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20' : 'bg-[#09090b][0.03] border-white/10'}`}>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">연속 출석</p>
-                                            <p className={`text-xl font-black ${streak >= 3 ? 'text-orange-500 dark:text-orange-400' : 'text-slate-800 dark:text-white'}`}>
+                                            <p className={`text-xl font-black ${streak >= 3 ? 'text-orange-500 dark:text-orange-400' : 'text-slate-100'}`}>
                                                 {streak >= 3 && '🔥'}{streak}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span>
                                             </p>
                                         </div>
-                                        <div className="bg-slate-50 dark:bg-white/[0.03] rounded-xl p-3 text-center border border-slate-100 dark:border-white/5">
+                                        <div className="bg-[#09090b][0.03] rounded-xl p-3 text-center border border-white/10">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">달성률</p>
-                                            <p className={`text-xl font-black ${completionRate >= 100 ? 'text-emerald-500' : 'text-indigo-600 dark:text-indigo-400'}`}>{completionRate}<span className="text-xs font-bold text-slate-400 ml-0.5">%</span></p>
+                                            <p className={`text-xl font-black ${completionRate >= 100 ? 'text-emerald-500' : 'text-text-indigo-400'}`}>{completionRate}<span className="text-xs font-bold text-slate-400 ml-0.5">%</span></p>
                                         </div>
                                     </div>
 
@@ -289,7 +289,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                             <span className="text-slate-500">진행률</span>
                                             <span className={`${progress >= 100 ? 'text-emerald-500' : 'text-indigo-500'} text-sm`}>{progress}%</span>
                                         </div>
-                                        <div className="w-full h-3 bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                                        <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
                                             <motion.div
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${Math.max(progress, 2)}%` }}
@@ -305,16 +305,16 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                     {/* Main Content: Check-in + Heatmap side by side */}
                                     <div className="flex flex-col md:flex-row gap-4">
                                         {/* Left: Today's check-in */}
-                                        <div className="flex-1 bg-slate-50 dark:bg-[#0f1115] rounded-2xl p-4 border border-slate-100 dark:border-white/5 flex items-center justify-between">
+                                        <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10 flex items-center justify-between">
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{format(currentDate, 'MMM dd')} 오늘의 출석</span>
-                                                <span className={`text-sm font-black mt-1 ${isCheckedToday ? 'text-indigo-500' : 'text-slate-500 dark:text-slate-300'}`}>
+                                                <span className={`text-sm font-black mt-1 ${isCheckedToday ? 'text-indigo-500' : 'text-slate-400'}`}>
                                                     {isCheckedToday ? '출석 완료 🎉' : '아직 늦지 않았어요!'}
                                                 </span>
                                                 {streak >= 7 && <span className="text-[11px] font-bold text-orange-500 mt-1">🔥 {streak}일 연속 출석 중!</span>}
 
                                                 {/* Timer UI */}
-                                                <div className="mt-3 bg-white dark:bg-white/5 p-2 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 dark:border-white/5">
+                                                <div className="mt-3 bg-[#111113] p-2 rounded-xl flex items-center justify-between shadow-none border border-white/10">
                                                     <span className="text-[10px] font-bold text-slate-400 uppercase">집중 스톱워치</span>
                                                     <div className="flex items-center gap-2">
                                                         <span className="text-sm font-black text-indigo-500 font-mono tracking-wider min-w-[3rem] text-center">
@@ -324,7 +324,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                                             onClick={() => toggleTimer(study.id)}
                                                             className={`px-3 py-1 rounded-lg text-[10px] font-bold active:scale-95 transition-all ${timerState.activeId === study.id && timerState.isRunning
                                                                     ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30'
-                                                                    : 'bg-indigo-500 text-white shadow-md'
+                                                                    : 'bg-indigo-500 text-white shadow-none'
                                                                 }`}
                                                         >
                                                             {timerState.activeId === study.id && timerState.isRunning ? '일시정지' : '▶ 시작'}
@@ -334,7 +334,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                             </div>
                                             <button
                                                 onClick={() => handleCheckIn(study)}
-                                                className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isCheckedToday ? 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-500 shadow-inner scale-95' : 'bg-slate-900 dark:bg-indigo-600 text-white hover:scale-105 shadow-md'}`}
+                                                className={`w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${isCheckedToday ? 'bg-indigo-500/10 text-indigo-500 shadow-none scale-95' : 'bg-slate-900 dark:bg-indigo-600 text-white hover:scale-105 shadow-none'}`}
                                                 aria-label={isCheckedToday ? '출석 취소' : '출석 체크'}
                                             >
                                                 <CheckCircle2 className="w-6 h-6" />
@@ -342,7 +342,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
                                         </div>
 
                                         {/* Right: Heatmap Calendar */}
-                                        <div className="flex-1 bg-slate-50 dark:bg-[#0f1115] rounded-2xl p-4 border border-slate-100 dark:border-white/5">
+                                        <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10">
                                             <AttendanceHeatmap logs={study.logs} currentDate={currentDate} />
                                         </div>
                                     </div>
