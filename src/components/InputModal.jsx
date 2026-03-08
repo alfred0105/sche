@@ -179,7 +179,10 @@ export default function InputModal({
                 ? `지출 내역 ${count > 1 ? `(${count}회 반복) ` : ''}저장 완료!`
                 : `수입 내역 ${count > 1 ? `(${count}회 반복) ` : ''}저장 완료!`, { icon: '📝' });
         } else {
-            // Schedule
+            // Schedule — 종료 시간이 시작 시간보다 빠르면 오류
+            if (scheduleEndTime <= scheduleTime) {
+                return toast.error('종료 시간은 시작 시간보다 늦어야 합니다.');
+            }
             const config = { formDate, recurringType, count, excludeHolidays, customRecurringDays };
             const scData = {
                 title: formTitle,

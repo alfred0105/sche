@@ -15,6 +15,7 @@ import { format, subDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval } 
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { generateId } from '../utils/helpers';
+import { supabase } from '../supabaseClient';
 
 // Mini heatmap calendar component
 function AttendanceHeatmap({ logs, currentDate }) {
@@ -51,7 +52,7 @@ function AttendanceHeatmap({ logs, currentDate }) {
                                     ? 'bg-indigo-500 dark:bg-indigo-400 text-white shadow-none '
                                     : isPast
                                         ? 'bg-white/5 text-slate-400'
-                                        : 'bg-[#09090b][0.02] text-slate-400'
+                                        : 'bg-white/3 text-slate-400'
                                 }
                 ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1 dark:ring-offset-[#1a1c23]' : ''}
               `}
@@ -87,7 +88,7 @@ function getStreak(logs, currentDate) {
     return streak;
 }
 
-export default function StudyView({ studies, setStudies, currentDate }) {
+export default function StudyView({ studies, setStudies, currentDate, studyTimes = {}, setStudyTimes, authPhotos = {}, setAuthPhotos, session, userProfile }) {
     const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon } = IconMap;
 
     const [isAddMode, setIsAddMode] = useState(false);
@@ -95,33 +96,99 @@ export default function StudyView({ studies, setStudies, currentDate }) {
     const [newTarget, setNewTarget] = useState(30);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
 
-    // === Timer & Photo & Subject State Setup ===
-    const [timerState, setTimerState] = useState({ activeId: null, isRunning: false });
-    const [studyTimes, setStudyTimes] = useState({});
-    const [authPhotos, setAuthPhotos] = useState({});
+    // === Timer & Photo & Subject & Leaderboard State Setup ===
+    // sessionStorage로 타이머 상태 유지 (탭 이동 시 초기화 방지)
+    const [timerState, setTimerState] = useState(() => {
+        try {
+            const saved = sessionStorage.getItem('timerState');
+            return saved ? JSON.parse(saved) : { activeId: null, isRunning: false };
+        } catch { return { activeId: null, isRunning: false }; }
+    });
     const [currentSubjects, setCurrentSubjects] = useState({});
     const timerRef = useRef(null);
+    const syncRef = useRef(null);
+    const [liveUsers, setLiveUsers] = useState([]);
 
     const toggleTimer = useCallback((studyId) => {
         setTimerState(prev => {
-            if (prev.activeId === studyId) {
-                return { activeId: studyId, isRunning: !prev.isRunning };
-            } else {
-                return { activeId: studyId, isRunning: true };
-            }
+            const next = prev.activeId === studyId
+                ? { activeId: studyId, isRunning: !prev.isRunning }
+                : { activeId: studyId, isRunning: true };
+            try { sessionStorage.setItem('timerState', JSON.stringify(next)); } catch { }
+            return next;
         });
     }, []);
 
     useEffect(() => {
+        // 기존 interval 항상 정리 후 새로 생성
+        if (timerRef.current) window.clearInterval(timerRef.current);
         if (timerState.isRunning && timerState.activeId) {
             timerRef.current = window.setInterval(() => {
                 setStudyTimes(prev => ({ ...prev, [timerState.activeId]: (prev[timerState.activeId] || 0) + 1 }));
             }, 1000);
-        } else if (timerRef.current) {
-            window.clearInterval(timerRef.current);
         }
-        return () => window.clearInterval(timerRef.current);
-    }, [timerState.isRunning, timerState.activeId]);
+        return () => { if (timerRef.current) window.clearInterval(timerRef.current); };
+    }, [timerState.isRunning, timerState.activeId, setStudyTimes]);
+
+    // Live sync to/from Supabase public_leaderboard
+    const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
+    const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
+
+    useEffect(() => {
+        if (!session?.user || !supabase) return;
+
+        // Fetch others' data
+        const loadLeaderboard = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('public_leaderboard')
+                    .select('*')
+                    .order('study_time', { ascending: false })
+                    .limit(10);
+                if (!error && data) {
+                    setLiveUsers(data.filter(u => u.user_id !== session.user.id));
+                }
+            } catch (err) {
+                console.error('[Leaderboard] 조회 오류:', err);
+            }
+        };
+
+        // Upsert my data
+        const syncMyData = async () => {
+            try {
+                const { error } = await supabase.from('public_leaderboard').upsert({
+                    user_id: session.user.id,
+                    name: userProfile?.name || '익명 유저',
+                    study_time: totalUserTime,
+                    subject: activeSubject,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
+                if (error) console.error('[Leaderboard] Upsert 실패:', error.message);
+            } catch (err) {
+                console.error('[Leaderboard] Upsert 예외:', err);
+            }
+        };
+
+        loadLeaderboard();
+        syncMyData();
+
+        // 실시간 구독으로 리더보드 변경 감지
+        const channel = supabase
+            .channel('leaderboard-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'public_leaderboard' }, () => {
+                loadLeaderboard();
+            })
+            .subscribe();
+
+        // 내 데이터 주기적 upsert (공부 시간 반영)
+        if (syncRef.current) window.clearInterval(syncRef.current);
+        syncRef.current = window.setInterval(syncMyData, 15000);
+
+        return () => {
+            if (syncRef.current) window.clearInterval(syncRef.current);
+            supabase.removeChannel(channel);
+        };
+    }, [session, userProfile, totalUserTime, activeSubject]);
 
     const formatTime = (secs) => {
         const h = Math.floor(secs / 3600);
@@ -133,19 +200,26 @@ export default function StudyView({ studies, setStudies, currentDate }) {
 
     const handlePhotoUpload = (e, studyId) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const url = URL.createObjectURL(file);
-            setAuthPhotos(prev => ({ ...prev, [studyId]: url }));
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            setAuthPhotos(prev => ({ ...prev, [studyId]: ev.target.result }));
             toast.success('공부 인증 사진이 등록되었습니다!', { icon: '📸' });
-        }
+        };
+        reader.readAsDataURL(file);
     };
 
-    const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
-    const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
     const leaderboard = useMemo(() => {
-        const combined = [{ id: 'me', name: '나 (오늘)', time: totalUserTime, subject: activeSubject, isMe: true }];
+        const others = liveUsers.map(u => ({
+            id: u.user_id,
+            name: u.name || '익명',
+            time: u.study_time || 0,
+            subject: u.subject || '비공개',
+            isMe: false
+        }));
+        const combined = [...others, { id: 'me', name: `${userProfile?.name || '나'} (현재)`, time: totalUserTime, subject: activeSubject, isMe: true }];
         return combined.sort((a, b) => b.time - a.time);
-    }, [totalUserTime, activeSubject]);
+    }, [liveUsers, totalUserTime, activeSubject, userProfile]);
     // ===========================
 
     const handleAdd = useCallback(() => {
@@ -309,17 +383,17 @@ export default function StudyView({ studies, setStudies, currentDate }) {
 
                                     {/* Stats Row */}
                                     <div className="grid grid-cols-3 gap-3 mb-4">
-                                        <div className="bg-[#09090b][0.03] rounded-xl p-3 text-center border border-white/10">
+                                        <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">출석일</p>
                                             <p className="text-xl font-bold tracking-tight text-slate-100">{study.logs.length}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span></p>
                                         </div>
-                                        <div className={`rounded-xl p-3 text-center border ${streak >= 3 ? 'bg-orange-50 dark:bg-orange-500/10 border-orange-200 dark:border-orange-500/20' : 'bg-[#09090b][0.03] border-white/10'}`}>
+                                        <div className={`rounded-xl p-3 text-center border ${streak >= 3 ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10'}`}>
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">연속 출석</p>
-                                            <p className={`text-xl font-bold tracking-tight ${streak >= 3 ? 'text-orange-500 dark:text-orange-400' : 'text-slate-100'}`}>
+                                            <p className={`text-xl font-bold tracking-tight ${streak >= 3 ? 'text-orange-400' : 'text-slate-100'}`}>
                                                 {streak >= 3 && '🔥'}{streak}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span>
                                             </p>
                                         </div>
-                                        <div className="bg-[#09090b][0.03] rounded-xl p-3 text-center border border-white/10">
+                                        <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
                                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">달성률</p>
                                             <p className={`text-xl font-bold tracking-tight ${completionRate >= 100 ? 'text-emerald-500' : 'text-indigo-400'}`}>{completionRate}<span className="text-xs font-bold text-slate-400 ml-0.5">%</span></p>
                                         </div>

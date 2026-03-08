@@ -179,19 +179,25 @@ export function useAppData(session) {
     useEffect(() => {
         if (cloudSyncStatus !== 'ready' || !session?.user || !supabase || cloudSyncRef.current) return;
 
-        const uploadData = async () => {
+        const uploadData = async (attempt = 1) => {
             const payload = {
                 expenseCategories, incomeCategories, scheduleCategories,
                 accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances
             };
             try {
-                await supabase.from('user_data').upsert({
+                const { error } = await supabase.from('user_data').upsert({
                     user_id: session.user.id,
                     payload,
                     updated_at: new Date().toISOString(),
                 }, { onConflict: 'user_id' });
+                if (error) throw error;
             } catch (error) {
-                console.error('[CloudSync] Save failed:', error);
+                console.error(`[CloudSync] Save failed (시도 ${attempt}/3):`, error);
+                if (attempt < 3) {
+                    setTimeout(() => uploadData(attempt + 1), 2000 * attempt);
+                } else {
+                    toast.error('클라우드 저장에 실패했습니다. 나중에 다시 시도합니다.', { icon: '⚠️' });
+                }
             }
         };
 

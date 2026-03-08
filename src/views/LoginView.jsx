@@ -1,6 +1,7 @@
 import React from 'react';
 import { supabase } from '../supabaseClient';
 import { IconMap } from '../components/IconMap';
+import { toast } from 'react-hot-toast';
 
 export default function LoginView() {
     const handleGoogleLogin = async () => {
@@ -11,7 +12,10 @@ export default function LoginView() {
                 redirectTo: window.location.origin,
             },
         });
-        if (error) console.error('Error logging in:', error.message);
+        if (error) {
+            console.error('Error logging in:', error.message);
+            toast.error(`로그인에 실패했습니다: ${error.message}`, { icon: '⚠️' });
+        }
     };
 
     const { LayoutDashboard } = IconMap;

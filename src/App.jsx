@@ -1,9 +1,9 @@
 /**
  * @fileoverview Main App component — dramatically simplified.
- * 
+ *
  * Original: 827 lines, 26+ useState
  * Refactored: ~180 lines, 3 useState
- * 
+ *
  * All logic extracted to:
  * - useAuth (authentication)
  * - useAppData (core data)
@@ -11,7 +11,7 @@
  * - InputModal (input form)
  * - SettingsModal (settings)
  */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useAppData } from './hooks/useAppData';
 import { useAutomation } from './hooks/useAutomation';
@@ -22,6 +22,7 @@ import GoalView from './views/GoalView';
 import StudyView from './views/StudyView';
 import { IconMap } from './components/IconMap';
 import SettingsModal from './components/SettingsModal';
+import ShortcutsModal from './components/ShortcutsModal';
 import InputModal from './components/InputModal';
 import ReviewView from './views/ReviewView';
 import SearchModal from './components/SearchModal';
@@ -31,6 +32,8 @@ import LoginView from './views/LoginView';
 import { supabase } from './supabaseClient';
 import { TABS } from './constants';
 import { addDays, isSameDay, isBefore, parseISO, format, startOfToday } from 'date-fns';
+
+const AUTO_LOGOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 export default function App() {
   const { session, authLoading } = useAuth();
@@ -55,28 +58,87 @@ export default function App() {
   // Run daily automations (interest, ticker sync)
   useAutomation({ accounts, calculatedBalances, setTransactions, updateAccount });
 
-  // Theme management - strictly enforce dark mode
+  // Theme management — dark/light/system based on userProfile.theme
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-  }, []);
+    const theme = userProfile?.theme || 'dark';
+    const applyTheme = (t) => {
+      const isDark = t === 'dark' || (t === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.classList.toggle('dark', isDark);
+      document.documentElement.style.colorScheme = isDark ? 'dark' : 'light';
+    };
+    applyTheme(theme);
+    if (theme === 'system') {
+      const mq = window.matchMedia('(prefers-color-scheme: dark)');
+      const handler = () => applyTheme('system');
+      mq.addEventListener('change', handler);
+      return () => mq.removeEventListener('change', handler);
+    }
+  }, [userProfile?.theme]);
+
+  // Accent color — set data-accent attribute on <html>
+  useEffect(() => {
+    document.documentElement.setAttribute('data-accent', userProfile?.accent || 'indigo');
+  }, [userProfile?.accent]);
 
   const [currentTab, setCurrentTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [rolloverPrompted, setRolloverPrompted] = useState(false);
 
-  // Cmd+K shortcut for Global Search
+  // Cmd+K → search, ? → shortcuts, 1-6 → tab navigation, N → new entry
   useEffect(() => {
     const handleKeyDown = (e) => {
+      const tag = document.activeElement?.tagName;
+      const isInputFocused = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         setIsSearchOpen(true);
+        return;
+      }
+      if (isInputFocused) return;
+
+      if (e.key === '?') {
+        setIsShortcutsOpen(true);
+        return;
+      }
+      if (e.key === 'n' || e.key === 'N') {
+        setIsModalOpen(true);
+        return;
+      }
+      const tabKeys = { '1': 'home', '2': 'schedule', '3': 'finance', '4': 'goal', '5': 'study', '6': 'review' };
+      if (tabKeys[e.key]) {
+        setCurrentTab(tabKeys[e.key]);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // Auto logout after 30 minutes of inactivity
+  const autoLogoutTimer = useRef(null);
+  const resetAutoLogout = useCallback(() => {
+    clearTimeout(autoLogoutTimer.current);
+    autoLogoutTimer.current = setTimeout(async () => {
+      if (supabase && session) {
+        await supabase.auth.signOut();
+        toast('30분간 활동이 없어 자동 로그아웃되었습니다.', { icon: '🔒', duration: 5000 });
+      }
+    }, AUTO_LOGOUT_MS);
+  }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    const events = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetAutoLogout, { passive: true }));
+    resetAutoLogout();
+    return () => {
+      clearTimeout(autoLogoutTimer.current);
+      events.forEach(e => window.removeEventListener(e, resetAutoLogout));
+    };
+  }, [session, resetAutoLogout]);
 
   // Check uncompleted past tasks for rollover
   useEffect(() => {
@@ -110,8 +172,8 @@ export default function App() {
 
   // Update document title on tab change
   useEffect(() => {
-    const tabLabels = { home: '홈', schedule: '일정', finance: '재정', goal: '목표', study: '공부', review: '회고' };
-    document.title = `올라운더 — ${tabLabels[currentTab] || '홈'}`;
+    const currentTabLabel = TABS.find(t => t.id === currentTab)?.label || '홈';
+    document.title = `올라운더 — ${currentTabLabel}`;
   }, [currentTab]);
 
   const { LayoutDashboard, Plus, ChevronLeft, ChevronRight, Search } = IconMap;
@@ -261,7 +323,7 @@ export default function App() {
             />
           }
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
-          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} />}
+          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} session={session} userProfile={userProfile} />}
           {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} />}
         </motion.div>
       </main>
@@ -312,6 +374,15 @@ export default function App() {
           transactions={transactions}
           schedules={schedules}
           goals={goals}
+          studies={studies}
+          reviews={reviews}
+          budgets={budgets}
+          setTransactions={setTransactions}
+          setSchedules={setSchedules}
+          setGoals={setGoals}
+          setStudies={setStudies}
+          setReviews={setReviews}
+          setBudgets={setBudgets}
         />
       )}
 
@@ -325,6 +396,11 @@ export default function App() {
         setCurrentDate={setCurrentDate}
         setCurrentTab={setCurrentTab}
       />
+
+      {/* Shortcuts Modal */}
+      {isShortcutsOpen && (
+        <ShortcutsModal close={() => setIsShortcutsOpen(false)} />
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@
  * @fileoverview GoalView — refactored to use extracted GoalCard, shared constants,
  * proper ID generation, accessibility (ARIA, keyboard nav, ESC key), and PropTypes.
  */
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import GoalCard from '../components/GoalCard';
@@ -42,7 +42,11 @@ export default function GoalView({ goals, setGoals }) {
         return () => document.removeEventListener('keydown', handler);
     }, [selectedGoalId, isCreateModalOpen]);
 
+    const confettiCooldownRef = useRef(false);
     const triggerConfetti = useCallback(() => {
+        if (confettiCooldownRef.current) return;
+        confettiCooldownRef.current = true;
+        setTimeout(() => { confettiCooldownRef.current = false; }, 3000);
         const count = 200;
         const defaults = { origin: { y: 0.7 } };
         const fire = (particleRatio, opts) =>
