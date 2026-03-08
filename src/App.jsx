@@ -25,12 +25,12 @@ import SettingsModal from './components/SettingsModal';
 import InputModal from './components/InputModal';
 import ReviewView from './views/ReviewView';
 import SearchModal from './components/SearchModal';
-import { Toaster } from 'react-hot-toast';
+import { Toaster, toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import LoginView from './views/LoginView';
 import { supabase } from './supabaseClient';
 import { TABS } from './constants';
-import { addDays, isSameDay } from 'date-fns';
+import { addDays, isSameDay, isBefore, parseISO, format, startOfToday } from 'date-fns';
 
 export default function App() {
   const { session, authLoading } = useAuth();
@@ -62,6 +62,49 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [rolloverPrompted, setRolloverPrompted] = useState(false);
+
+  // Cmd+K shortcut for Global Search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Check uncompleted past tasks for rollover
+  useEffect(() => {
+    if (schedules.length > 0 && !rolloverPrompted && session) {
+      const today = startOfToday();
+      const pastUncompleted = schedules.filter(s => !s.completed && isBefore(parseISO(s.date), today));
+      if (pastUncompleted.length > 0) {
+        toast((t) => (
+          <div className="flex flex-col gap-2 p-1">
+            <span className="font-bold text-sm">과거의 미완료 일정이 {pastUncompleted.length}개 있습니다.</span>
+            <span className="text-xs text-slate-500">오늘 일정으로 모두 이월할까요?</span>
+            <div className="flex gap-2 mt-2">
+              <button onClick={() => {
+                setSchedules(prev => prev.map(s => {
+                  if (!s.completed && isBefore(parseISO(s.date), today)) {
+                    return { ...s, date: format(today, 'yyyy-MM-dd') };
+                  }
+                  return s;
+                }));
+                toast.dismiss(t.id);
+                toast.success('성공적으로 이월되었습니다.', { icon: '🔄' });
+              }} className="bg-indigo-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">이월하기</button>
+              <button onClick={() => toast.dismiss(t.id)} className="bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-400 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95">닫기</button>
+            </div>
+          </div>
+        ), { duration: 10000 });
+        setRolloverPrompted(true);
+      }
+    }
+  }, [schedules, rolloverPrompted, session, setSchedules]);
 
   // Update document title on tab change
   useEffect(() => {
@@ -123,6 +166,7 @@ export default function App() {
               aria-label="검색 열기"
             >
               <Search className="w-4 h-4 text-slate-400" />
+              <span className="hidden md:inline text-[9px] text-slate-400 font-bold ml-1 border border-white/10 px-1.5 rounded-md">⌘K</span>
             </button>
             <button
               className="w-10 h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-bold tracking-tight text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
@@ -263,6 +307,9 @@ export default function App() {
           userProfile={userProfile}
           setUserProfile={setUserProfile}
           session={session}
+          transactions={transactions}
+          schedules={schedules}
+          goals={goals}
         />
       )}
 

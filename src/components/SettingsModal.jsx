@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { IconMap } from './IconMap';
+import { toast } from 'react-hot-toast';
 
 import { supabase } from '../supabaseClient';
 
 export default function SettingsModal({
     close, expenseCategories, incomeCategories, scheduleCategories,
     addCategory, deleteCategory, accounts, addAccount, updateAccount, deleteAccount,
-    userProfile, setUserProfile, session
+    userProfile, setUserProfile, session, transactions = [], schedules = [], goals = []
 }) {
-    const { Settings, X, Trash2, Plus } = IconMap;
+    const { Settings, X, Trash2, Plus, Download, MessageCircle } = IconMap;
     const [activeTab, setActiveTab] = useState('categories');
     const [catType, setCatType] = useState('expense');
     const [newCatName, setNewCatName] = useState('');
@@ -46,6 +47,7 @@ export default function SettingsModal({
                     <button onClick={() => setActiveTab('profile')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'profile' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>프로필/테마</button>
                     <button onClick={() => setActiveTab('categories')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'categories' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>카테고리 설정</button>
                     <button onClick={() => setActiveTab('accounts')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'accounts' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>자산 계좌</button>
+                    <button onClick={() => setActiveTab('integration')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'integration' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>외부연동/데이터</button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-[#09090b]">
@@ -219,6 +221,63 @@ export default function SettingsModal({
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                        </div>
+                    )}
+                    {activeTab === 'integration' && (
+                        <div className="space-y-6 slide-up">
+                            <div className="glass-card p-5 space-y-4">
+                                <h4 className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                                    <MessageCircle className="w-5 h-5 text-indigo-500" /> 텔레그램 (Telegram) 알림 연동
+                                </h4>
+                                <p className="text-xs font-medium text-slate-500 bg-[#111113] p-3 rounded-xl border border-white/10">
+                                    자신만의 텔레그램 봇 토큰과 Chat ID를 입력하면, 백그라운드 서버를 통해 스케줄 리마인드 및 한도 초과 위험 시 알림을 받을 수 있습니다.
+                                </p>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Bot Token</label>
+                                    <input value={userProfile?.telegramToken || ''} onChange={e => setUserProfile(p => ({ ...p, telegramToken: e.target.value }))} placeholder="예: 123456789:ABCDefGHIJKlmNOPQrsTUVwxyZ" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-2 text-sm font-bold focus:border-indigo-500 outline-none transition-colors" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Chat ID (방 번호)</label>
+                                    <input value={userProfile?.telegramChatId || ''} onChange={e => setUserProfile(p => ({ ...p, telegramChatId: e.target.value }))} placeholder="예: 987654321" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-2 text-sm font-bold focus:border-indigo-500 outline-none transition-colors" />
+                                </div>
+                                <button className="w-full bg-[#111113] border border-white/10 hover:border-indigo-500/50 hover:bg-white/5 text-indigo-400 font-bold py-2.5 rounded-xl text-sm transition-colors mt-2" onClick={() => toast.success('테스트 메시지 발송 API 호출 (준비중)', { icon: '✈️' })}>
+                                    테스트 메시지 발송
+                                </button>
+                            </div>
+
+                            <div className="glass-card p-5 space-y-4">
+                                <h4 className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                                    <Download className="w-5 h-5 text-emerald-500" /> 데이터 백업 및 내보내기 (CSV)
+                                </h4>
+                                <p className="text-xs font-medium text-slate-500 bg-[#111113] p-3 rounded-xl border border-white/10">
+                                    올라운더에 기록된 모든 지출, 수입, 일정 데이터를 엑셀 등에서 열어볼 수 있는 CSV 포맷으로 내보냅니다.
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        let csvContent = "data:text/csv;charset=utf-8,Category,Type,Date,Title,Amount,Memo\n";
+
+                                        transactions.forEach(t => {
+                                            csvContent += `재정,${t.type},${t.date},"${t.title}",${t.amount},"${t.memo || ''}"\n`;
+                                        });
+                                        schedules.forEach(s => {
+                                            csvContent += `일정,,${s.date},"${s.title}",,"${s.memo || ''}"\n`;
+                                        });
+                                        goals.forEach(g => {
+                                            csvContent += `목표,,${g.deadline},"${g.title}",,"${g.memo || ''}"\n`;
+                                        });
+
+                                        const encodedUri = encodeURI(csvContent);
+                                        const link = document.createElement("a");
+                                        link.href = encodedUri;
+                                        link.download = `all_rounder_export_${new Date().toISOString().split('T')[0]}.csv`;
+                                        link.click();
+                                        toast.success('전체 기록이 CSV 양식으로 다운로드 되었습니다!', { icon: '📊' });
+                                    }}
+                                    className="w-full bg-emerald-500/10 border border-emerald-500/30 hover:bg-emerald-500/20 text-emerald-400 font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                                >
+                                    <Download className="w-4 h-4" /> 내 모든 데이터 다운로드 (.csv)
+                                </button>
                             </div>
                         </div>
                     )}
