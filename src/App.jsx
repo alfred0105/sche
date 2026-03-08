@@ -108,9 +108,9 @@ export default function App() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-rose-400/10 dark:bg-fuchsia-600/10 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-3 md:gap-5 px-4 md:px-6 pt-4 md:pt-6 mb-6">
+      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-3 md:gap-5 px-4 md:px-5 pt-4 md:pt-6 mb-6">
         <header className="flex justify-between items-center glass p-4 rounded-xl mt-2">
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
             <div className="w-7 h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-none" aria-hidden="true">
               <LayoutDashboard className="w-4 h-4 text-white" />
             </div>
@@ -125,7 +125,7 @@ export default function App() {
               <Search className="w-4 h-4 text-slate-400" />
             </button>
             <button
-              className="w-10 h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-black text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
+              className="w-10 h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-bold tracking-tight text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
               onClick={() => setIsSettingOpen(true)}
               aria-label="설정 열기"
             >
@@ -136,7 +136,7 @@ export default function App() {
 
         <div className="flex items-center justify-between pb-1 px-1">
           <div className="flex flex-col">
-            <span className="text-base md:text-lg font-black text-slate-100 flex items-center gap-1.5">
+            <span className="text-base md:text-lg font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
               <button
                 onClick={() => setCurrentDate(addDays(currentDate, -1))}
                 className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
@@ -190,7 +190,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main className="relative z-10 max-w-5xl mx-auto px-4 md:px-6" id={`panel-${currentTab}`} role="tabpanel" aria-labelledby={`tab-${currentTab}`}>
+      <main className="relative z-10 max-w-5xl mx-auto px-4 md:px-5" id={`panel-${currentTab}`} role="tabpanel" aria-labelledby={`tab-${currentTab}`}>
         <motion.div
           key={currentTab}
           initial={{ opacity: 0, y: 15 }}

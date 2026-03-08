@@ -19,17 +19,17 @@ export default function LoginView() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#09090b] p-4 text-slate-400">
             <div className="max-w-md w-full p-8 rounded-[2rem] text-center space-y-6 bg-[#111113] shadow-none border border-white/10 slide-up">
-                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl mx-auto flex items-center justify-center shadow-none shadow-none-500/30">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl mx-auto flex items-center justify-center shadow-none ">
                     <LayoutDashboard className="w-10 h-10 text-white" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-black mb-3">올라운더 시작하기</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight mb-3">올라운더 시작하기</h1>
                     <p className="text-[15px] font-bold text-slate-400 leading-relaxed">데이터를 클라우드에 안전하게 보관하고<br />스마트폰 컴퓨터 어디서든 관리하세요.</p>
                 </div>
 
                 <button
                     onClick={handleGoogleLogin}
-                    className="w-full py-4 px-4 mt-8 bg-[#111113] border border-white/10 rounded-xl font-black text-[15px] flex items-center justify-center gap-3 hover:bg-white/10 transition-all shadow-none active:scale-[0.98]"
+                    className="w-full py-4 px-4 mt-8 bg-[#111113] border border-white/10 rounded-xl font-bold tracking-tight text-[15px] flex items-center justify-center gap-3 hover:bg-white/10 transition-all shadow-none active:scale-[0.98]"
                 >
                     <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />

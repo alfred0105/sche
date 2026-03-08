@@ -33,9 +33,9 @@ export class ErrorBoundary extends React.Component {
                 >
                     <div className="max-w-md w-full bg-[#111113] rounded-xl p-8 shadow-none border border-white/10 text-center space-y-5">
                         <div className="w-16 h-16 bg-rose-50 dark:bg-rose-500/10 rounded-xl mx-auto flex items-center justify-center">
-                            <span className="text-3xl">⚠️</span>
+                            <span className="text-2xl md:text-3xl">⚠️</span>
                         </div>
-                        <h2 className="text-xl font-black text-slate-100">
+                        <h2 className="text-xl font-bold tracking-tight text-slate-100">
                             예상치 못한 오류가 발생했습니다
                         </h2>
                         <p className="text-sm text-slate-400 leading-relaxed">
@@ -54,7 +54,7 @@ export class ErrorBoundary extends React.Component {
                         )}
                         <button
                             onClick={this.handleReset}
-                            className="w-full py-3 bg-slate-900 dark:bg-indigo-600 text-white font-bold rounded-xl shadow-none hover:bg-slate-800 dark:hover:bg-indigo-500 transition-colors active:scale-95"
+                            className="w-full py-2.5 bg-slate-900 dark:bg-indigo-600 text-white font-bold rounded-xl shadow-none hover:bg-slate-800 dark:hover:bg-indigo-500 transition-colors active:scale-95"
                         >
                             다시 시도하기
                         </button>

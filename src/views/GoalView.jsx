@@ -139,10 +139,10 @@ export default function GoalView({ goals, setGoals }) {
         <div className="flex-1 min-w-[300px] snap-center flex flex-col gap-3 bg-slate-50/50 dark:bg-white/[0.02] p-4 rounded-xl border border-white/10 relative overflow-hidden">
             <div className={`absolute top-0 left-0 right-0 h-1 ${dotColor}`} aria-hidden="true" />
             <div className="flex items-center justify-between mb-2 px-1 pt-1">
-                <h3 className="text-base font-black text-slate-200 flex items-center gap-2">
+                <h3 className="text-base font-bold tracking-tight text-slate-200 flex items-center gap-2">
                     <span className={`w-3 h-3 rounded-full ${dotColor} shadow-none`} aria-hidden="true" /> {label}
                 </h3>
-                <span className="bg-[#111113] text-slate-400 text-xs px-2.5 py-0.5 rounded-lg font-black border border-white/10 shadow-none" aria-label={`${items.length}개`}>{items.length}</span>
+                <span className="bg-[#111113] text-slate-400 text-xs px-2.5 py-0.5 rounded-lg font-bold tracking-tight border border-white/10 shadow-none" aria-label={`${items.length}개`}>{items.length}</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3" role="list" aria-label={`${label} 목표 목록`}>
                 <AnimatePresence>
@@ -164,8 +164,8 @@ export default function GoalView({ goals, setGoals }) {
     return (
         <section className="min-h-[600px] mb-8 relative" aria-label="목표 관리">
             <header className="flex justify-between items-center mb-6 pl-2 pr-1">
-                <h2 className="text-2xl font-black flex items-center gap-2 text-slate-400 mt-2">
-                    <div className="bg-indigo-500/10 text-text-indigo-400 p-2 rounded-xl" aria-hidden="true">
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-400 mt-2">
+                    <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-xl" aria-hidden="true">
                         <Flag className="w-5 h-5" />
                     </div>
                     Notion-스타일 목표 보드
@@ -179,7 +179,7 @@ export default function GoalView({ goals, setGoals }) {
                 </button>
             </header>
 
-            <div className="flex flex-col md:flex-row gap-6 overflow-x-auto pb-4 snap-x [&::-webkit-scrollbar]:hidden">
+            <div className="flex flex-col md:flex-row gap-4 md:p-5 overflow-x-auto pb-4 snap-x [&::-webkit-scrollbar]:hidden">
                 {renderColumn('short', '단기 (과제/일반)', 'bg-rose-400', shorts)}
                 {renderColumn('mid', '중기 (학기/자격증)', 'bg-blue-400', mids)}
                 {renderColumn('long', '장기 (연간/취업/목돈)', 'bg-purple-500', longs)}
@@ -201,14 +201,14 @@ export default function GoalView({ goals, setGoals }) {
                                 <button onClick={() => setSelectedGoalId(null)} className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors backdrop-blur-sm z-10" aria-label="닫기"><X className="w-5 h-5" /></button>
                                 <div className="absolute -bottom-10 left-6 sm:left-10 text-6xl bg-transparent drop-shadow-none select-none bg-white/20 p-2 rounded-xl backdrop-blur-md border border-white/30">{selectedGoal.icon}</div>
                             </div>
-                            <div className="px-6 sm:px-10 pt-14 pb-10 flex-1 space-y-6">
+                            <div className="px-5 sm:px-10 pt-14 pb-10 flex-1 space-y-6">
                                 <div>
                                     <input
                                         id="goal-detail-title"
                                         type="text"
                                         value={selectedGoal.title}
                                         onChange={(e) => updateGoalItem(selectedGoal.id, { title: e.target.value })}
-                                        className="w-full text-3xl sm:text-4xl font-black text-slate-900 dark:text-white bg-transparent border-none outline-none focus:ring-0 p-0 mb-1"
+                                        className="w-full text-2xl md:text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white bg-transparent border-none outline-none focus:ring-0 p-0 mb-1"
                                         placeholder="무제"
                                         aria-label="목표 제목"
                                     />
@@ -222,11 +222,11 @@ export default function GoalView({ goals, setGoals }) {
 
                                 {selectedGoal.tracker?.type === 'numeric' ? (
                                     <div className="space-y-3">
-                                        <h4 className="text-sm font-black text-slate-400 flex items-center gap-2"><Target className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 수치 기록 업데이트</h4>
+                                        <h4 className="text-sm font-bold tracking-tight text-slate-400 flex items-center gap-2"><Target className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 수치 기록 업데이트</h4>
                                         <div className="bg-[#09090b] p-5 rounded-xl border border-white/10 space-y-5 shadow-none">
                                             <div className="flex items-center justify-between">
-                                                <span className="text-4xl font-black text-text-indigo-400 tracking-tight">{selectedGoal.tracker.current} <span className="text-sm font-bold text-slate-500">{selectedGoal.tracker.unit}</span></span>
-                                                <div className="text-right"><span className="block text-[11px] font-black text-slate-400 tracking-wider">목표 수치</span><span className="text-lg font-black text-slate-200">{selectedGoal.tracker.target}</span></div>
+                                                <span className="text-4xl font-bold tracking-tight text-indigo-400 tracking-tight">{selectedGoal.tracker.current} <span className="text-sm font-bold text-slate-500">{selectedGoal.tracker.unit}</span></span>
+                                                <div className="text-right"><span className="block text-[11px] font-bold tracking-tight text-slate-400 tracking-wider">목표 수치</span><span className="text-lg font-bold tracking-tight text-slate-200">{selectedGoal.tracker.target}</span></div>
                                             </div>
                                             <div className="flex gap-2" role="group" aria-label="수치 조절">
                                                 {[-1, 1, 5, 10].map((v) => (
@@ -243,13 +243,13 @@ export default function GoalView({ goals, setGoals }) {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        <h4 className="text-sm font-black text-slate-400 flex items-center gap-2"><CheckSquare className="w-4 h-4 text-emerald-500" aria-hidden="true" /> 세부 체크리스트</h4>
+                                        <h4 className="text-sm font-bold tracking-tight text-slate-400 flex items-center gap-2"><CheckSquare className="w-4 h-4 text-emerald-500" aria-hidden="true" /> 세부 체크리스트</h4>
                                         {(!selectedGoal.tasks || selectedGoal.tasks.length === 0) && (
                                             <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-2">
                                                 <p className="text-xs font-bold text-slate-500 mb-2">체크리스트가 없습니다. 임의로 달성률 조절:</p>
                                                 <label htmlFor="manual-progress" className="sr-only">달성률 조절</label>
                                                 <input id="manual-progress" type="range" min="0" max="100" value={selectedGoal.progress} onChange={(e) => updateGoalItem(selectedGoal.id, { progress: Number(e.target.value) })} className="w-full accent-indigo-500 cursor-pointer" />
-                                                <div className="text-right text-xs font-black text-text-indigo-400" aria-live="polite">{selectedGoal.progress}%</div>
+                                                <div className="text-right text-xs font-bold tracking-tight text-indigo-400" aria-live="polite">{selectedGoal.progress}%</div>
                                             </div>
                                         )}
                                         {selectedGoal.tasks && selectedGoal.tasks.length > 0 && (
@@ -268,13 +268,13 @@ export default function GoalView({ goals, setGoals }) {
                                         <div className="flex gap-2">
                                             <label htmlFor="new-task-input" className="sr-only">새 할 일</label>
                                             <input id="new-task-input" value={newTaskText} onChange={(e) => setNewTaskText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTask(selectedGoal, newTaskText)} placeholder="할 일 추가... (Enter)" className="flex-1 bg-transparent border-b border-white/10 py-2 text-sm text-slate-200 focus:border-indigo-500 outline-none placeholder:font-bold placeholder:text-slate-400" />
-                                            <button onClick={() => addTask(selectedGoal, newTaskText)} className="text-indigo-500 text-sm font-black px-2 hover:text-indigo-600 transition-colors">추가</button>
+                                            <button onClick={() => addTask(selectedGoal, newTaskText)} className="text-indigo-500 text-sm font-bold tracking-tight px-2 hover:text-indigo-600 transition-colors">추가</button>
                                         </div>
                                     </div>
                                 )}
 
                                 <div className="space-y-3 pt-4">
-                                    <h4 className="text-sm font-black text-slate-400 flex items-center gap-2"><List className="w-4 h-4 text-emerald-500" aria-hidden="true" /> 노트 / 기록</h4>
+                                    <h4 className="text-sm font-bold tracking-tight text-slate-400 flex items-center gap-2"><List className="w-4 h-4 text-emerald-500" aria-hidden="true" /> 노트 / 기록</h4>
                                     <label htmlFor="goal-memo" className="sr-only">메모</label>
                                     <textarea id="goal-memo" value={selectedGoal.memo || ''} onChange={(e) => updateGoalItem(selectedGoal.id, { memo: e.target.value })} placeholder="목표를 달성하기 위한 구체적인 계획이나 다짐을 자유롭게 기록해보세요." rows={8} className="w-full bg-[#09090b] border border-white/10 rounded-xl p-4 text-sm resize-none focus:ring-0 focus:outline-none focus:border-slate-300 dark:focus:border-white/20 text-slate-200 font-medium placeholder:font-medium placeholder:text-slate-400/70" />
                                 </div>
@@ -292,27 +292,27 @@ export default function GoalView({ goals, setGoals }) {
                         <motion.div initial={{ scale: 0.95, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0, y: 10 }} className="relative glass-card bg-[#111113] w-full max-w-sm rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/20 dark:border-white/5">
                             <div className="p-7 space-y-6">
                                 <div className="flex justify-between items-center pb-2 border-b border-white/10">
-                                    <h3 id="create-goal-title" className="font-black text-xl text-slate-100 flex items-center gap-2">새 페이지 생성</h3>
+                                    <h3 id="create-goal-title" className="font-bold tracking-tight text-xl text-slate-100 flex items-center gap-2">새 페이지 생성</h3>
                                     <button onClick={() => setIsCreateModalOpen(false)} className="bg-white/5 p-2 rounded-full hover:bg-white/10" aria-label="닫기"><X className="w-5 h-5 text-slate-400" /></button>
                                 </div>
                                 <div className="space-y-4 max-h-[60vh] overflow-y-auto [&::-webkit-scrollbar]:hidden pb-4">
                                     <div>
-                                        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wider">유형</label>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">유형</label>
                                         <div className="flex gap-2 p-1 bg-white/5 rounded-xl" role="radiogroup" aria-label="목표 유형">
                                             {[{ val: 'short', label: '단기' }, { val: 'mid', label: '중기' }, { val: 'long', label: '장기' }].map(({ val, label }) => (
-                                                <button key={val} role="radio" aria-checked={goalForm.type === val} onClick={() => setGoalForm({ ...goalForm, type: val })} className={`flex-1 py-2 rounded-lg text-xs font-black transition-all ${goalForm.type === val ? 'bg-[#111113] text-text-indigo-400 shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>{label}</button>
+                                                <button key={val} role="radio" aria-checked={goalForm.type === val} onClick={() => setGoalForm({ ...goalForm, type: val })} className={`flex-1 py-2 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.type === val ? 'bg-[#111113] text-indigo-400 shadow-none' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>{label}</button>
                                             ))}
                                         </div>
                                     </div>
                                     <div>
-                                        <label htmlFor="goal-title-input" className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wider">페이지 제목 *</label>
-                                        <input id="goal-title-input" autoFocus value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="예: 토익 900점 완성, 이번주 팀플" className="w-full bg-[#111113] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold text-slate-400 outline-none focus:border-indigo-500 transition-all" aria-required="true" />
+                                        <label htmlFor="goal-title-input" className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">페이지 제목 *</label>
+                                        <input id="goal-title-input" autoFocus value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="예: 토익 900점 완성, 이번주 팀플" className="w-full bg-[#111113] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 outline-none focus:border-indigo-500 transition-all" aria-required="true" />
                                     </div>
                                     <div className="border-t border-b border-white/10 py-4 my-2">
-                                        <label className="block text-[11px] font-black text-slate-500 mb-3 uppercase tracking-wider"><Target className="w-3 h-3 inline pb-0.5 text-indigo-400" aria-hidden="true" /> 달성률 측정 방식</label>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-3 uppercase tracking-wider"><Target className="w-3 h-3 inline pb-0.5 text-indigo-400" aria-hidden="true" /> 달성률 측정 방식</label>
                                         <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-3" role="radiogroup" aria-label="측정 방식">
-                                            <button role="radio" aria-checked={goalForm.trackerType === 'checklist'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'checklist' })} className={`flex-1 py-3 rounded-lg text-xs font-black transition-all ${goalForm.trackerType === 'checklist' ? 'bg-[#111113] text-emerald-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>✅ 체크리스트 (태스크)</button>
-                                            <button role="radio" aria-checked={goalForm.trackerType === 'numeric'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'numeric' })} className={`flex-1 py-3 rounded-lg text-xs font-black transition-all ${goalForm.trackerType === 'numeric' ? 'bg-[#111113] text-indigo-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>📈 수치 기록 (30+종)</button>
+                                            <button role="radio" aria-checked={goalForm.trackerType === 'checklist'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'checklist' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'checklist' ? 'bg-[#111113] text-emerald-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>✅ 체크리스트 (태스크)</button>
+                                            <button role="radio" aria-checked={goalForm.trackerType === 'numeric'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'numeric' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'numeric' ? 'bg-[#111113] text-indigo-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>📈 수치 기록 (30+종)</button>
                                         </div>
                                         <AnimatePresence>
                                             {goalForm.trackerType === 'numeric' && (
@@ -335,7 +335,7 @@ export default function GoalView({ goals, setGoals }) {
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wider">아이콘</label>
+                                            <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">아이콘</label>
                                             <div className="relative group cursor-pointer bg-[#111113] border border-white/10 rounded-xl px-4 py-2.5 flex items-center justify-between">
                                                 <span className="text-xl" aria-label="선택된 아이콘">{goalForm.icon}</span> <ChevronDown className="w-4 h-4 text-slate-400" aria-hidden="true" />
                                                 <div className="absolute top-10 left-0 w-[200px] bg-[#111113] border border-white/10 p-2 rounded-xl shadow-none z-10 hidden group-hover:flex flex-wrap gap-2" role="listbox" aria-label="아이콘 선택">
@@ -344,18 +344,18 @@ export default function GoalView({ goals, setGoals }) {
                                             </div>
                                         </div>
                                         <div>
-                                            <label htmlFor="goal-deadline-input" className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wider">마감일 *</label>
+                                            <label htmlFor="goal-deadline-input" className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">마감일 *</label>
                                             <input id="goal-deadline-input" type="date" value={goalForm.deadline} onChange={(e) => setGoalForm({ ...goalForm, deadline: e.target.value })} className="w-full h-12 bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 outline-none focus:border-indigo-500 transition-all [color-scheme:light] dark:[color-scheme:dark]" aria-required="true" />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-black text-slate-500 mb-2 uppercase tracking-wider">커버 색상</label>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">커버 색상</label>
                                         <div className="flex gap-2" role="radiogroup" aria-label="커버 색상 선택">
                                             {GRADIENT_LIST.map((g, idx) => (<button key={idx} role="radio" aria-checked={goalForm.colorIdx === idx} aria-label={`색상 ${idx + 1}`} onClick={() => setGoalForm({ ...goalForm, colorIdx: idx })} className={`w-8 h-8 rounded-full bg-gradient-to-br ${g.from} ${g.to} cursor-pointer transition-transform ${goalForm.colorIdx === idx ? 'scale-110 ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-[#13151a]' : 'hover:scale-105 opacity-60'}`} />))}
                                         </div>
                                     </div>
                                 </div>
-                                <button onClick={handleCreateGoal} className="w-full bg-slate-900 dark:bg-indigo-600 text-white font-black py-4 rounded-xl shadow-none mt-2 active:scale-95 transition-transform">생성하기</button>
+                                <button onClick={handleCreateGoal} className="w-full bg-slate-900 dark:bg-indigo-600 text-white font-bold tracking-tight py-4 rounded-xl shadow-none mt-2 active:scale-95 transition-transform">생성하기</button>
                             </div>
                         </motion.div>
                     </div>

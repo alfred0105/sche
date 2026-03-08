@@ -215,15 +215,15 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             />
 
             {/* Total Assets Card */}
-            <div className="glass-card p-6 rounded-xl relative overflow-hidden">
+            <div className="glass-card p-4 md:p-5 rounded-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/10 blur-3xl rounded-full" aria-hidden="true" />
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-indigo-500/10 p-2.5 rounded-xl" aria-hidden="true"><Wallet className="w-5 h-5 text-text-indigo-400" /></div>
-                            <h2 className="text-xl font-black text-slate-100">자산 및 재정 분석</h2>
+                            <div className="bg-indigo-500/10 p-2.5 rounded-xl" aria-hidden="true"><Wallet className="w-5 h-5 text-indigo-400" /></div>
+                            <h2 className="text-xl font-bold tracking-tight text-slate-100">자산 및 재정 분석</h2>
                         </div>
-                        <p className="text-3xl md:text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400" aria-label={`총 자산 ${totalAssets.toLocaleString()}원`}>
+                        <p className="text-2xl md:text-3xl md:text-4xl font-bold tracking-tight tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400" aria-label={`총 자산 ${totalAssets.toLocaleString()}원`}>
                             ₩{totalAssets.toLocaleString()}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
@@ -258,7 +258,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     {[{ id: 'list', label: '거래 내역', icon: 'Wallet' }, { id: 'category', label: '카테고리별', icon: 'PieChart' }, { id: 'assets', label: '자산 현황', icon: 'BarChart3' }, { id: 'budgets', label: '예산 통제', icon: 'Target' }].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
-                            <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-[#111113] border-white/10 text-text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                            <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                                 <TabIcon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
                             </button>
                         );
@@ -266,7 +266,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 </div>
                 <div className="flex gap-2" role="radiogroup" aria-label="기간 필터">
                     {[{ id: 'daily', label: '일간' }, { id: 'weekly', label: '주간' }, { id: 'monthly', label: '월간' }, { id: 'all', label: '전체' }].map(({ id, label }) => (
-                        <button key={id} role="radio" aria-checked={filterType === id} onClick={() => setFilterType(id)} className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition-all ${filterType === id ? 'border-white/10 bg-[#111113] text-text-indigo-400 shadow-none' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                        <button key={id} role="radio" aria-checked={filterType === id} onClick={() => setFilterType(id)} className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition-all ${filterType === id ? 'border-white/10 bg-[#111113] text-indigo-400 shadow-none' : 'border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                             {label}
                         </button>
                     ))}
@@ -277,9 +277,9 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             <AnimatePresence mode="wait">
                 <motion.div key={activeSubTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                     {activeSubTab === 'list' && (
-                        <div className="glass-card p-6 min-h-[400px]">
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
                             <div className="flex justify-between items-center mb-5">
-                                <h3 className="font-black text-lg text-slate-100 flex items-center gap-2">
+                                <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                     <DollarSign className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 거래 리스트
                                 </h3>
                                 <div className="flex gap-3 text-xs font-bold">
@@ -292,7 +292,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             ) : (
                                 <div className="space-y-2" role="list" aria-label="거래 목록">
                                     {filteredTxs.map((tx) => (
-                                        <div key={tx.id} className="flex items-center gap-4 py-3 px-4 hover:bg-white/10 rounded-xl group transition-colors" role="listitem">
+                                        <div key={tx.id} className="flex items-center gap-4 py-2.5 px-4 hover:bg-white/10 rounded-xl group transition-colors" role="listitem">
                                             <div className={`w-10 h-10 rounded-xl ${tx.type === 'income' ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-rose-50 dark:bg-rose-500/10'} flex items-center justify-center shrink-0 shadow-none`} aria-hidden="true">
                                                 {tx.type === 'income' ? <TrendingUp className="w-5 h-5 text-blue-500" /> : <TrendingDown className="w-5 h-5 text-rose-500" />}
                                             </div>
@@ -305,7 +305,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                     {tx.memo && <span className="truncate max-w-[80px]">{tx.memo}</span>}
                                                 </p>
                                             </div>
-                                            <span className={`text-base font-black whitespace-nowrap ${tx.type === 'income' ? 'text-blue-500' : 'text-rose-500'}`}>
+                                            <span className={`text-base font-bold tracking-tight whitespace-nowrap ${tx.type === 'income' ? 'text-blue-500' : 'text-rose-500'}`}>
                                                 {tx.type === 'income' ? '+' : '-'}₩{tx.amount.toLocaleString()}
                                             </span>
                                             <button onClick={() => deleteTx(tx.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1.5 rounded-lg transition-all" aria-label={`${tx.title} 거래 삭제`}>
@@ -319,8 +319,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'category' && (
-                        <div className="glass-card p-6 min-h-[400px]">
-                            <h3 className="font-black text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
                                 <PieChartIcon className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 이번 달 카테고리별 지출
                             </h3>
                             {categoryData.length === 0 ? (
@@ -342,7 +342,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             <div key={cat.name} className="flex items-center gap-3" role="listitem">
                                                 <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} aria-hidden="true" />
                                                 <span className="text-sm font-bold text-slate-200 flex-1 truncate">{cat.name}</span>
-                                                <span className="text-sm font-black text-slate-100">₩{cat.value.toLocaleString()}</span>
+                                                <span className="text-sm font-bold tracking-tight text-slate-100">₩{cat.value.toLocaleString()}</span>
                                                 <span className="text-[10px] font-bold text-slate-400 w-10 text-right">{Math.round((cat.value / currentMonthExpense) * 100)}%</span>
                                             </div>
                                         ))}
@@ -353,8 +353,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'assets' && (
-                        <div className="glass-card p-6 min-h-[400px]">
-                            <h3 className="font-black text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
                                 <Landmark className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 보유 자산 현황
                             </h3>
                             <div className="space-y-3" role="list" aria-label="보유 자산 목록">
@@ -365,13 +365,13 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                         <div key={acc.id} className="bg-[#09090b][0.03] p-4 rounded-xl border border-white/10 group" role="listitem">
                                             <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedAccId(expandedAccId === acc.id ? null : acc.id)} role="button" tabIndex={0} aria-expanded={expandedAccId === acc.id} onKeyDown={(e) => e.key === 'Enter' && setExpandedAccId(expandedAccId === acc.id ? null : acc.id)}>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[10px] font-black tracking-tighter text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-100 dark:border-indigo-500/30">
+                                                    <span className="text-[10px] font-bold tracking-tight tracking-tighter text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-100 dark:border-indigo-500/30">
                                                         {acc.type === 'savings' ? '저축' : acc.type === 'investment' ? '투자' : acc.type === 'bank' ? '입출금' : '현금'}
                                                     </span>
                                                     <span className="text-sm font-bold text-slate-200">{acc.name}</span>
                                                 </div>
                                                 <div className="flex items-center gap-3">
-                                                    <span className="font-black text-slate-100">₩{bal.toLocaleString()}</span>
+                                                    <span className="font-bold tracking-tight text-slate-100">₩{bal.toLocaleString()}</span>
                                                     <span className="text-[10px] font-bold text-slate-400">{pct}%</span>
                                                     <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${expandedAccId === acc.id ? 'rotate-180' : ''}`} aria-hidden="true" />
                                                 </div>
@@ -403,9 +403,9 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'budgets' && (
-                        <div className="glass-card p-6 min-h-[400px]">
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
                             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-                                <h3 className="font-black text-lg text-slate-100 flex items-center gap-2">
+                                <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                     <Target className="w-5 h-5 text-rose-500" aria-hidden="true" /> 카테고리별 예산 통제
                                 </h3>
                                 <div className="flex items-center gap-2">
@@ -432,14 +432,14 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             <div className="flex justify-between items-end mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-bold text-slate-200">{cat.label}</span>
-                                                    {isExceeded && <span className="text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-black border border-rose-200 dark:border-rose-500/30">초과 위험!</span>}
-                                                    {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-black border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
+                                                    {isExceeded && <span className="text-[10px] bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-bold tracking-tight border border-rose-200 dark:border-rose-500/30">초과 위험!</span>}
+                                                    {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-bold tracking-tight border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
                                                 </div>
                                                 <div className="text-right flex items-center gap-3">
-                                                    <button onClick={() => setBudgetModal({ open: true, categoryId: cat.id, categoryLabel: cat.label, currentBudget: budget })} className="text-[11px] text-indigo-500 hover:text-text-indigo-400 dark:hover:text-indigo-300 transition-all flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-md p-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100" aria-label={`${cat.label} 예산 수정`} >
+                                                    <button onClick={() => setBudgetModal({ open: true, categoryId: cat.id, categoryLabel: cat.label, currentBudget: budget })} className="text-[11px] text-indigo-500 hover:text-indigo-400 dark:hover:text-indigo-300 transition-all flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-md p-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100" aria-label={`${cat.label} 예산 수정`} >
                                                         ⚙️ <span className="hidden sm:inline">예산 수정</span>
                                                     </button>
-                                                    <div className="text-sm font-black text-slate-100">
+                                                    <div className="text-sm font-bold tracking-tight text-slate-100">
                                                         ₩{spent.toLocaleString()} <span className="text-[11px] text-slate-400 font-bold ml-1">/ {budget > 0 ? `₩${budget.toLocaleString()}` : "미설정"}</span>
                                                     </div>
                                                 </div>

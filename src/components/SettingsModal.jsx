@@ -37,30 +37,30 @@ export default function SettingsModal({
         <div className="fixed inset-0 z-[150] flex items-center justify-center px-4 fade-in">
             <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={close}></div>
             <div className="relative glass-card bg-[#111113] w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:h-[650px] h-[85vh]">
-                <div className="flex justify-between items-center p-6 border-b border-white/10 z-10 glass">
-                    <h3 className="font-black text-xl flex items-center gap-2 text-slate-100"><Settings className="w-6 h-6 text-indigo-500" /> 화면 및 맞춤 설정</h3>
+                <div className="flex justify-between items-center p-4 md:p-5 border-b border-white/10 z-10 glass">
+                    <h3 className="font-bold tracking-tight text-xl flex items-center gap-2 text-slate-100"><Settings className="w-6 h-6 text-indigo-500" /> 화면 및 맞춤 설정</h3>
                     <button onClick={close} className="p-2 hover:bg-white/10 rounded-full transition-colors"><X className="w-5 h-5 text-slate-400" /></button>
                 </div>
 
                 <div className="flex border-b border-white/10">
-                    <button onClick={() => setActiveTab('profile')} className={`flex-1 py-3 text-sm font-bold ${activeTab === 'profile' ? 'text-text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>프로필/테마</button>
-                    <button onClick={() => setActiveTab('categories')} className={`flex-1 py-3 text-sm font-bold ${activeTab === 'categories' ? 'text-text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>카테고리 설정</button>
-                    <button onClick={() => setActiveTab('accounts')} className={`flex-1 py-3 text-sm font-bold ${activeTab === 'accounts' ? 'text-text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>자산 계좌</button>
+                    <button onClick={() => setActiveTab('profile')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'profile' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>프로필/테마</button>
+                    <button onClick={() => setActiveTab('categories')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'categories' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>카테고리 설정</button>
+                    <button onClick={() => setActiveTab('accounts')} className={`flex-1 py-2.5 text-sm font-bold ${activeTab === 'accounts' ? 'text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 hover:bg-white/10'}`}>자산 계좌</button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 bg-[#09090b]">
+                <div className="flex-1 overflow-y-auto p-4 md:p-5 bg-[#09090b]">
                     {activeTab === 'profile' && (
                         <div className="space-y-6 slide-up">
                             <div className="glass-card p-5 space-y-4">
                                 <h4 className="text-sm font-bold text-slate-400">사용자 이름 설정</h4>
-                                <input value={userProfile.name} onChange={e => setUserProfile(p => ({ ...p, name: e.target.value }))} placeholder="이름을 입력하세요" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-3 text-sm font-bold focus:border-indigo-500 outline-none transition-colors" />
+                                <input value={userProfile.name} onChange={e => setUserProfile(p => ({ ...p, name: e.target.value }))} placeholder="이름을 입력하세요" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold focus:border-indigo-500 outline-none transition-colors" />
                             </div>
 
                             <div className="glass-card p-5 space-y-4">
                                 <h4 className="text-sm font-bold text-slate-400">디스플레이 테마</h4>
                                 <div className="grid grid-cols-3 gap-3">
                                     {['light', 'dark', 'system'].map(t => (
-                                        <button key={t} onClick={() => setUserProfile(p => ({ ...p, theme: t }))} className={`py-3 rounded-xl text-sm font-bold border transition-all ${userProfile.theme === t ? 'border-indigo-500 bg-indigo-500/10 text-text-indigo-400' : 'border-white/10 bg-[#09090b] text-slate-500 hover:bg-white/10'}`}>
+                                        <button key={t} onClick={() => setUserProfile(p => ({ ...p, theme: t }))} className={`py-2.5 rounded-xl text-sm font-bold border transition-all ${userProfile.theme === t ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-white/10 bg-[#09090b] text-slate-500 hover:bg-white/10'}`}>
                                             {t === 'light' ? '밝은 화면' : t === 'dark' ? '어두운 화면' : '시스템 설정'}
                                         </button>
                                     ))}
@@ -72,7 +72,7 @@ export default function SettingsModal({
                                     <h4 className="text-sm font-bold text-slate-400">계정 관리</h4>
                                     <div className="flex items-center justify-between p-3 bg-[#09090b] rounded-xl border border-white/10">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center font-bold text-text-indigo-400">
+                                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center font-bold text-indigo-400">
                                                 {session.user.email?.charAt(0).toUpperCase()}
                                             </div>
                                             <div className="flex flex-col">
@@ -166,7 +166,7 @@ export default function SettingsModal({
                                         <div className="flex justify-between items-start">
                                             <div className="flex flex-col gap-2">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[10px] font-black tracking-tighter text-indigo-500 bg-indigo-50 px-2 flex items-center justify-center py-0.5 rounded-lg border border-indigo-100">
+                                                    <span className="text-[10px] font-bold tracking-tight tracking-tighter text-indigo-500 bg-indigo-50 px-2 flex items-center justify-center py-0.5 rounded-lg border border-indigo-100">
                                                         {acc.type === 'savings' ? '저축/청약' : acc.type === 'investment' ? '투자' : acc.type === 'bank' ? '입출금' : '현금'}
                                                     </span>
                                                     <span className="text-sm font-bold text-slate-800">{acc.name}</span>

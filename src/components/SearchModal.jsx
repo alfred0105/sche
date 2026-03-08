@@ -123,7 +123,7 @@ export default function SearchModal({
                                                 {item.title}
                                             </span>
                                             {item.amount && (
-                                                <span className={`text-sm font-black shrink-0 ${item.type === 'income' ? 'text-blue-500' : 'text-rose-500'}`}>
+                                                <span className={`text-sm font-bold tracking-tight shrink-0 ${item.type === 'income' ? 'text-blue-500' : 'text-rose-500'}`}>
                                                     {item.type === 'income' ? '+' : '-'}{item.amount.toLocaleString()}원
                                                 </span>
                                             )}

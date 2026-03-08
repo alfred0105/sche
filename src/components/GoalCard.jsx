@@ -30,14 +30,14 @@ function GoalCard({ goal, onClick }) {
                     {goal.icon || '🎯'}
                 </div>
                 {dDay !== null && (
-                    <div className={`absolute top-2.5 right-2.5 text-[10px] font-black px-2 py-0.5 rounded-full backdrop-blur-sm ${dDay < 0 ? 'bg-red-500/80 text-white' : dDay <= 3 ? 'bg-orange-500/80 text-white' : 'bg-white/30 text-white'}`}>
+                    <div className={`absolute top-2.5 right-2.5 text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full backdrop-blur-sm ${dDay < 0 ? 'bg-red-500/80 text-white' : dDay <= 3 ? 'bg-orange-500/80 text-white' : 'bg-white/30 text-white'}`}>
                         {dDay < 0 ? `D+${Math.abs(dDay)}` : dDay === 0 ? 'D-Day!' : `D-${dDay}`}
                     </div>
                 )}
             </div>
 
             <div className="p-4 pt-8 flex flex-col flex-1">
-                <h3 className={`font-black text-[15px] mb-1 line-clamp-2 ${goal.progress === 100 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400'}`}>
+                <h3 className={`font-bold tracking-tight text-[15px] mb-1 line-clamp-2 ${goal.progress === 100 ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-400'}`}>
                     {goal.title} {goal.progress === 100 && '🏆'}
                 </h3>
                 <p className="text-[11px] font-bold text-slate-400 mb-3">{goal.deadline} 까지</p>

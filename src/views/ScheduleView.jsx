@@ -79,7 +79,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
     }, [confirmState, schedules, setSchedules]);
 
     return (
-        <div className="glass-card p-6 min-h-[600px] mb-8 flex flex-col relative overflow-hidden">
+        <div className="glass-card p-4 md:p-5 min-h-[600px] mb-8 flex flex-col relative overflow-hidden">
             <ConfirmModal
                 isOpen={confirmState.open}
                 onClose={() => setConfirmState({ open: false, id: null, isGroup: false })}
@@ -91,7 +91,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
             />
 
             <header className="mb-6 border-b border-white/10 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-                <h2 className="text-2xl font-black flex items-center gap-2 text-slate-400">
+                <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-400">
                     <Calendar className="w-7 h-7 text-indigo-500" aria-hidden="true" /> 종합 스케줄러
                 </h2>
             </header>
@@ -112,7 +112,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                 role="tab"
                                 aria-selected={filterType === type}
                                 onClick={() => setFilterType(type)}
-                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filterType === type ? 'bg-[#111113] border-white/10 text-text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filterType === type ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                             >
                                 {type === 'daily' ? '일간' : type === 'weekly' ? '주간' : '월간'}
                             </button>
@@ -125,19 +125,19 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                 </button>
                             </div>
                         )}
-                        <div className="ml-auto text-sm font-black text-text-indigo-400 px-3 py-1.5 bg-indigo-500/10 rounded-lg" aria-live="polite">
+                        <div className="ml-auto text-sm font-bold tracking-tight text-indigo-400 px-3 py-1.5 bg-indigo-500/10 rounded-lg" aria-live="polite">
                             {format(currentDate, 'M월 d일')} 기준 일정
                         </div>
                     </div>
 
                     {totalCount > 0 && (
-                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl p-4 sm:p-5 mb-6 text-white shadow-none shadow-none-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4" role="status" aria-label="달성률">
+                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl p-4 sm:p-5 mb-6 text-white shadow-none  flex flex-col md:flex-row md:items-center justify-between gap-4" role="status" aria-label="달성률">
                             <div>
                                 <h3 className="text-sm font-semibold text-indigo-100 flex items-center gap-1.5 mb-1">
                                     <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
                                     {filterType === 'daily' ? '오늘의' : filterType === 'weekly' ? '이번 주' : '이번 달'} 일정 달성률
                                 </h3>
-                                <p className="text-2xl font-black">
+                                <p className="text-xl md:text-2xl font-bold tracking-tight">
                                     {completionRate}% <span className="text-sm font-medium text-indigo-200 ml-1">({completedCount}/{totalCount}개 완료)</span>
                                 </p>
                             </div>
@@ -180,7 +180,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                     >
                                         <div className={`flex ${isShort ? 'flex-row items-center gap-2' : 'flex-col'} w-full h-full`}>
                                             <div className="flex items-center justify-between">
-                                                <p className="font-bold text-sm text-text-indigo-400 truncate flex items-center gap-2">
+                                                <p className="font-bold text-sm text-indigo-400 truncate flex items-center gap-2">
                                                     {schedule.completed && <CheckCircle2 className="w-4 h-4 text-indigo-500" />} {schedule.title}
                                                 </p>
                                                 {!isShort && (
@@ -189,7 +189,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                     </button>
                                                 )}
                                             </div>
-                                            <p className={`text-[10px] font-bold text-text-indigo-400 truncate ${isShort ? 'mt-0' : 'mt-1'}`}>
+                                            <p className={`text-[10px] font-bold text-indigo-400 truncate ${isShort ? 'mt-0' : 'mt-1'}`}>
                                                 {schedule.time} ~ {schedule.endTime || ''} {schedule.location && `· 📍${schedule.location}`}
                                             </p>
                                         </div>
@@ -198,17 +198,17 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                             })}
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-6 w-full">
+                        <div className="flex flex-col gap-4 md:p-5 w-full">
                             {Object.entries(groupedSchedules).map(([dateStr, schedulesForDate]) => (
                                 <div key={dateStr} className="w-full">
-                                    <div className="text-sm font-black text-slate-500 mb-3 bg-[#09090b] inline-block px-3 py-1 rounded-full border border-white/10">
+                                    <div className="text-sm font-bold tracking-tight text-slate-500 mb-3 bg-[#09090b] inline-block px-3 py-1 rounded-full border border-white/10">
                                         {format(parseISO(dateStr), 'yyyy. MM. dd')}일 일정
                                     </div>
                                     <div className="relative border-l-[3px] border-slate-100 dark:border-[#1a1c23] ml-4 space-y-6 flex-1 pr-2">
                                         {schedulesForDate.map((schedule) => (
                                             <div key={schedule.id} className="relative pl-6 flex flex-col group">
                                                 <div className="flex items-start justify-between">
-                                                    <div className={`absolute -left-[12px] top-1 rounded-full p-0.5 bg-[#111113] transition-colors duration-300 ${schedule.completed ? 'text-text-indigo-400' : 'text-slate-400'}`} aria-hidden="true">
+                                                    <div className={`absolute -left-[12px] top-1 rounded-full p-0.5 bg-[#111113] transition-colors duration-300 ${schedule.completed ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true">
                                                         {schedule.completed ? <CheckCircle2 className="w-[20px] h-[20px] fill-indigo-100 dark:fill-indigo-500/20" /> : <Circle className="w-[20px] h-[20px]" />}
                                                     </div>
 
@@ -217,7 +217,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                             <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md text-slate-400 border border-slate-200/50 dark:border-white/5 shadow-none">{schedule.category}</span>
                                                             {schedule.priority && (
                                                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-none ${schedule.priority === 'High' ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-400' :
-                                                                    schedule.priority === 'Medium' ? 'bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400' :
+                                                                    schedule.priority === 'Medium' ? 'bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-500/10 border-[#1a1c23]mber-500/30 dark:text-amber-400' :
                                                                         'bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-500/10 dark:border-slate-500/30 dark:text-slate-400'
                                                                     }`}>
                                                                     {schedule.priority === 'High' ? '🔥 높음' : schedule.priority === 'Medium' ? '보통' : '낮음'}
@@ -229,7 +229,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
                                                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${expandedId === schedule.id ? 'rotate-180' : ''}`} aria-hidden="true" />
                                                         </div>
                                                         <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                                                            <p className={`text-[13px] font-semibold ${schedule.completed ? 'text-slate-400' : 'text-text-indigo-400'}`}>
+                                                            <p className={`text-[13px] font-semibold ${schedule.completed ? 'text-slate-400' : 'text-indigo-400'}`}>
                                                                 {schedule.time} {schedule.endTime ? `~ ${schedule.endTime}` : ''}
                                                             </p>
                                                             {schedule.location && (
@@ -242,7 +242,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate }) {
 
                                                     <button
                                                         onClick={(e) => toggleSchedule(e, schedule.id)}
-                                                        className={`ml-4 w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-indigo-500/10 text-text-indigo-400 border-indigo-200 dark:border-indigo-500/30 shadow-none-500/20' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400'}`}
+                                                        className={`ml-4 w-10 h-10 shrink-0 rounded-xl flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-indigo-500/10 text-indigo-400 border-indigo-200 dark:border-indigo-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-indigo-300 hover:text-indigo-500 dark:hover:border-indigo-500/50 dark:hover:text-indigo-400'}`}
                                                         aria-label={schedule.completed ? '일정 완료 취소' : '일정 완료 처리'}
                                                     >
                                                         <Check className="w-5 h-5 stroke-[3]" aria-hidden="true" />
