@@ -143,12 +143,7 @@ export default function StudyView({ studies, setStudies, currentDate }) {
     const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
     const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
     const leaderboard = useMemo(() => {
-        const others = [
-            { id: '1', name: '의대생_도전', time: 14400, subject: '해부학 복습' },
-            { id: '2', name: '지독한독종', time: 7200, subject: '알고리즘 기출문제' },
-            { id: '3', name: '올라운더지망생', time: 3600, subject: '리액트 강의 수강' },
-        ];
-        const combined = [...others, { id: 'me', name: '나 (오늘)', time: totalUserTime, subject: activeSubject, isMe: true }];
+        const combined = [{ id: 'me', name: '나 (오늘)', time: totalUserTime, subject: activeSubject, isMe: true }];
         return combined.sort((a, b) => b.time - a.time);
     }, [totalUserTime, activeSubject]);
     // ===========================
