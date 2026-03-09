@@ -57,8 +57,13 @@ function getWeekKey(date) {
     return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
-export default function HomeView({ schedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions, setSchedules }) {
+export default function HomeView({ schedules, setSchedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions }) {
     const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity, Plus, X } = IconMap;
+
+    const toggleSchedule = (id) => {
+        if (!setSchedules) return;
+        setSchedules(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
+    };
 
     const todayStr = format(currentDate, 'yyyy-MM-dd');
 
@@ -423,11 +428,15 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
                         <div className="space-y-1.5" role="list" aria-label="오늘의 일정 목록">
                             {todaySchedules.slice(0, 4).map((sc) => (
                                 <div key={sc.id} className="flex items-center gap-2 py-1" role="listitem">
-                                    <div className="shrink-0" aria-hidden="true">
+                                    <button
+                                        className="shrink-0 active:scale-90 transition-transform"
+                                        onClick={() => toggleSchedule(sc.id)}
+                                        aria-label={sc.completed ? '일정 미완료로 변경' : '일정 완료로 변경'}
+                                    >
                                         {sc.completed
                                             ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
-                                            : <Circle className="w-4 h-4 text-slate-600" />}
-                                    </div>
+                                            : <Circle className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />}
+                                    </button>
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-xs font-bold truncate ${sc.completed ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{sc.title}</p>
                                         {sc.time && <p className="text-[10px] text-slate-500">{sc.time}{sc.endTime ? ` ~ ${sc.endTime}` : ''}</p>}
@@ -563,6 +572,7 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
 
 HomeView.propTypes = {
     schedules: PropTypes.array.isRequired,
+    setSchedules: PropTypes.func,
     transactions: PropTypes.array.isRequired,
     totalAssets: PropTypes.number.isRequired,
     setCurrentTab: PropTypes.func.isRequired,

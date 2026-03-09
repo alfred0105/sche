@@ -295,7 +295,7 @@ export default function App() {
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
         >
-          {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} />}
+          {currentTab === 'home' && <HomeView schedules={schedules} setSchedules={setSchedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} />}
           {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
           {currentTab === 'finance' &&
             <FinanceView
