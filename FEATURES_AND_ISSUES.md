@@ -194,14 +194,9 @@ StudyView.propTypes = {
 - **잠재 문제**: 컴포넌트 언마운트/재마운트 시 ref 초기화 → 자동화 중복 실행 가능
 - **수정**: `sessionStorage`에 "오늘 자동화 실행됨" 여부 저장하여 일 1회만 실행 보장
 
-#### 7. 리더보드 Supabase 채널 중복 생성 — `src/views/StudyView.jsx` line 175-181
-```javascript
-const channel = supabase.channel('leaderboard-realtime')
-    .on('postgres_changes', ...)
-    .subscribe();
-```
-- **문제**: `totalUserTime`, `activeSubject` 등 deps가 바뀔 때마다 effect 재실행 → cleanup에서 기존 채널 제거 후 동일 채널명으로 재구독 반복 (Supabase 채널 제한 초과 가능)
-- **수정**: 채널을 `channelRef`에 저장, 최초 1회만 구독 생성. upsert는 별도 effect로 분리
+#### ~~7. 리더보드 Supabase 채널 중복 생성 — `src/views/StudyView.jsx`~~
+- ~~**문제**: `totalUserTime`, `activeSubject` deps가 바뀔 때마다(타이머 1초마다) effect 재실행 → 동일 채널명으로 새 구독 반복 생성~~
+- ~~**수정**: 채널 구독 effect와 upsert effect를 분리. `channelRef`로 채널 저장, session 변경 시만 재구독. upsert는 별도 effect에서 15초 주기로 실행~~ ✅ 완료
 
 #### ~~8. 로그인 오류 시 사용자 피드백 없음 — `src/views/LoginView.jsx`~~
 - ~~**문제**: 로그인 실패 시 콘솔에만 에러 출력, 사용자에게 toast 알림 없음~~
@@ -239,7 +234,7 @@ const channel = supabase.channel('leaderboard-realtime')
 |---------|------|--------|------|
 | 🔴 즉시 | ~~텔레그램 알림 실제 구현 (#86)~~ | 중 | ✅ 완료 |
 | 🔴 즉시 | ~~주간 회고 활성화 (#66)~~ | 하 | ✅ 완료 |
-| 🔴 즉시 | 리더보드 채널 중복 버그 수정 | 중 | ⬜ 미완 |
+| 🔴 즉시 | ~~리더보드 채널 중복 버그 수정~~ | 중 | ✅ 완료 |
 | 🟠 단기 | ~~뽀모도로 타이머 (#51)~~ | 하 | ✅ 완료 |
 | 🟠 단기 | ~~PWA 적용 (#93)~~ | 중 | ✅ 완료 |
 | 🟠 단기 | ~~월간 뷰 캘린더 (#8)~~ | 중 | ✅ 완료 |

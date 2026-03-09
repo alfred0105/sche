@@ -1,6 +1,7 @@
 /**
  * @fileoverview GoalView — refactored to use extracted GoalCard, shared constants,
  * proper ID generation, accessibility (ARIA, keyboard nav, ESC key), and PropTypes.
+ * Added: #36 마일스톤, #40 반복목표, #41 D-day알림, #45 태그, #50 공부연동
  */
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
@@ -11,22 +12,48 @@ import confetti from 'canvas-confetti';
 import { toast } from 'react-hot-toast';
 import { EMOJI_LIST, GRADIENT_LIST, TRACKER_UNITS } from '../constants';
 import { generateId } from '../utils/helpers';
+import { format, addWeeks, addMonths, parseISO, differenceInDays } from 'date-fns';
 
-export default function GoalView({ goals, setGoals }) {
-    const { Flag, Plus, Trash2, X, Target, CheckSquare, List, ChevronDown } = IconMap;
+// #45 Tag color map
+const TAG_COLORS = {
+    '건강': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+    '재정': 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+    '학습': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30',
+    '취미': 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+    '기타': 'bg-slate-500/10 text-slate-400 border-slate-500/30',
+};
+const TAGS = ['건강', '재정', '학습', '취미', '기타'];
+
+export default function GoalView({ goals, setGoals, studyTimes = {} }) {
+    const { Flag, Plus, Trash2, X, Target, CheckSquare, List, ChevronDown, RefreshCw } = IconMap;
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedGoalId, setSelectedGoalId] = useState(null);
     const [newTaskText, setNewTaskText] = useState('');
+    const [newMilestoneText, setNewMilestoneText] = useState('');
+    // #45 Tag filter
+    const [activeTagFilter, setActiveTagFilter] = useState('전체');
 
     const [goalForm, setGoalForm] = useState({
         type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0,
         trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100,
+        repeat: 'none', tag: '기타',
     });
 
-    const shorts = useMemo(() => goals.filter((g) => g.type === 'short'), [goals]);
-    const mids = useMemo(() => goals.filter((g) => g.type === 'mid'), [goals]);
-    const longs = useMemo(() => goals.filter((g) => g.type === 'long'), [goals]);
+    // #50 Study hours this week from studyTimes
+    const weeklyStudySeconds = useMemo(() => Object.values(studyTimes).reduce((a, b) => a + b, 0), [studyTimes]);
+    const weeklyStudyHours = Math.floor(weeklyStudySeconds / 3600);
+    const weeklyStudyMins = Math.floor((weeklyStudySeconds % 3600) / 60);
+
+    // #45 filtered goals
+    const filteredGoals = useMemo(() => {
+        if (activeTagFilter === '전체') return goals;
+        return goals.filter(g => g.tag === activeTagFilter);
+    }, [goals, activeTagFilter]);
+
+    const shorts = useMemo(() => filteredGoals.filter((g) => g.type === 'short'), [filteredGoals]);
+    const mids = useMemo(() => filteredGoals.filter((g) => g.type === 'mid'), [filteredGoals]);
+    const longs = useMemo(() => filteredGoals.filter((g) => g.type === 'long'), [filteredGoals]);
     const selectedGoal = useMemo(() => goals.find((g) => g.id === selectedGoalId), [goals, selectedGoalId]);
 
     // ESC key to close modals
@@ -41,6 +68,25 @@ export default function GoalView({ goals, setGoals }) {
         document.addEventListener('keydown', handler);
         return () => document.removeEventListener('keydown', handler);
     }, [selectedGoalId, isCreateModalOpen]);
+
+    // #41 D-day toast notification — once per session
+    const ddayNotifiedRef = useRef(false);
+    useEffect(() => {
+        if (ddayNotifiedRef.current) return;
+        ddayNotifiedRef.current = true;
+        const today = new Date();
+        goals.forEach(g => {
+            if (!g.deadline || g.progress >= 100) return;
+            try {
+                const diff = differenceInDays(parseISO(g.deadline), today);
+                if (diff >= 0 && diff <= 3) {
+                    setTimeout(() => {
+                        toast(`🎯 '${g.title}' 마감이 D-${diff}일 남았습니다!`, { duration: 6000, icon: '⏰' });
+                    }, 500);
+                }
+            } catch { /* invalid date */ }
+        });
+    }, [goals]);
 
     const confettiCooldownRef = useRef(false);
     const triggerConfetti = useCallback(() => {
@@ -70,7 +116,16 @@ export default function GoalView({ goals, setGoals }) {
             const updated = { ...g, ...updates };
             if (updated.progress === 100 && g.progress < 100) {
                 triggerConfetti();
-                toast.success('완벽합니다! 목표 달성을 축하합니다! 🎉', { duration: 4000 });
+                // #85 Goal completion toast with title
+                toast.success(`🎉 '${updated.title}' 목표를 달성했습니다!`, { duration: 4000 });
+
+                // #40 Auto-reset repeating goals
+                if (updated.repeat && updated.repeat !== 'none') {
+                    const newDeadline = updated.repeat === 'weekly'
+                        ? format(addWeeks(parseISO(updated.deadline), 1), 'yyyy-MM-dd')
+                        : format(addMonths(parseISO(updated.deadline), 1), 'yyyy-MM-dd');
+                    return { ...updated, progress: 0, deadline: newDeadline, tracker: updated.tracker ? { ...updated.tracker, current: 0 } : updated.tracker, tasks: updated.tasks?.map(t => ({ ...t, done: false })), milestones: updated.milestones?.map(m => ({ ...m, done: false })) };
+                }
             }
             return updated;
         }));
@@ -93,11 +148,14 @@ export default function GoalView({ goals, setGoals }) {
             colorFrom: grad.from,
             colorTo: grad.to,
             tasks: [],
+            milestones: [],
             memo: '',
+            repeat: goalForm.repeat,
+            tag: goalForm.tag,
             tracker: { type: goalForm.trackerType, unit: goalForm.trackerUnit, current: 0, target: Number(goalForm.targetValue) || 100 },
         }]);
         setIsCreateModalOpen(false);
-        setGoalForm({ type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0, trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100 });
+        setGoalForm({ type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0, trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100, repeat: 'none', tag: '기타' });
         toast.success('새로운 목표가 등록되었습니다!', { icon: '✨' });
     }, [goalForm, setGoals]);
 
@@ -111,7 +169,15 @@ export default function GoalView({ goals, setGoals }) {
             const updated = { ...g, tracker: { ...g.tracker, current: newCurrent }, progress: newProgress };
             if (updated.progress === 100 && g.progress < 100) {
                 triggerConfetti();
-                toast.success('완벽합니다! 목표 달성을 축하합니다! 🎉', { duration: 4000 });
+                toast.success(`🎉 '${updated.title}' 목표를 달성했습니다!`, { duration: 4000 });
+
+                // #40 Auto-reset repeating goals
+                if (updated.repeat && updated.repeat !== 'none') {
+                    const newDeadline = updated.repeat === 'weekly'
+                        ? format(addWeeks(parseISO(updated.deadline), 1), 'yyyy-MM-dd')
+                        : format(addMonths(parseISO(updated.deadline), 1), 'yyyy-MM-dd');
+                    return { ...updated, progress: 0, deadline: newDeadline, tracker: { ...updated.tracker, current: 0 } };
+                }
             }
             return updated;
         }));
@@ -120,21 +186,56 @@ export default function GoalView({ goals, setGoals }) {
     const addTask = useCallback((goal, text) => {
         if (!text.trim()) return;
         const newTasks = [...(goal.tasks || []), { id: generateId(), text, done: false }];
-        const newProgress = Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100);
+        // If milestones exist, use milestones for progress; otherwise use tasks
+        const milestones = goal.milestones || [];
+        const newProgress = milestones.length > 0
+            ? Math.round((milestones.filter(m => m.done).length / milestones.length) * 100)
+            : Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100);
         updateGoalItem(goal.id, { tasks: newTasks, progress: newProgress });
         setNewTaskText('');
     }, [updateGoalItem]);
 
     const toggleTask = useCallback((goal, taskId) => {
         const newTasks = goal.tasks.map((t) => (t.id === taskId ? { ...t, done: !t.done } : t));
-        const newProgress = Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100);
+        const milestones = goal.milestones || [];
+        const newProgress = milestones.length > 0
+            ? Math.round((milestones.filter(m => m.done).length / milestones.length) * 100)
+            : Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100);
         updateGoalItem(goal.id, { tasks: newTasks, progress: newProgress });
     }, [updateGoalItem]);
 
     const deleteTask = useCallback((goal, taskId) => {
         const newTasks = goal.tasks.filter((t) => t.id !== taskId);
-        const newProgress = newTasks.length > 0 ? Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100) : goal.progress;
+        const milestones = goal.milestones || [];
+        const newProgress = milestones.length > 0
+            ? Math.round((milestones.filter(m => m.done).length / milestones.length) * 100)
+            : newTasks.length > 0 ? Math.round((newTasks.filter((t) => t.done).length / newTasks.length) * 100) : goal.progress;
         updateGoalItem(goal.id, { tasks: newTasks, progress: newProgress });
+    }, [updateGoalItem]);
+
+    // #36 Milestone handlers
+    const addMilestone = useCallback((goal, text) => {
+        if (!text.trim()) return;
+        const newMilestones = [...(goal.milestones || []), { id: generateId(), title: text, done: false }];
+        const newProgress = Math.round((newMilestones.filter(m => m.done).length / newMilestones.length) * 100);
+        updateGoalItem(goal.id, { milestones: newMilestones, progress: newProgress });
+        setNewMilestoneText('');
+    }, [updateGoalItem]);
+
+    const toggleMilestone = useCallback((goal, milestoneId) => {
+        const newMilestones = (goal.milestones || []).map(m => m.id === milestoneId ? { ...m, done: !m.done } : m);
+        const newProgress = newMilestones.length > 0
+            ? Math.round((newMilestones.filter(m => m.done).length / newMilestones.length) * 100)
+            : goal.progress;
+        updateGoalItem(goal.id, { milestones: newMilestones, progress: newProgress });
+    }, [updateGoalItem]);
+
+    const deleteMilestone = useCallback((goal, milestoneId) => {
+        const newMilestones = (goal.milestones || []).filter(m => m.id !== milestoneId);
+        const newProgress = newMilestones.length > 0
+            ? Math.round((newMilestones.filter(m => m.done).length / newMilestones.length) * 100)
+            : goal.progress;
+        updateGoalItem(goal.id, { milestones: newMilestones, progress: newProgress });
     }, [updateGoalItem]);
 
     const handleGoalClick = useCallback((id) => setSelectedGoalId(id), []);
@@ -150,7 +251,24 @@ export default function GoalView({ goals, setGoals }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3" role="list" aria-label={`${label} 목표 목록`}>
                 <AnimatePresence>
-                    {items.map((g) => <GoalCard key={g.id} goal={g} onClick={handleGoalClick} />)}
+                    {items.map((g) => (
+                        <div key={g.id} className="relative">
+                            <GoalCard goal={g} onClick={handleGoalClick} />
+                            {/* #36 Repeat badge, #45 Tag badge */}
+                            <div className="absolute top-2 right-2 flex gap-1">
+                                {g.repeat && g.repeat !== 'none' && (
+                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full p-1" title={g.repeat === 'weekly' ? '매주 반복' : '매월 반복'}>
+                                        <RefreshCw className="w-3 h-3" />
+                                    </span>
+                                )}
+                                {g.tag && (
+                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TAG_COLORS[g.tag] || TAG_COLORS['기타']}`}>
+                                        {g.tag}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </AnimatePresence>
             </div>
             {items.length === 0 && (
@@ -167,7 +285,7 @@ export default function GoalView({ goals, setGoals }) {
 
     return (
         <section className="min-h-[600px] mb-8 relative" aria-label="목표 관리">
-            <header className="flex justify-between items-center mb-6 pl-2 pr-1">
+            <header className="flex justify-between items-center mb-4 pl-2 pr-1">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-400 mt-2">
                     <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-xl" aria-hidden="true">
                         <Flag className="w-5 h-5" />
@@ -182,6 +300,27 @@ export default function GoalView({ goals, setGoals }) {
                     <Plus className="w-4 h-4 stroke-[3]" aria-hidden="true" /> <span className="hidden md:inline">새 페이지 생성</span><span className="md:hidden">생성</span>
                 </button>
             </header>
+
+            {/* #50 Weekly study hours stat */}
+            <div className="glass-card p-3 rounded-xl mb-3 flex items-center gap-3 border border-white/10">
+                <span className="text-indigo-400 text-lg">📚</span>
+                <span className="text-sm font-bold text-slate-400">
+                    이번 주 총 공부시간: <span className="text-indigo-400">{weeklyStudyHours}h {weeklyStudyMins}m</span>
+                </span>
+            </div>
+
+            {/* #45 Tag filter bar */}
+            <div className="flex gap-2 mb-4 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                {['전체', ...TAGS].map(tag => (
+                    <button
+                        key={tag}
+                        onClick={() => setActiveTagFilter(tag)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all shrink-0 ${activeTagFilter === tag ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white/5 text-slate-400 border-white/10 hover:border-indigo-500/40'}`}
+                    >
+                        {tag}
+                    </button>
+                ))}
+            </div>
 
             <div className="flex flex-col md:flex-row gap-4 md:p-5 overflow-x-auto pb-4 snap-x [&::-webkit-scrollbar]:hidden">
                 {renderColumn('short', '단기 (과제/일반)', 'bg-rose-400', shorts)}
@@ -216,9 +355,67 @@ export default function GoalView({ goals, setGoals }) {
                                         placeholder="무제"
                                         aria-label="목표 제목"
                                     />
-                                    <div className="flex gap-4 text-xs font-bold text-slate-400">
+                                    <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-400">
                                         <div className="flex items-center gap-1"><Flag className="w-3.5 h-3.5" aria-hidden="true" /> 데드라인: {selectedGoal.deadline}</div>
+                                        {selectedGoal.repeat && selectedGoal.repeat !== 'none' && (
+                                            <div className="flex items-center gap-1 text-emerald-400">
+                                                <RefreshCw className="w-3.5 h-3.5" /> {selectedGoal.repeat === 'weekly' ? '매주 반복' : '매월 반복'}
+                                            </div>
+                                        )}
+                                        {selectedGoal.tag && (
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${TAG_COLORS[selectedGoal.tag] || TAG_COLORS['기타']}`}>
+                                                {selectedGoal.tag}
+                                            </span>
+                                        )}
                                         <button className="flex items-center gap-1 cursor-pointer hover:text-rose-500 transition-colors" onClick={() => deleteGoal(selectedGoal.id)} aria-label="이 목표 삭제"><Trash2 className="w-3.5 h-3.5" /> 페이지 삭제</button>
+                                    </div>
+                                </div>
+
+                                <div className="h-px bg-white/5 w-full" role="separator" />
+
+                                {/* #36 Milestone Section */}
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-bold tracking-tight text-slate-400 flex items-center gap-2">
+                                        <span className="text-indigo-400">🏁</span> 마일스톤
+                                        {selectedGoal.milestones && selectedGoal.milestones.length > 0 && (
+                                            <span className="text-xs text-slate-500">
+                                                {selectedGoal.milestones.filter(m => m.done).length}/{selectedGoal.milestones.length}
+                                            </span>
+                                        )}
+                                    </h4>
+                                    {selectedGoal.milestones && selectedGoal.milestones.length > 0 && (
+                                        <div className="space-y-1" role="list" aria-label="마일스톤 목록">
+                                            {selectedGoal.milestones.map(m => (
+                                                <div key={m.id} className="group/ms flex items-center justify-between p-2 hover:bg-white/5 rounded-xl transition-colors" role="listitem">
+                                                    <label className="flex items-center gap-3 flex-1 cursor-pointer">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={m.done}
+                                                            onChange={() => toggleMilestone(selectedGoal, m.id)}
+                                                            className="w-4 h-4 rounded text-indigo-500 focus:ring-indigo-500 bg-white border-white/10 dark:bg-[#1a1c23] cursor-pointer"
+                                                        />
+                                                        <span className={`text-sm font-medium transition-all ${m.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{m.title}</span>
+                                                    </label>
+                                                    <button
+                                                        onClick={() => deleteMilestone(selectedGoal, m.id)}
+                                                        className="opacity-0 group-hover/ms:opacity-100 text-slate-400 hover:text-rose-500 p-1.5 transition-all"
+                                                        aria-label={`${m.title} 삭제`}
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={newMilestoneText}
+                                            onChange={(e) => setNewMilestoneText(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && addMilestone(selectedGoal, newMilestoneText)}
+                                            placeholder="마일스톤 추가... (Enter)"
+                                            className="flex-1 bg-transparent border-b border-white/10 py-2 text-sm text-slate-200 focus:border-indigo-500 outline-none placeholder:font-bold placeholder:text-slate-500"
+                                        />
+                                        <button onClick={() => addMilestone(selectedGoal, newMilestoneText)} className="text-indigo-500 text-sm font-bold px-2 hover:text-indigo-400 transition-colors">추가</button>
                                     </div>
                                 </div>
 
@@ -248,7 +445,7 @@ export default function GoalView({ goals, setGoals }) {
                                 ) : (
                                     <div className="space-y-3">
                                         <h4 className="text-sm font-bold tracking-tight text-slate-400 flex items-center gap-2"><CheckSquare className="w-4 h-4 text-emerald-500" aria-hidden="true" /> 세부 체크리스트</h4>
-                                        {(!selectedGoal.tasks || selectedGoal.tasks.length === 0) && (
+                                        {(!selectedGoal.tasks || selectedGoal.tasks.length === 0) && (!selectedGoal.milestones || selectedGoal.milestones.length === 0) && (
                                             <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-2">
                                                 <p className="text-xs font-bold text-slate-500 mb-2">체크리스트가 없습니다. 임의로 달성률 조절:</p>
                                                 <label htmlFor="manual-progress" className="sr-only">달성률 조절</label>
@@ -299,7 +496,7 @@ export default function GoalView({ goals, setGoals }) {
                                     <h3 id="create-goal-title" className="font-bold tracking-tight text-xl text-slate-100 flex items-center gap-2">새 페이지 생성</h3>
                                     <button onClick={() => setIsCreateModalOpen(false)} className="bg-white/5 p-2 rounded-full hover:bg-white/10" aria-label="닫기"><X className="w-5 h-5 text-slate-400" /></button>
                                 </div>
-                                <div className="space-y-4 max-h-[60vh] overflow-y-auto [&::-webkit-scrollbar]:hidden pb-4">
+                                <div className="space-y-4 max-h-[65vh] overflow-y-auto [&::-webkit-scrollbar]:hidden pb-4">
                                     <div>
                                         <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">유형</label>
                                         <div className="flex gap-2 p-1 bg-white/5 rounded-xl" role="radiogroup" aria-label="목표 유형">
@@ -312,11 +509,46 @@ export default function GoalView({ goals, setGoals }) {
                                         <label htmlFor="goal-title-input" className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">페이지 제목 *</label>
                                         <input id="goal-title-input" autoFocus value={goalForm.title} onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })} placeholder="예: 토익 900점 완성, 이번주 팀플" className="w-full bg-[#111113] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 outline-none focus:border-indigo-500 transition-all" aria-required="true" />
                                     </div>
+
+                                    {/* #45 Tag selector */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">카테고리 태그</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {TAGS.map(tag => (
+                                                <button
+                                                    key={tag}
+                                                    onClick={() => setGoalForm({ ...goalForm, tag })}
+                                                    className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-all ${goalForm.tag === tag ? TAG_COLORS[tag] : 'bg-white/5 text-slate-400 border-white/10 hover:border-white/20'}`}
+                                                >
+                                                    {tag}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* #40 Repeat selector */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">반복 설정</label>
+                                        <div className="flex gap-2 p-1 bg-white/5 rounded-xl" role="radiogroup" aria-label="반복 설정">
+                                            {[{ val: 'none', label: '없음' }, { val: 'weekly', label: '매주' }, { val: 'monthly', label: '매월' }].map(({ val, label }) => (
+                                                <button
+                                                    key={val}
+                                                    role="radio"
+                                                    aria-checked={goalForm.repeat === val}
+                                                    onClick={() => setGoalForm({ ...goalForm, repeat: val })}
+                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold tracking-tight transition-all flex items-center justify-center gap-1 ${goalForm.repeat === val ? 'bg-[#111113] text-emerald-400' : 'text-slate-400 hover:text-slate-200'}`}
+                                                >
+                                                    {val !== 'none' && <RefreshCw className="w-3 h-3" />}{label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     <div className="border-t border-b border-white/10 py-4 my-2">
                                         <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-3 uppercase tracking-wider"><Target className="w-3 h-3 inline pb-0.5 text-indigo-400" aria-hidden="true" /> 달성률 측정 방식</label>
                                         <div className="flex gap-2 p-1 bg-white/5 rounded-xl mb-3" role="radiogroup" aria-label="측정 방식">
-                                            <button role="radio" aria-checked={goalForm.trackerType === 'checklist'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'checklist' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'checklist' ? 'bg-[#111113] text-emerald-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>✅ 체크리스트 (태스크)</button>
-                                            <button role="radio" aria-checked={goalForm.trackerType === 'numeric'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'numeric' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'numeric' ? 'bg-[#111113] text-indigo-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>📈 수치 기록 (30+종)</button>
+                                            <button role="radio" aria-checked={goalForm.trackerType === 'checklist'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'checklist' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'checklist' ? 'bg-[#111113] text-emerald-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>체크리스트 (태스크)</button>
+                                            <button role="radio" aria-checked={goalForm.trackerType === 'numeric'} onClick={() => setGoalForm({ ...goalForm, trackerType: 'numeric' })} className={`flex-1 py-2.5 rounded-lg text-xs font-bold tracking-tight transition-all ${goalForm.trackerType === 'numeric' ? 'bg-[#111113] text-indigo-500 shadow-none border border-white/10' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}>수치 기록 (30+종)</button>
                                         </div>
                                         <AnimatePresence>
                                             {goalForm.trackerType === 'numeric' && (
@@ -372,4 +604,5 @@ export default function GoalView({ goals, setGoals }) {
 GoalView.propTypes = {
     goals: PropTypes.array.isRequired,
     setGoals: PropTypes.func.isRequired,
+    studyTimes: PropTypes.object,
 };

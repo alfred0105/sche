@@ -1,6 +1,8 @@
 /**
  * @fileoverview FinanceView — refactored with ConfirmModal, useMemo, accessibility, PropTypes.
  * Added: financial health score (#24), 6-month expense chart (#25), finance diary (#34)
+ * Added: anomaly detection (#17), savings goal progress (#19), net worth chart (#21),
+ *         spending pattern (#26), portfolio donut (#29), subscription management (#33)
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
@@ -8,13 +10,26 @@ import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, Legend } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
 import { generateId } from '../utils/helpers';
 
-export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary }) {
-    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart } = IconMap;
+const SUBSCRIPTIONS_KEY = 'subscriptions';
+
+function loadSubscriptions() {
+    try {
+        return JSON.parse(localStorage.getItem(SUBSCRIPTIONS_KEY) || '[]');
+    } catch {
+        return [];
+    }
+}
+
+const WEEKDAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
+const ASSET_TYPE_LABELS = { cash: '현금', bank: '입출금', savings: '저축', investment: '투자' };
+
+export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary, goals }) {
+    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart, X, Plus } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
     const [activeSubTab, setActiveSubTab] = useState('list');
@@ -26,6 +41,14 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const [budgetModal, setBudgetModal] = useState({ open: false, categoryId: null, categoryLabel: '', currentBudget: 0 });
     const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
     const [initBalanceModal, setInitBalanceModal] = useState({ open: false, accId: null, accName: '', currentInit: 0 });
+
+    // #17 Anomaly detection banner
+    const [anomalyDismissed, setAnomalyDismissed] = useState(false);
+
+    // #33 Subscriptions state
+    const [subscriptions, setSubscriptions] = useState(loadSubscriptions);
+    const [showAddSub, setShowAddSub] = useState(false);
+    const [newSub, setNewSub] = useState({ name: '', amount: '', cycle: 'monthly', nextDate: '', category: '구독' });
 
     const filteredTxs = useMemo(() => {
         return transactions.filter((t) => {
@@ -103,14 +126,12 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
     // #24 Financial health score
     const financialHealthScore = useMemo(() => {
-        // Savings rate: (income - expense) / income × 40pts
         let savingsScore = 0;
         if (currentMonthIncome > 0) {
             const savingsRate = Math.max(0, (currentMonthIncome - currentMonthExpense) / currentMonthIncome);
             savingsScore = Math.min(savingsRate * 40, 40);
         }
 
-        // Budget compliance: 30pts if all under, 15pts if some exceeded, 20pts if no budgets set
         const hasBudgets = budgets && Object.keys(budgets).length > 0;
         let budgetScore = 20;
         if (hasBudgets) {
@@ -124,9 +145,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             budgetScore = anyExceeded ? 15 : 30;
         }
 
-        // Asset growth: 30pts if positive, 0 if not
         const assetScore = totalAssets > 0 ? 30 : 0;
-
         return Math.round(savingsScore + budgetScore + assetScore);
     }, [currentMonthIncome, currentMonthExpense, budgets, transactions, currentDate, totalAssets]);
 
@@ -142,6 +161,105 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             setFinanceDiary(prev => ({ ...prev, [todayStr]: val }));
         }
     };
+
+    // #17 Anomaly detection
+    const anomalyData = useMemo(() => {
+        const todayExpense = transactions
+            .filter(t => t.type === 'expense' && isSameDay(parseISO(t.date), currentDate))
+            .reduce((s, t) => s + t.amount, 0);
+        // 30-day daily average (excluding today)
+        const past30Total = Array.from({ length: 30 }, (_, i) => {
+            const d = subDays(currentDate, i + 1);
+            return transactions
+                .filter(t => t.type === 'expense' && isSameDay(parseISO(t.date), d))
+                .reduce((s, t) => s + t.amount, 0);
+        }).reduce((a, b) => a + b, 0);
+        const dailyAvg = past30Total / 30;
+        const isAnomaly = dailyAvg > 0 && todayExpense > dailyAvg * 2;
+        return { todayExpense, dailyAvg, isAnomaly };
+    }, [transactions, currentDate]);
+
+    // #21 Net worth line chart — last 6 months running total
+    const netWorthData = useMemo(() => {
+        let running = 0;
+        return Array.from({ length: 6 }).map((_, i) => {
+            const monthDate = subMonths(currentDate, 5 - i);
+            const monthIncome = transactions
+                .filter(t => t.type === 'income' && isSameMonth(parseISO(t.date), monthDate))
+                .reduce((s, t) => s + t.amount, 0);
+            const monthExpense = transactions
+                .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate))
+                .reduce((s, t) => s + t.amount, 0);
+            running += monthIncome - monthExpense;
+            return { name: format(monthDate, 'M월'), 순자산: running };
+        });
+    }, [transactions, currentDate]);
+
+    // #26 Spending pattern by weekday
+    const weekdaySpendingData = useMemo(() => {
+        const totals = Array(7).fill(0); // 0=Mon..6=Sun
+        transactions
+            .filter(t => t.type === 'expense')
+            .forEach(t => {
+                const d = parseISO(t.date);
+                // getDay: 0=Sun, 1=Mon...6=Sat → convert to Mon=0..Sun=6
+                const dow = (d.getDay() + 6) % 7;
+                totals[dow] += t.amount;
+            });
+        return totals.map((v, i) => ({ name: WEEKDAY_NAMES[i], 지출: v }));
+    }, [transactions]);
+
+    // #29 Portfolio donut — accounts grouped by type
+    const portfolioData = useMemo(() => {
+        const typeMap = {};
+        accounts.forEach(acc => {
+            const bal = balances[acc.id] || 0;
+            const type = acc.type || 'bank';
+            typeMap[type] = (typeMap[type] || 0) + bal;
+        });
+        const total = Object.values(typeMap).reduce((a, b) => a + b, 0);
+        return Object.entries(typeMap)
+            .filter(([, v]) => v > 0)
+            .map(([type, value]) => ({
+                name: ASSET_TYPE_LABELS[type] || type,
+                value,
+                pct: total > 0 ? Math.round((value / total) * 100) : 0,
+            }));
+    }, [accounts, balances]);
+
+    // #33 Subscription helpers
+    const subMonthlyCost = useMemo(() => {
+        return subscriptions.reduce((s, sub) => {
+            if (sub.cycle === 'monthly') return s + Number(sub.amount || 0);
+            if (sub.cycle === 'yearly') return s + Math.round(Number(sub.amount || 0) / 12);
+            return s;
+        }, 0);
+    }, [subscriptions]);
+
+    const saveSubscriptions = (list) => {
+        localStorage.setItem(SUBSCRIPTIONS_KEY, JSON.stringify(list));
+        setSubscriptions(list);
+    };
+
+    const handleAddSubscription = () => {
+        if (!newSub.name.trim() || !newSub.amount) return toast.error('이름과 금액을 입력해주세요.');
+        const sub = { ...newSub, id: generateId(), amount: Number(newSub.amount) };
+        saveSubscriptions([...subscriptions, sub]);
+        setNewSub({ name: '', amount: '', cycle: 'monthly', nextDate: '', category: '구독' });
+        setShowAddSub(false);
+        toast.success(`"${sub.name}" 구독이 추가되었습니다.`);
+    };
+
+    const handleDeleteSubscription = (id) => {
+        saveSubscriptions(subscriptions.filter(s => s.id !== id));
+        toast('구독이 삭제되었습니다.', { icon: '🗑️' });
+    };
+
+    // #19 Savings goals
+    const savingsGoals = useMemo(() => {
+        if (!goals) return [];
+        return goals.filter(g => g.targetAmount > 0 || g.type === 'savings');
+    }, [goals]);
 
     const deleteTx = useCallback((txId) => {
         const tx = transactions.find((t) => t.id === txId);
@@ -272,6 +390,25 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 inputType="number"
             />
 
+            {/* #17 Anomaly detection banner */}
+            <AnimatePresence>
+                {anomalyData.isAnomaly && !anomalyDismissed && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl"
+                    >
+                        <span className="text-sm font-bold text-amber-400">
+                            ⚠️ 오늘 지출이 평소보다 2배 이상 많습니다 (오늘: ₩{anomalyData.todayExpense.toLocaleString()} / 일평균: ₩{Math.round(anomalyData.dailyAvg).toLocaleString()})
+                        </span>
+                        <button onClick={() => setAnomalyDismissed(true)} className="text-slate-400 hover:text-slate-200 shrink-0" aria-label="닫기">
+                            <X className="w-4 h-4" />
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {/* Total Assets Card */}
             <div className="glass-card p-4 md:p-5 rounded-xl relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/10 blur-3xl rounded-full" aria-hidden="true" />
@@ -335,6 +472,43 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 </div>
             </div>
 
+            {/* #19 Savings Goals */}
+            {savingsGoals.length > 0 && (
+                <div className="glass-card p-4 md:p-5 rounded-xl">
+                    <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-4">
+                        <Target className="w-4 h-4 text-indigo-400" /> 저축 목표 진행도
+                    </h3>
+                    <div className="space-y-4">
+                        {savingsGoals.map(goal => {
+                            const target = goal.targetAmount || 0;
+                            const current = goal.currentAmount || goal.progress || 0;
+                            const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+                            return (
+                                <div key={goal.id}>
+                                    <div className="flex justify-between items-end mb-1.5">
+                                        <span className="text-sm font-bold text-slate-300">{goal.title}</span>
+                                        <span className="text-xs font-bold text-slate-400">
+                                            ₩{current.toLocaleString()} {target > 0 && `/ ₩${target.toLocaleString()}`}
+                                        </span>
+                                    </div>
+                                    {target > 0 && (
+                                        <>
+                                            <div className="h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                                                <div
+                                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+                                                    style={{ width: `${Math.max(pct, 1)}%` }}
+                                                />
+                                            </div>
+                                            <p className="text-[10px] font-bold text-indigo-400 mt-1">{pct}% 달성</p>
+                                        </>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
+
             {/* Sub-tabs & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex gap-2 flex-wrap" role="tablist" aria-label="재정 하위 탭">
@@ -342,8 +516,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         { id: 'list', label: '거래 내역', icon: 'Wallet' },
                         { id: 'category', label: '카테고리별', icon: 'PieChart' },
                         { id: 'monthly', label: '월별 비교', icon: 'BarChart3' },
+                        { id: 'networth', label: '순자산', icon: 'TrendingUp' },
+                        { id: 'pattern', label: '소비 패턴', icon: 'BarChart3' },
                         { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
                         { id: 'budgets', label: '예산 통제', icon: 'Target' },
+                        { id: 'subscriptions', label: '구독', icon: 'RefreshCw' },
                     ].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
@@ -464,11 +641,88 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </div>
                     )}
 
+                    {/* #21 Net Worth Chart */}
+                    {activeSubTab === 'networth' && (
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                                <TrendingUp className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 순자산 변화 (최근 6개월)
+                            </h3>
+                            {netWorthData.every(d => d.순자산 === 0) ? (
+                                <div className="text-center py-20 text-slate-400"><p className="font-bold">거래 데이터가 없습니다.</p></div>
+                            ) : (
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <LineChart data={netWorthData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} />
+                                            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                                            <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
+                                            <Legend wrapperStyle={{ fontSize: '11px', color: '#64748b' }} />
+                                            <Line type="monotone" dataKey="순자산" stroke="#6366f1" strokeWidth={3} dot={{ fill: '#6366f1', r: 5 }} activeDot={{ r: 7 }} />
+                                        </LineChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* #26 Spending Pattern by Weekday */}
+                    {activeSubTab === 'pattern' && (
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                                <BarChart3 className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 소비 패턴 — 요일별 지출
+                            </h3>
+                            {weekdaySpendingData.every(d => d.지출 === 0) ? (
+                                <div className="text-center py-20 text-slate-400"><p className="font-bold">지출 데이터가 없습니다.</p></div>
+                            ) : (
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={weekdaySpendingData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b', fontWeight: 'bold' }} />
+                                            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                                            <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
+                                            <Bar dataKey="지출" fill="#a855f7" radius={[6, 6, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeSubTab === 'assets' && (
                         <div className="glass-card p-4 md:p-5 min-h-[400px]">
                             <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
                                 <Landmark className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 보유 자산 현황
                             </h3>
+
+                            {/* #29 Portfolio donut chart */}
+                            {portfolioData.length > 0 && (
+                                <div className="mb-6 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                                    <p className="text-xs font-bold text-slate-500 mb-3">자산 유형별 비율</p>
+                                    <div className="flex flex-col md:flex-row items-center gap-6">
+                                        <div className="w-44 h-44 shrink-0">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <PieChart>
+                                                    <Pie data={portfolioData} innerRadius={40} outerRadius={70} paddingAngle={3} dataKey="value" strokeWidth={0}>
+                                                        {portfolioData.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                                                    </Pie>
+                                                    <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
+                                                </PieChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                        <div className="flex-1 space-y-2 w-full">
+                                            {portfolioData.map((item, i) => (
+                                                <div key={item.name} className="flex items-center gap-3">
+                                                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }} />
+                                                    <span className="text-sm font-bold text-slate-300 flex-1">{item.name}</span>
+                                                    <span className="text-sm font-bold text-slate-100">₩{item.value.toLocaleString()}</span>
+                                                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">{item.pct}%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="space-y-3" role="list" aria-label="보유 자산 목록">
                                 {accounts.map((acc) => {
                                     const bal = balances[acc.id] || 0;
@@ -580,6 +834,126 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             </div>
                         </div>
                     )}
+
+                    {/* #33 Subscriptions tab */}
+                    {activeSubTab === 'subscriptions' && (
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <div className="flex items-center justify-between mb-5">
+                                <div>
+                                    <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
+                                        <RefreshCw className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 보험 / 구독 관리
+                                    </h3>
+                                    {subscriptions.length > 0 && (
+                                        <p className="text-xs font-bold text-slate-500 mt-1">
+                                            월 총 비용: <span className="text-indigo-400">₩{subMonthlyCost.toLocaleString()}</span>
+                                        </p>
+                                    )}
+                                </div>
+                                <button
+                                    onClick={() => setShowAddSub(s => !s)}
+                                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-all active:scale-95"
+                                >
+                                    <Plus className="w-3.5 h-3.5" /> 추가
+                                </button>
+                            </div>
+
+                            {/* Add subscription form */}
+                            <AnimatePresence>
+                                {showAddSub && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden mb-5"
+                                    >
+                                        <div className="bg-[#09090b] border border-indigo-500/30 rounded-xl p-4 space-y-2">
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <input
+                                                    value={newSub.name}
+                                                    onChange={e => setNewSub(s => ({ ...s, name: e.target.value }))}
+                                                    placeholder="이름 (예: 넷플릭스)"
+                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                />
+                                                <input
+                                                    type="number"
+                                                    value={newSub.amount}
+                                                    onChange={e => setNewSub(s => ({ ...s, amount: e.target.value }))}
+                                                    placeholder="금액 (원)"
+                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <select
+                                                    value={newSub.cycle}
+                                                    onChange={e => setNewSub(s => ({ ...s, cycle: e.target.value }))}
+                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                >
+                                                    <option value="monthly">매월</option>
+                                                    <option value="yearly">매년</option>
+                                                </select>
+                                                <input
+                                                    type="date"
+                                                    value={newSub.nextDate}
+                                                    onChange={e => setNewSub(s => ({ ...s, nextDate: e.target.value }))}
+                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                />
+                                                <select
+                                                    value={newSub.category}
+                                                    onChange={e => setNewSub(s => ({ ...s, category: e.target.value }))}
+                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                >
+                                                    <option value="구독">구독</option>
+                                                    <option value="보험">보험</option>
+                                                    <option value="기타">기타</option>
+                                                </select>
+                                            </div>
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={() => setShowAddSub(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10">취소</button>
+                                                <button onClick={handleAddSubscription} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600">저장</button>
+                                            </div>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {subscriptions.length === 0 ? (
+                                <div className="text-center py-20 text-slate-400">
+                                    <RefreshCw className="w-10 h-10 mx-auto mb-3 text-white/5" />
+                                    <p className="font-bold">등록된 구독/보험이 없습니다.</p>
+                                    <p className="text-xs mt-1">+ 추가 버튼으로 정기 결제 항목을 등록하세요.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {subscriptions.map(sub => (
+                                        <div key={sub.id} className="flex items-center gap-4 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-white/10 transition-all">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">{sub.category}</span>
+                                                    <p className="text-sm font-bold text-slate-200 truncate">{sub.name}</p>
+                                                </div>
+                                                <p className="text-xs text-slate-500 font-bold mt-1">
+                                                    {sub.cycle === 'monthly' ? '매월' : '매년'} · {sub.nextDate ? `다음 결제일: ${sub.nextDate}` : '결제일 미설정'}
+                                                </p>
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className="text-sm font-bold text-slate-100">₩{Number(sub.amount).toLocaleString()}</p>
+                                                {sub.cycle === 'yearly' && (
+                                                    <p className="text-[10px] text-slate-500 font-bold">월 환산 ₩{Math.round(sub.amount / 12).toLocaleString()}</p>
+                                                )}
+                                            </div>
+                                            <button
+                                                onClick={() => handleDeleteSubscription(sub.id)}
+                                                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all p-1.5 rounded-lg"
+                                                aria-label={`${sub.name} 구독 삭제`}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </motion.div>
             </AnimatePresence>
 
@@ -616,4 +990,5 @@ FinanceView.propTypes = {
     setInitialBalances: PropTypes.func,
     financeDiary: PropTypes.object,
     setFinanceDiary: PropTypes.func,
+    goals: PropTypes.array,
 };

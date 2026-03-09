@@ -1,13 +1,16 @@
 /**
  * @fileoverview HomeView — refactored with useMemo, ARIA, and PropTypes.
  * Added: D-Day widget (#78), daily quote (#79), productivity score (#80), activity feed (#83)
+ * Added: weather widget (#77), quick entry bar (#81), weekly report banner (#84)
  */
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
-import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, differenceInDays, getDay, getDayOfYear } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, differenceInDays, getDay, getDayOfYear, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
 import { CHART_DAYS_RANGE } from '../constants';
+import { generateId } from '../utils/helpers';
+import { toast } from 'react-hot-toast';
 
 const DAILY_QUOTES = [
     '작은 전진이 매일 쌓이면 위대한 변화가 된다.',
@@ -32,10 +35,124 @@ const DAILY_QUOTES = [
     '오늘 최선을 다하면 내일의 자신이 감사할 것이다.',
 ];
 
-export default function HomeView({ schedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {} }) {
-    const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity } = IconMap;
+// #77 Weathercode to emoji
+function weatherEmoji(code) {
+    if (code === 0) return '☀️';
+    if (code <= 3) return '🌤️';
+    if (code <= 48) return '🌫️';
+    if (code <= 67) return '🌧️';
+    if (code <= 77) return '❄️';
+    if (code <= 82) return '🌦️';
+    if (code >= 95) return '⛈️';
+    return '🌡️';
+}
+
+// #84 Get ISO week string like "2026-W10"
+function getWeekKey(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+    const week1 = new Date(d.getFullYear(), 0, 4);
+    const weekNum = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+export default function HomeView({ schedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions, setSchedules }) {
+    const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity, Plus, X } = IconMap;
 
     const todayStr = format(currentDate, 'yyyy-MM-dd');
+
+    // #77 Weather state
+    const [weather, setWeather] = useState(null);
+
+    useEffect(() => {
+        const fetchWeather = async (lat, lon) => {
+            try {
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=Asia/Seoul`);
+                const data = await res.json();
+                if (data?.current) {
+                    setWeather({
+                        temp: Math.round(data.current.temperature_2m),
+                        code: data.current.weathercode,
+                        isSeoul: lat === 37.5665,
+                    });
+                }
+            } catch { /* silently fail */ }
+        };
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                () => fetchWeather(37.5665, 126.9780)
+            );
+        } else {
+            fetchWeather(37.5665, 126.9780);
+        }
+    }, []);
+
+    // #81 Quick entry state
+    const [quickMode, setQuickMode] = useState(null); // null | 'expense' | 'schedule'
+    const [quickExpense, setQuickExpense] = useState({ title: '', amount: '' });
+    const [quickSchedule, setQuickSchedule] = useState({ title: '', time: '' });
+
+    const handleQuickExpense = () => {
+        if (!quickExpense.title.trim() || !quickExpense.amount) return toast.error('항목명과 금액을 입력하세요.');
+        if (setTransactions) {
+            setTransactions(prev => [...prev, {
+                id: generateId(), type: 'expense', title: quickExpense.title.trim(),
+                amount: Number(quickExpense.amount), date: todayStr, category: '기타', account: '',
+            }]);
+        }
+        setQuickExpense({ title: '', amount: '' });
+        setQuickMode(null);
+        toast.success('지출이 추가되었습니다!', { icon: '💸' });
+    };
+
+    const handleQuickSchedule = () => {
+        if (!quickSchedule.title.trim()) return toast.error('일정 제목을 입력하세요.');
+        if (setSchedules) {
+            setSchedules(prev => [...prev, {
+                id: generateId(), title: quickSchedule.title.trim(),
+                date: todayStr, time: quickSchedule.time, completed: false,
+            }]);
+        }
+        setQuickSchedule({ title: '', time: '' });
+        setQuickMode(null);
+        toast.success('일정이 추가되었습니다!', { icon: '📅' });
+    };
+
+    // #84 Weekly report banner — show on Monday, dismissible
+    const isMonday = getDay(currentDate) === 1;
+    const prevWeekKey = getWeekKey(subDays(currentDate, 7));
+    const bannerStorageKey = `weeklyBannerDismissed_${prevWeekKey}`;
+    const [bannerDismissed, setBannerDismissed] = useState(() => {
+        try { return localStorage.getItem(bannerStorageKey) === '1'; } catch { return false; }
+    });
+
+    const weeklyBannerStats = useMemo(() => {
+        if (!isMonday || bannerDismissed) return null;
+        const lastWeekStart = startOfWeek(subDays(currentDate, 7), { weekStartsOn: 1 });
+        const lastWeekEnd = endOfWeek(subDays(currentDate, 7), { weekStartsOn: 1 });
+        const lastWeekDays = eachDayOfInterval({ start: lastWeekStart, end: lastWeekEnd }).map(d => format(d, 'yyyy-MM-dd'));
+
+        const lastWeekSchedules = schedules.filter(s => lastWeekDays.includes(s.date));
+        const lastWeekCompleted = lastWeekSchedules.filter(s => s.completed).length;
+        const completionPct = lastWeekSchedules.length > 0 ? Math.round((lastWeekCompleted / lastWeekSchedules.length) * 100) : 0;
+
+        const totalStudySecs = Object.values(studyTimes).reduce((a, b) => a + b, 0);
+        const studyHours = Math.floor(totalStudySecs / 3600);
+        const studyMins = Math.floor((totalStudySecs % 3600) / 60);
+
+        const lastWeekIncome = transactions.filter(t => lastWeekDays.includes(t.date) && t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const lastWeekExpense = transactions.filter(t => lastWeekDays.includes(t.date) && t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+        return { completionPct, studyHours, studyMins, lastWeekIncome, lastWeekExpense };
+    }, [isMonday, bannerDismissed, currentDate, schedules, studyTimes, transactions]);
+
+    const dismissBanner = () => {
+        try { localStorage.setItem(bannerStorageKey, '1'); } catch { }
+        setBannerDismissed(true);
+    };
 
     const todaySchedules = useMemo(() =>
         schedules.filter((s) => s.date === todayStr).sort((a, b) => (a.time || '').localeCompare(b.time || '')),
@@ -88,23 +205,20 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
 
     // #80 Weekly productivity score
     const productivityScore = useMemo(() => {
-        // Schedule completion rate this week (40pts)
         const weekSchedules = schedules.filter(s => isSameWeek(parseISO(s.date), currentDate));
         const weekCompleted = weekSchedules.filter(s => s.completed).length;
         const scheduleRate = weekSchedules.length > 0 ? weekCompleted / weekSchedules.length : 0;
         const scheduleScore = scheduleRate * 40;
 
-        // Study hours this week (40pts) — sum all studyTimes values
         const totalStudySecs = Object.values(studyTimes).reduce((a, b) => a + b, 0);
         const studyHours = totalStudySecs / 3600;
         const studyScore = Math.min(studyHours / 4, 1) * 40;
 
-        // Budget compliance (20pts)
         const hasbudgets = Object.keys(budgets).length > 0;
         const monthExpenseByCategory = {};
         transactions.filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), currentDate))
             .forEach(t => { monthExpenseByCategory[t.category] = (monthExpenseByCategory[t.category] || 0) + t.amount; });
-        let budgetScore = 20; // default if no budgets
+        let budgetScore = 20;
         if (hasbudgets) {
             const exceeded = Object.entries(budgets).some(([catId, limit]) => {
                 const spent = monthExpenseByCategory[catId] || 0;
@@ -124,7 +238,6 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
         const twoDaysAgo = format(subDays(currentDate, 2), 'yyyy-MM-dd');
         const items = [];
 
-        // Transactions
         transactions.filter(t => t.date >= twoDaysAgo).forEach(t => {
             items.push({
                 id: `tx-${t.id}`,
@@ -136,7 +249,6 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
             });
         });
 
-        // Completed schedules
         schedules.filter(s => s.completed && s.date >= twoDaysAgo).forEach(s => {
             items.push({
                 id: `sc-${s.id}`,
@@ -148,7 +260,6 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
             });
         });
 
-        // Recent goals (by deadline proximity)
         goals.filter(g => g.deadline >= twoDaysAgo).forEach(g => {
             items.push({
                 id: `goal-${g.id}`,
@@ -172,6 +283,113 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
 
     return (
         <div className="flex flex-col gap-5">
+            {/* #84 Weekly Report Banner — Monday only */}
+            {isMonday && !bannerDismissed && weeklyBannerStats && (
+                <section className="glass-card p-4 md:p-5 relative overflow-hidden border border-amber-500/20" aria-label="지난 주 성과 요약">
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-indigo-500/5" aria-hidden="true" />
+                    <div className="relative">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-sm font-bold text-amber-400 flex items-center gap-2">
+                                📊 지난 주 성과 요약
+                            </h2>
+                            <button onClick={dismissBanner} className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="닫기">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                            <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">일정 완료율</p>
+                                <p className="text-lg font-bold text-emerald-400">{weeklyBannerStats.completionPct}%</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">총 공부</p>
+                                <p className="text-lg font-bold text-indigo-400">{weeklyBannerStats.studyHours}h {weeklyBannerStats.studyMins}m</p>
+                            </div>
+                            <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase mb-1">수입 vs 지출</p>
+                                <p className="text-sm font-bold text-slate-200">
+                                    <span className="text-blue-400">+{(weeklyBannerStats.lastWeekIncome / 10000).toFixed(0)}만</span>
+                                    <span className="text-slate-500"> / </span>
+                                    <span className="text-rose-400">-{(weeklyBannerStats.lastWeekExpense / 10000).toFixed(0)}만</span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            )}
+
+            {/* #81 Quick Entry Bar */}
+            <section className="glass-card p-3 rounded-xl" aria-label="빠른 입력">
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 shrink-0">빠른 추가:</span>
+                    <button
+                        onClick={() => setQuickMode(quickMode === 'expense' ? null : 'expense')}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${quickMode === 'expense' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-white/5 text-slate-400 border-white/10 hover:border-rose-500/30 hover:text-rose-400'}`}
+                    >
+                        <Plus className="w-3 h-3" /> 지출 추가
+                    </button>
+                    <button
+                        onClick={() => setQuickMode(quickMode === 'schedule' ? null : 'schedule')}
+                        className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${quickMode === 'schedule' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-400 border-white/10 hover:border-indigo-500/30 hover:text-indigo-400'}`}
+                    >
+                        <Plus className="w-3 h-3" /> 일정 추가
+                    </button>
+                </div>
+                {quickMode === 'expense' && (
+                    <div className="mt-3 flex gap-2 items-center flex-wrap">
+                        <input
+                            type="text"
+                            placeholder="항목명"
+                            value={quickExpense.title}
+                            onChange={e => setQuickExpense(p => ({ ...p, title: e.target.value }))}
+                            className="bg-[#09090b] border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-rose-500 flex-1 min-w-[120px]"
+                        />
+                        <input
+                            type="number"
+                            placeholder="금액"
+                            value={quickExpense.amount}
+                            onChange={e => setQuickExpense(p => ({ ...p, amount: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && handleQuickExpense()}
+                            className="bg-[#09090b] border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-rose-500 w-28"
+                        />
+                        <button onClick={handleQuickExpense} className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-lg transition-colors">추가</button>
+                    </div>
+                )}
+                {quickMode === 'schedule' && (
+                    <div className="mt-3 flex gap-2 items-center flex-wrap">
+                        <input
+                            type="text"
+                            placeholder="일정 제목"
+                            value={quickSchedule.title}
+                            onChange={e => setQuickSchedule(p => ({ ...p, title: e.target.value }))}
+                            className="bg-[#09090b] border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500 flex-1 min-w-[120px]"
+                        />
+                        <input
+                            type="time"
+                            value={quickSchedule.time}
+                            onChange={e => setQuickSchedule(p => ({ ...p, time: e.target.value }))}
+                            onKeyDown={e => e.key === 'Enter' && handleQuickSchedule()}
+                            className="bg-[#09090b] border border-white/10 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-400 outline-none focus:border-indigo-500 [color-scheme:dark]"
+                        />
+                        <button onClick={handleQuickSchedule} className="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold rounded-lg transition-colors">추가</button>
+                    </div>
+                )}
+            </section>
+
+            {/* #77 Weather Widget */}
+            {weather && (
+                <section className="glass-card p-4 md:p-5 relative overflow-hidden" aria-label="날씨 위젯">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 blur-3xl rounded-full" aria-hidden="true" />
+                    <div className="relative flex items-center gap-3">
+                        <span className="text-4xl" role="img" aria-label="날씨 아이콘">{weatherEmoji(weather.code)}</span>
+                        <div>
+                            <p className="text-2xl font-bold tracking-tight text-slate-100">{weather.temp}°C</p>
+                            <p className="text-xs font-bold text-slate-500">{weather.isSeoul ? '서울' : '현재 위치'}</p>
+                        </div>
+                    </div>
+                </section>
+            )}
+
             {/* #78 D-Day Widget */}
             {ddayGoal && (
                 <section className="glass-card p-4 md:p-5 relative overflow-hidden" aria-label="D-Day 위젯">
@@ -220,7 +438,6 @@ export default function HomeView({ schedules, transactions, totalAssets, setCurr
                                         <p className={`text-sm font-bold truncate ${sc.completed ? 'text-slate-400 line-through' : 'text-slate-400'}`}>{sc.title}</p>
                                         <p className="text-[11px] text-slate-400 font-bold">{sc.time} {sc.endTime && `~ ${sc.endTime}`}</p>
                                     </div>
-                                    {/* Color dot from schedule color label (#2) */}
                                     {sc.color && (
                                         <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: sc.color }} aria-hidden="true" />
                                     )}
@@ -389,4 +606,6 @@ HomeView.propTypes = {
     studies: PropTypes.array,
     studyTimes: PropTypes.object,
     budgets: PropTypes.object,
+    setTransactions: PropTypes.func,
+    setSchedules: PropTypes.func,
 };

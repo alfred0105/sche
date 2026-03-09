@@ -9,6 +9,9 @@
  *  - Daily quote (#56)
  *  - Rest alert after 60min (#61)
  *  - Weekly study report bar chart (#62)
+ *  - Flashcards Anki-style (#57)
+ *  - Exam scores (#59)
+ *  - Streak share (#65)
  */
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
@@ -19,7 +22,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { generateId } from '../utils/helpers';
 import { supabase } from '../supabaseClient';
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from 'recharts';
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, LineChart, Line } from 'recharts';
 
 const STUDY_QUOTES = [
     '지식은 힘이다. 오늘도 한 걸음 더.',
@@ -117,13 +120,72 @@ function getStreak(logs, currentDate) {
 }
 
 export default function StudyView({ studies, setStudies, currentDate, studyTimes = {}, setStudyTimes, authPhotos = {}, setAuthPhotos, session, userProfile }) {
-    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon, BarChart3, PieChart: PieIcon } = IconMap;
+    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon, BarChart3, PieChart: PieIcon, Share2, X } = IconMap;
 
     const [isAddMode, setIsAddMode] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
-    const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report'
+    const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores'
+
+    // #57 Flashcards state
+    const [flashcards, setFlashcards] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('flashcards') || '[]'); } catch { return []; }
+    });
+    const [fcAddMode, setFcAddMode] = useState(false);
+    const [fcFront, setFcFront] = useState('');
+    const [fcBack, setFcBack] = useState('');
+    const [fcSubjectId, setFcSubjectId] = useState('');
+    const [fcReviewIdx, setFcReviewIdx] = useState(0);
+    const [fcRevealed, setFcRevealed] = useState(false);
+
+    useEffect(() => {
+        try { localStorage.setItem('flashcards', JSON.stringify(flashcards)); } catch { }
+    }, [flashcards]);
+
+    const todayStr2 = format(currentDate, 'yyyy-MM-dd');
+    const dueFlashcards = useMemo(() =>
+        flashcards.filter(c => !c.nextReview || c.nextReview <= todayStr2),
+        [flashcards, todayStr2]
+    );
+
+    const addFlashcard = useCallback(() => {
+        if (!fcFront.trim() || !fcBack.trim()) return toast.error('앞면과 뒷면을 모두 입력하세요.');
+        const newCard = { id: generateId(), front: fcFront.trim(), back: fcBack.trim(), studyId: fcSubjectId, nextReview: todayStr2 };
+        setFlashcards(prev => [...prev, newCard]);
+        setFcFront(''); setFcBack(''); setFcAddMode(false);
+        toast.success('플래시카드가 추가되었습니다!', { icon: '🃏' });
+    }, [fcFront, fcBack, fcSubjectId, todayStr2]);
+
+    const rateFlashcard = useCallback((cardId, rating) => {
+        // 😊=7d, 😐=3d, 😔=1d
+        const days = rating === '😊' ? 7 : rating === '😐' ? 3 : 1;
+        const nextDate = new Date(currentDate);
+        nextDate.setDate(nextDate.getDate() + days);
+        const nextStr = format(nextDate, 'yyyy-MM-dd');
+        setFlashcards(prev => prev.map(c => c.id === cardId ? { ...c, nextReview: nextStr } : c));
+        setFcRevealed(false);
+        setFcReviewIdx(prev => prev + 1);
+    }, [currentDate]);
+
+    // #59 Exam scores state
+    const [examScores, setExamScores] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('examScores') || '[]'); } catch { return []; }
+    });
+    const [scoreAddMode, setScoreAddMode] = useState(false);
+    const [scoreForm, setScoreForm] = useState({ subject: '', score: '', maxScore: 100, date: todayStr2, memo: '' });
+
+    useEffect(() => {
+        try { localStorage.setItem('examScores', JSON.stringify(examScores)); } catch { }
+    }, [examScores]);
+
+    const addExamScore = useCallback(() => {
+        if (!scoreForm.subject || !scoreForm.score) return toast.error('과목과 점수를 입력하세요.');
+        setExamScores(prev => [...prev, { id: generateId(), ...scoreForm, score: Number(scoreForm.score), maxScore: Number(scoreForm.maxScore) }]);
+        setScoreForm({ subject: '', score: '', maxScore: 100, date: todayStr2, memo: '' });
+        setScoreAddMode(false);
+        toast.success('성적이 기록되었습니다!', { icon: '📊' });
+    }, [scoreForm, todayStr2]);
 
     // #51 Pomodoro state
     const [pomodoroEnabled, setPomodoroEnabled] = useState(false);
@@ -217,7 +279,9 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     // Live sync to/from Supabase public_leaderboard
     const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
     const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
+    const channelRef = useRef(null);
 
+    // Effect 1: Subscribe to realtime channel ONCE per session (not re-created on timer ticks)
     useEffect(() => {
         if (!session?.user || !supabase) return;
 
@@ -236,6 +300,30 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             }
         };
 
+        loadLeaderboard();
+
+        if (channelRef.current) {
+            supabase.removeChannel(channelRef.current);
+        }
+        channelRef.current = supabase
+            .channel('leaderboard-realtime')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'public_leaderboard' }, () => {
+                loadLeaderboard();
+            })
+            .subscribe();
+
+        return () => {
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
+                channelRef.current = null;
+            }
+        };
+    }, [session]);
+
+    // Effect 2: Upsert my data periodically — allowed to re-run when time/subject changes
+    useEffect(() => {
+        if (!session?.user || !supabase) return;
+
         const syncMyData = async () => {
             try {
                 const { error } = await supabase.from('public_leaderboard').upsert({
@@ -251,22 +339,11 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             }
         };
 
-        loadLeaderboard();
-        syncMyData();
-
-        const channel = supabase
-            .channel('leaderboard-realtime')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'public_leaderboard' }, () => {
-                loadLeaderboard();
-            })
-            .subscribe();
-
         if (syncRef.current) window.clearInterval(syncRef.current);
         syncRef.current = window.setInterval(syncMyData, 15000);
 
         return () => {
             if (syncRef.current) window.clearInterval(syncRef.current);
-            supabase.removeChannel(channel);
         };
     }, [session, userProfile, totalUserTime, activeSubject]);
 
@@ -399,18 +476,20 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             </header>
 
             {/* Sub-tabs */}
-            <div className="flex gap-2" role="tablist">
+            <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
                 {[
                     { id: 'tracker', label: '트래커', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-                    { id: 'stats', label: '과목별 통계', icon: <PieIcon className="w-3.5 h-3.5" /> },
-                    { id: 'report', label: '주간 리포트', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+                    { id: 'stats', label: '통계', icon: <PieIcon className="w-3.5 h-3.5" /> },
+                    { id: 'report', label: '리포트', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+                    { id: 'flashcards', label: '플래시카드', icon: <span className="text-xs">🃏</span> },
+                    { id: 'scores', label: '성적', icon: <span className="text-xs">📊</span> },
                 ].map(tab => (
                     <button
                         key={tab.id}
                         role="tab"
                         aria-selected={activeSubTab === tab.id}
                         onClick={() => setActiveSubTab(tab.id)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${activeSubTab === tab.id ? 'bg-[#111113] border-white/10 text-indigo-400' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-300'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-all shrink-0 ${activeSubTab === tab.id ? 'bg-[#111113] border-white/10 text-indigo-400' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-300'}`}
                     >
                         {tab.icon}{tab.label}
                     </button>
@@ -470,6 +549,238 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
+                    )}
+                </div>
+            )}
+
+            {/* #57 Flashcards tab */}
+            {activeSubTab === 'flashcards' && (
+                <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                            🃏 플래시카드
+                            {dueFlashcards.length > 0 && (
+                                <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                    오늘 {dueFlashcards.length}장
+                                </span>
+                            )}
+                        </h3>
+                        <button
+                            onClick={() => setFcAddMode(p => !p)}
+                            className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-xs font-bold hover:bg-indigo-500/20 transition-colors"
+                        >
+                            {fcAddMode ? '취소' : '+ 카드 추가'}
+                        </button>
+                    </div>
+
+                    {/* Add card form */}
+                    <AnimatePresence>
+                        {fcAddMode && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">앞면 (질문)</label>
+                                        <textarea value={fcFront} onChange={e => setFcFront(e.target.value)} placeholder="개념, 단어, 질문..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">뒷면 (정답)</label>
+                                        <textarea value={fcBack} onChange={e => setFcBack(e.target.value)} placeholder="정답, 설명..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목 연결</label>
+                                        <select value={fcSubjectId} onChange={e => setFcSubjectId(e.target.value)} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none">
+                                            <option value="">-- 선택 안함 --</option>
+                                            {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                        </select>
+                                    </div>
+                                    <button onClick={addFlashcard} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">카드 추가하기</button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Review mode */}
+                    {dueFlashcards.length > 0 ? (
+                        <div className="space-y-3">
+                            <p className="text-xs font-bold text-slate-500">복습 모드 — {Math.min(fcReviewIdx + 1, dueFlashcards.length)} / {dueFlashcards.length}</p>
+                            {fcReviewIdx < dueFlashcards.length ? (
+                                <div className="bg-[#09090b] p-6 rounded-xl border border-white/10 text-center space-y-4">
+                                    <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">앞면</p>
+                                    <p className="text-lg font-bold text-slate-100">{dueFlashcards[fcReviewIdx].front}</p>
+                                    {!fcRevealed ? (
+                                        <button onClick={() => setFcRevealed(true)} className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">보기</button>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            <div className="bg-[#111113] p-4 rounded-xl border border-white/10">
+                                                <p className="text-xs font-bold text-slate-500 mb-2">뒷면</p>
+                                                <p className="text-base font-bold text-emerald-400">{dueFlashcards[fcReviewIdx].back}</p>
+                                            </div>
+                                            <div className="flex gap-3 justify-center">
+                                                {['😔', '😐', '😊'].map(emoji => (
+                                                    <button
+                                                        key={emoji}
+                                                        onClick={() => rateFlashcard(dueFlashcards[fcReviewIdx].id, emoji)}
+                                                        className="flex flex-col items-center gap-1 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                                                    >
+                                                        <span className="text-2xl">{emoji}</span>
+                                                        <span className="text-[10px] font-bold text-slate-500">
+                                                            {emoji === '😔' ? '1일' : emoji === '😐' ? '3일' : '7일'}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8">
+                                    <p className="text-2xl mb-2">🎉</p>
+                                    <p className="text-sm font-bold text-emerald-400">오늘의 복습 완료!</p>
+                                    <button onClick={() => setFcReviewIdx(0)} className="mt-3 text-xs text-indigo-400 hover:text-indigo-300 font-bold">다시 복습하기</button>
+                                </div>
+                            )}
+                        </div>
+                    ) : flashcards.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500">
+                            <p className="text-3xl mb-3">🃏</p>
+                            <p className="text-sm font-bold">아직 카드가 없습니다.</p>
+                            <p className="text-xs mt-1">위의 "카드 추가" 버튼으로 첫 카드를 만들어보세요!</p>
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-slate-500">
+                            <p className="text-2xl mb-2">✅</p>
+                            <p className="text-sm font-bold text-slate-400">오늘 복습할 카드가 없습니다.</p>
+                        </div>
+                    )}
+
+                    {/* All cards list */}
+                    {flashcards.length > 0 && (
+                        <div className="space-y-2 pt-2 border-t border-white/10">
+                            <p className="text-xs font-bold text-slate-500">전체 카드 ({flashcards.length}장)</p>
+                            {flashcards.map(card => (
+                                <div key={card.id} className="flex items-center gap-3 bg-[#09090b] p-3 rounded-xl border border-white/5">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-bold text-slate-300 truncate">{card.front}</p>
+                                        <p className="text-[10px] text-slate-500 truncate">{card.back}</p>
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 shrink-0">{card.nextReview}</div>
+                                    <button onClick={() => setFlashcards(prev => prev.filter(c => c.id !== card.id))} className="text-slate-600 hover:text-rose-500 transition-colors">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* #59 Exam scores tab */}
+            {activeSubTab === 'scores' && (
+                <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2">📊 시험 성적 기록</h3>
+                        <button
+                            onClick={() => setScoreAddMode(p => !p)}
+                            className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-xs font-bold hover:bg-indigo-500/20 transition-colors"
+                        >
+                            {scoreAddMode ? '취소' : '+ 성적 추가'}
+                        </button>
+                    </div>
+
+                    <AnimatePresence>
+                        {scoreAddMode && (
+                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
+                                            <select value={scoreForm.subject} onChange={e => setScoreForm(p => ({ ...p, subject: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none">
+                                                <option value="">-- 선택 --</option>
+                                                {studies.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
+                                                <option value="기타">기타</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
+                                            <input type="date" value={scoreForm.date} onChange={e => setScoreForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">점수</label>
+                                            <input type="number" value={scoreForm.score} onChange={e => setScoreForm(p => ({ ...p, score: e.target.value }))} placeholder="예: 87" className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">만점</label>
+                                            <input type="number" value={scoreForm.maxScore} onChange={e => setScoreForm(p => ({ ...p, maxScore: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
+                                        <input type="text" value={scoreForm.memo} onChange={e => setScoreForm(p => ({ ...p, memo: e.target.value }))} placeholder="간단한 메모..." className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                    </div>
+                                    <button onClick={addExamScore} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">성적 저장</button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {examScores.length === 0 ? (
+                        <div className="text-center py-10 text-slate-500">
+                            <p className="text-3xl mb-3">📝</p>
+                            <p className="text-sm font-bold">아직 기록된 성적이 없습니다.</p>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Scores table */}
+                            <div className="space-y-2">
+                                {[...examScores].sort((a, b) => b.date.localeCompare(a.date)).map(s => {
+                                    const pct = Math.round((s.score / s.maxScore) * 100);
+                                    const color = pct >= 80 ? 'text-emerald-400' : pct >= 60 ? 'text-amber-400' : 'text-rose-400';
+                                    const bg = pct >= 80 ? 'bg-emerald-500/10 border-emerald-500/20' : pct >= 60 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20';
+                                    return (
+                                        <div key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border ${bg}`}>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-bold text-slate-200">{s.subject}</p>
+                                                {s.memo && <p className="text-[10px] text-slate-500 truncate">{s.memo}</p>}
+                                            </div>
+                                            <div className="text-right shrink-0">
+                                                <p className={`text-base font-bold ${color}`}>{pct}%</p>
+                                                <p className="text-[10px] text-slate-500">{s.score}/{s.maxScore} · {s.date}</p>
+                                            </div>
+                                            <button onClick={() => setExamScores(prev => prev.filter(e => e.id !== s.id))} className="text-slate-600 hover:text-rose-500 transition-colors shrink-0">
+                                                <X className="w-3.5 h-3.5" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Line chart per subject */}
+                            {(() => {
+                                const subjects = [...new Set(examScores.map(s => s.subject))];
+                                const chartData = subjects.slice(0, 1).map(sub => {
+                                    return [...examScores]
+                                        .filter(s => s.subject === sub)
+                                        .sort((a, b) => a.date.localeCompare(b.date))
+                                        .map(s => ({ date: s.date.slice(5), pct: Math.round((s.score / s.maxScore) * 100), name: sub }));
+                                })[0] || [];
+                                if (chartData.length < 2) return null;
+                                return (
+                                    <div className="pt-2 border-t border-white/10">
+                                        <p className="text-xs font-bold text-slate-500 mb-3">성적 추이 — {subjects[0]}</p>
+                                        <div className="h-36">
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} />
+                                                    <YAxis domain={[0, 100]} tick={{ fontSize: 10, fill: '#64748b' }} />
+                                                    <Tooltip formatter={(v) => `${v}%`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: '#1e1b4b', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
+                                                    <Line type="monotone" dataKey="pct" stroke="#6366f1" strokeWidth={2} dot={{ fill: '#6366f1', r: 4 }} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </>
                     )}
                 </div>
             )}
@@ -710,6 +1021,17 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                 {/* Right: Heatmap Calendar */}
                                                 <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10">
                                                     <AttendanceHeatmap logs={study.logs} currentDate={currentDate} />
+                                                    {/* #65 Streak share button */}
+                                                    <button
+                                                        onClick={() => {
+                                                            const thisMonthLogs = study.logs.filter(l => l.startsWith(format(currentDate, 'yyyy-MM')));
+                                                            const text = `📚 올라운더 공부 스트릭\n🔥 ${streak}일 연속\n📅 이번 달 ${thisMonthLogs.length}일 출석\n\n열심히 공부 중! 💪`;
+                                                            navigator.clipboard.writeText(text).then(() => toast.success('클립보드에 복사되었습니다!', { icon: '📋' })).catch(() => toast.error('복사 실패'));
+                                                        }}
+                                                        className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+                                                    >
+                                                        <Share2 className="w-3 h-3" /> 스트릭 공유
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
