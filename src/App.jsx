@@ -204,25 +204,25 @@ export default function App() {
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-rose-400/10 dark:bg-fuchsia-600/10 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
       </div>
 
-      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-3 md:gap-5 px-4 md:px-5 pt-4 md:pt-6 mb-6">
-        <header className="flex justify-between items-center glass p-4 rounded-xl mt-2">
-          <h1 className="text-xl md:text-2xl font-bold tracking-tight tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <div className="w-7 h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-none" aria-hidden="true">
-              <LayoutDashboard className="w-4 h-4 text-white" />
+      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-2 md:gap-5 px-3 md:px-5 pt-2 md:pt-6 mb-4">
+        <header className="flex justify-between items-center glass p-2.5 md:p-4 rounded-xl mt-1 md:mt-2">
+          <h1 className="text-base md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            <div className="w-6 h-6 md:w-7 md:h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-none" aria-hidden="true">
+              <LayoutDashboard className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
             </div>
             올라운더
           </h1>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
-              className="w-10 h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+              className="w-8 h-8 md:w-10 md:h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
               onClick={() => setIsSearchOpen(true)}
               aria-label="검색 열기"
             >
-              <Search className="w-4 h-4 text-slate-400" />
+              <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
               <span className="hidden md:inline text-[9px] text-slate-400 font-bold ml-1 border border-white/10 px-1.5 rounded-md">⌘K</span>
             </button>
             <button
-              className="w-10 h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-bold tracking-tight text-indigo-400 text-sm cursor-pointer hover:scale-105 transition-transform"
+              className="w-8 h-8 md:w-10 md:h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-bold tracking-tight text-indigo-400 text-xs md:text-sm cursor-pointer hover:scale-105 transition-transform"
               onClick={() => setIsSettingOpen(true)}
               aria-label="설정 열기"
             >
@@ -231,15 +231,15 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex items-center justify-between pb-1 px-1">
-          <div className="flex flex-col">
-            <span className="text-base md:text-lg font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
+        <div className="flex items-center justify-between px-0.5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm md:text-lg font-bold tracking-tight text-slate-100 flex items-center gap-1">
               <button
                 onClick={() => setCurrentDate(addDays(currentDate, -1))}
                 className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
                 aria-label="어제"
               >
-                <ChevronLeft className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
               </button>
               {displayDate} {['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()]}요일
               <button
@@ -247,24 +247,24 @@ export default function App() {
                 className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
                 aria-label="내일"
               >
-                <ChevronRight className="w-5 h-5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" />
+                <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
               </button>
               {!isSameDay(currentDate, new Date()) && (
                 <button
                   onClick={() => setCurrentDate(new Date())}
-                  className="ml-1 text-[11px] tracking-tight bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-200 dark:border-indigo-500/30 shadow-none active:scale-95"
+                  className="ml-1 text-[10px] tracking-tight bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/30 active:scale-95"
                 >
                   오늘
                 </button>
               )}
             </span>
-            <span className="text-[11px] font-bold text-slate-400 mt-0 ml-8">
+            <span className="text-[10px] font-bold text-slate-500 ml-6 md:ml-8">
               {currentDate.getHours() < 12 ? '☀️ 좋은 아침이에요' : currentDate.getHours() < 18 ? '🌤️ 좋은 오후에요' : '🌙 좋은 저녁이에요'}, {userProfile?.name || '사용자'}님!
             </span>
           </div>
         </div>
 
-        <nav className="flex overflow-x-auto gap-2 pb-2 md:pb-2 [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="메인 탭 내비게이션">
+        <nav className="flex overflow-x-auto gap-1.5 md:gap-2 pb-1 [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="메인 탭 내비게이션">
           {TABS.map((tab) => {
             const Icon = IconMap[tab.icon];
             const isActive = currentTab === tab.id;
@@ -276,9 +276,9 @@ export default function App() {
                 aria-selected={isActive}
                 aria-controls={`panel-${tab.id}`}
                 onClick={() => setCurrentTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 md:px-5 py-2 md:py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition-all shrink-0 ${isActive ? 'bg-slate-800 dark:bg-indigo-500 text-white shadow-none' : 'bg-white/60 dark:bg-white/5 text-slate-400 hover:bg-white dark:hover:bg-white/10 shadow-none border border-slate-200/50 dark:border-white/5 backdrop-blur-md'}`}
+                className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full whitespace-nowrap text-xs md:text-sm font-bold transition-all shrink-0 ${isActive ? 'bg-slate-800 dark:bg-indigo-500 text-white' : 'bg-white/60 dark:bg-white/5 text-slate-400 hover:bg-white dark:hover:bg-white/10 border border-slate-200/50 dark:border-white/5 backdrop-blur-md'}`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true" />
+                <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true" />
                 {tab.label}
               </button>
             );
