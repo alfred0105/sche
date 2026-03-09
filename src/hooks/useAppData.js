@@ -122,6 +122,7 @@ export function useAppData(session) {
     const [reviews, setReviews] = useLocalStorage('reviews', defaultReviews);
     const [studyTimes, setStudyTimes] = useLocalStorage('studyTimes', {});
     const [authPhotos, setAuthPhotos] = useLocalStorage('authPhotos', {});
+    const [financeDiary, setFinanceDiary] = useLocalStorage('financeDiary', {});
 
     // ==========================================
     // Cloud Sync Logic
@@ -158,6 +159,7 @@ export function useAppData(session) {
                     if (pl.studyTimes) setStudyTimes(pl.studyTimes);
                     if (pl.authPhotos) setAuthPhotos(pl.authPhotos);
                     if (pl.initialBalances) setInitialBalances(pl.initialBalances);
+                    if (pl.financeDiary) setFinanceDiary(pl.financeDiary);
                     toast.success('기기 간 동기화가 완료되었습니다', { icon: '☁️' });
                 }
             } catch (e) {
@@ -182,7 +184,7 @@ export function useAppData(session) {
         const uploadData = async (attempt = 1) => {
             const payload = {
                 expenseCategories, incomeCategories, scheduleCategories,
-                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances
+                accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances, financeDiary
             };
             try {
                 const { error } = await supabase.from('user_data').upsert({
@@ -203,7 +205,7 @@ export function useAppData(session) {
 
         const timerId = setTimeout(uploadData, CLOUD_SYNC_DEBOUNCE_MS);
         return () => clearTimeout(timerId);
-    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances]);
+    }, [cloudSyncStatus, session?.user, expenseCategories, incomeCategories, scheduleCategories, accounts, transactions, schedules, goals, studies, userProfile, budgets, reviews, studyTimes, authPhotos, initialBalances, financeDiary]);
 
     // ==========================================
     // Memoized Calculations
@@ -236,5 +238,6 @@ export function useAppData(session) {
         studyTimes, setStudyTimes,
         authPhotos, setAuthPhotos,
         initialBalances, setInitialBalances,
+        financeDiary, setFinanceDiary,
     };
 }

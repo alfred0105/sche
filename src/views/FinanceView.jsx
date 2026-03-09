@@ -1,19 +1,20 @@
 /**
  * @fileoverview FinanceView — refactored with ConfirmModal, useMemo, accessibility, PropTypes.
+ * Added: financial health score (#24), 6-month expense chart (#25), finance diary (#34)
  */
 import React, { useState, useCallback, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
-import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
 import { generateId } from '../utils/helpers';
 
-export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances }) {
-    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target } = IconMap;
+export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary }) {
+    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
     const [activeSubTab, setActiveSubTab] = useState('list');
@@ -42,6 +43,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const totalIncome = useMemo(() => filteredTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filteredTxs]);
     const totalExpense = useMemo(() => filteredTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filteredTxs]);
     const currentMonthExpense = useMemo(() => transactions.filter((t) => t.type === 'expense' && isSameMonth(parseISO(t.date), currentDate)).reduce((s, t) => s + t.amount, 0), [transactions, currentDate]);
+    const currentMonthIncome = useMemo(() => transactions.filter((t) => t.type === 'income' && isSameMonth(parseISO(t.date), currentDate)).reduce((s, t) => s + t.amount, 0), [transactions, currentDate]);
 
     const prevMonthExpense = useMemo(() => {
         const prevMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
@@ -53,7 +55,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const balances = getCalculatedBalances();
     const totalAssets = useMemo(() => Object.values(balances).reduce((a, b) => a + b, 0), [balances]);
 
-    // Asset trend chart data (7 days) — optimized: build a date->transactions map first
+    // Asset trend chart data (7 days)
     const assetChartData = useMemo(() => {
         const txByDate = {};
         transactions.forEach((t) => {
@@ -84,6 +86,62 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         });
         return Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     }, [transactions, currentDate]);
+
+    // #25 Last 6 months expense bar chart
+    const sixMonthData = useMemo(() => {
+        return Array.from({ length: 6 }).map((_, i) => {
+            const monthDate = subMonths(currentDate, 5 - i);
+            const total = transactions
+                .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate))
+                .reduce((s, t) => s + t.amount, 0);
+            return {
+                name: format(monthDate, 'M월'),
+                지출: total,
+            };
+        });
+    }, [transactions, currentDate]);
+
+    // #24 Financial health score
+    const financialHealthScore = useMemo(() => {
+        // Savings rate: (income - expense) / income × 40pts
+        let savingsScore = 0;
+        if (currentMonthIncome > 0) {
+            const savingsRate = Math.max(0, (currentMonthIncome - currentMonthExpense) / currentMonthIncome);
+            savingsScore = Math.min(savingsRate * 40, 40);
+        }
+
+        // Budget compliance: 30pts if all under, 15pts if some exceeded, 20pts if no budgets set
+        const hasBudgets = budgets && Object.keys(budgets).length > 0;
+        let budgetScore = 20;
+        if (hasBudgets) {
+            const catSpend = {};
+            transactions.filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), currentDate))
+                .forEach(t => { catSpend[t.category] = (catSpend[t.category] || 0) + t.amount; });
+            const anyExceeded = Object.entries(budgets).some(([catId, limit]) => {
+                const spent = catSpend[catId] || 0;
+                return limit > 0 && spent > limit;
+            });
+            budgetScore = anyExceeded ? 15 : 30;
+        }
+
+        // Asset growth: 30pts if positive, 0 if not
+        const assetScore = totalAssets > 0 ? 30 : 0;
+
+        return Math.round(savingsScore + budgetScore + assetScore);
+    }, [currentMonthIncome, currentMonthExpense, budgets, transactions, currentDate, totalAssets]);
+
+    const healthColor = financialHealthScore >= 70 ? 'text-emerald-400' : financialHealthScore >= 40 ? 'text-amber-400' : 'text-rose-400';
+    const healthBg = financialHealthScore >= 70 ? 'bg-emerald-500/10 border-emerald-500/30' : financialHealthScore >= 40 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-rose-500/10 border-rose-500/30';
+    const healthLabel = financialHealthScore >= 70 ? '재정 건강 양호' : financialHealthScore >= 40 ? '개선 여지 있음' : '위험 신호';
+
+    // Finance diary helpers (#34)
+    const todayStr = format(currentDate, 'yyyy-MM-dd');
+    const diaryValue = financeDiary?.[todayStr] || '';
+    const handleDiaryChange = (val) => {
+        if (setFinanceDiary) {
+            setFinanceDiary(prev => ({ ...prev, [todayStr]: val }));
+        }
+    };
 
     const deleteTx = useCallback((txId) => {
         const tx = transactions.find((t) => t.id === txId);
@@ -233,6 +291,10 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     전월 대비 지출 {Math.abs(expenseChange)}% {expenseChange > 0 ? '증가' : '절약'}
                                 </span>
                             )}
+                            {/* #24 Financial health score badge */}
+                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border ${healthBg} ${healthColor}`}>
+                                <Heart className="w-3 h-3" /> 재정 점수 {financialHealthScore}점 · {healthLabel}
+                            </span>
                         </div>
                     </div>
                     <div className="w-full md:w-64 h-32 bg-slate-50/50 dark:bg-white/[0.02] rounded-xl p-2 border border-white/10" aria-label="7일간 자산 추이 차트" role="img">
@@ -252,10 +314,37 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 </div>
             </div>
 
+            {/* #24 Financial Health Score Card */}
+            <div className={`glass-card p-4 md:p-5 rounded-xl border ${healthBg}`}>
+                <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-3">
+                    <Heart className="w-4 h-4 text-rose-400" /> 재정 건강 점수
+                </h3>
+                <div className="flex items-center gap-4">
+                    <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center shrink-0 ${healthBg}`}>
+                        <span className={`text-xl font-bold ${healthColor}`}>{financialHealthScore}</span>
+                    </div>
+                    <div className="flex-1">
+                        <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
+                            <span>저축률</span><span>예산 준수</span><span>자산 보유</span>
+                        </div>
+                        <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                            <div className={`h-full rounded-full transition-all duration-700 ${financialHealthScore >= 70 ? 'bg-emerald-400' : financialHealthScore >= 40 ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${financialHealthScore}%` }} />
+                        </div>
+                        <p className={`text-xs font-bold mt-1.5 ${healthColor}`}>{healthLabel} · {financialHealthScore}/100점</p>
+                    </div>
+                </div>
+            </div>
+
             {/* Sub-tabs & Filter */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex gap-2" role="tablist" aria-label="재정 하위 탭">
-                    {[{ id: 'list', label: '거래 내역', icon: 'Wallet' }, { id: 'category', label: '카테고리별', icon: 'PieChart' }, { id: 'assets', label: '자산 현황', icon: 'BarChart3' }, { id: 'budgets', label: '예산 통제', icon: 'Target' }].map(({ id, label, icon }) => {
+                <div className="flex gap-2 flex-wrap" role="tablist" aria-label="재정 하위 탭">
+                    {[
+                        { id: 'list', label: '거래 내역', icon: 'Wallet' },
+                        { id: 'category', label: '카테고리별', icon: 'PieChart' },
+                        { id: 'monthly', label: '월별 비교', icon: 'BarChart3' },
+                        { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
+                        { id: 'budgets', label: '예산 통제', icon: 'Target' },
+                    ].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
                             <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
@@ -352,6 +441,29 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </div>
                     )}
 
+                    {/* #25 6-month comparison chart */}
+                    {activeSubTab === 'monthly' && (
+                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                                <BarChart3 className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 최근 6개월 지출 비교
+                            </h3>
+                            {sixMonthData.every(d => d.지출 === 0) ? (
+                                <div className="text-center py-20 text-slate-400"><p className="font-bold">지출 데이터가 없습니다.</p></div>
+                            ) : (
+                                <div className="h-64 w-full">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={sixMonthData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} />
+                                            <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
+                                            <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
+                                            <Bar dataKey="지출" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {activeSubTab === 'assets' && (
                         <div className="glass-card p-4 md:p-5 min-h-[400px]">
                             <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
@@ -441,7 +553,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                     {isWarning && <span className="text-[10px] bg-orange-50 text-orange-600 dark:bg-orange-500/10 dark:text-orange-400 px-2 flex items-center gap-1 py-0.5 rounded-lg font-bold tracking-tight border border-orange-200 dark:border-orange-500/30">예산 임박</span>}
                                                 </div>
                                                 <div className="text-right flex items-center gap-3">
-                                                    <button onClick={() => setBudgetModal({ open: true, categoryId: cat.id, categoryLabel: cat.label, currentBudget: budget })} className="text-[11px] text-indigo-500 hover:text-indigo-400 dark:hover:text-indigo-300 transition-all flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-md p-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100" aria-label={`${cat.label} 예산 수정`} >
+                                                    <button onClick={() => setBudgetModal({ open: true, categoryId: cat.id, categoryLabel: cat.label, currentBudget: budget })} className="text-[11px] text-indigo-500 hover:text-indigo-400 dark:hover:text-indigo-300 transition-all flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 rounded-md p-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100" aria-label={`${cat.label} 예산 수정`}>
                                                         ⚙️ <span className="hidden sm:inline">예산 수정</span>
                                                     </button>
                                                     <div className="text-sm font-bold tracking-tight text-slate-100">
@@ -470,6 +582,23 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
                 </motion.div>
             </AnimatePresence>
+
+            {/* #34 Finance Diary */}
+            <div className="glass-card p-4 md:p-5 rounded-xl">
+                <h3 className="font-bold tracking-tight text-base text-slate-100 flex items-center gap-2 mb-3">
+                    📔 재정 일기 <span className="text-xs font-bold text-slate-500">({todayStr})</span>
+                </h3>
+                <textarea
+                    value={diaryValue}
+                    onChange={e => handleDiaryChange(e.target.value)}
+                    placeholder="오늘의 소비 습관, 재정 목표, 절약 다짐을 자유롭게 기록해보세요..."
+                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none min-h-[100px] placeholder-slate-600 font-medium"
+                    rows={4}
+                />
+                {diaryValue && (
+                    <p className="text-[10px] text-slate-600 mt-1 text-right font-bold">자동 저장됨 ✓</p>
+                )}
+            </div>
         </section>
     );
 }
@@ -485,4 +614,6 @@ FinanceView.propTypes = {
     expenseCategories: PropTypes.array,
     initialBalances: PropTypes.object,
     setInitialBalances: PropTypes.func,
+    financeDiary: PropTypes.object,
+    setFinanceDiary: PropTypes.func,
 };

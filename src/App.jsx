@@ -53,6 +53,7 @@ export default function App() {
     studyTimes, setStudyTimes,
     authPhotos, setAuthPhotos,
     initialBalances, setInitialBalances,
+    financeDiary, setFinanceDiary,
   } = useAppData(session);
 
   // Run daily automations (interest, ticker sync)
@@ -294,8 +295,8 @@ export default function App() {
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
         >
-          {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} />}
-          {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} />}
+          {currentTab === 'home' && <HomeView schedules={schedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} />}
+          {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
           {currentTab === 'finance' &&
             <FinanceView
               transactions={transactions}
@@ -308,6 +309,8 @@ export default function App() {
               expenseCategories={expenseCategories}
               initialBalances={initialBalances}
               setInitialBalances={setInitialBalances}
+              financeDiary={financeDiary}
+              setFinanceDiary={setFinanceDiary}
             />
           }
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
