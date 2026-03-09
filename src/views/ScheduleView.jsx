@@ -73,6 +73,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
     const [editId, setEditId] = useState(null);
     const [editForm, setEditForm] = useState(null);
     const [confirmState, setConfirmState] = useState({ open: false, id: null, isGroup: false });
+    // #5 Edit scope modal for recurring schedules
+    const [editScopeModal, setEditScopeModal] = useState({ open: false, form: null });
 
     // #12 Focus Mode
     const [focusMode, setFocusMode] = useState(false);
@@ -234,6 +236,43 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
         setConfirmState({ open: false, id: null, isGroup: false });
     }, [confirmState, schedules, setSchedules]);
 
+    // #5 Edit scope handlers
+    const handleEditSaveRequest = useCallback((e) => {
+        e.stopPropagation();
+        if (!editForm.title.trim()) return toast.error('일정 제목을 입력해주세요.');
+        const original = schedules.find(s => s.id === editId);
+        if (original?.groupId) {
+            // Recurring schedule — ask scope
+            setEditScopeModal({ open: true, form: editForm });
+        } else {
+            // Single schedule — save directly
+            setSchedules(prev => prev.map(s => s.id === editId ? editForm : s));
+            setEditId(null);
+            toast.success('일정이 수정되었습니다.', { icon: '✏️' });
+        }
+    }, [editForm, editId, schedules, setSchedules]);
+
+    const handleEditScopeConfirm = useCallback((scope) => {
+        const { form } = editScopeModal;
+        if (scope === 'this') {
+            // Detach from group and update only this occurrence
+            setSchedules(prev => prev.map(s =>
+                s.id === form.id ? { ...form, groupId: undefined } : s
+            ));
+            toast.success('이 일정만 수정되었습니다.', { icon: '✏️' });
+        } else {
+            // Update all occurrences in the same group
+            setSchedules(prev => prev.map(s =>
+                s.groupId === form.groupId
+                    ? { ...s, title: form.title, time: form.time, endTime: form.endTime, color: form.color, memo: form.memo, location: form.location, repeat: form.repeat }
+                    : s
+            ));
+            toast.success('모든 반복 일정이 수정되었습니다.', { icon: '🔄' });
+        }
+        setEditScopeModal({ open: false, form: null });
+        setEditId(null);
+    }, [editScopeModal, setSchedules]);
+
     // #9 Save template handler
     const handleSaveTemplate = useCallback((schedule) => {
         const tpl = {
@@ -285,6 +324,42 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                 confirmText="삭제"
                 variant="danger"
             />
+
+            {/* #5 Edit scope modal for recurring schedules */}
+            {editScopeModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="반복 일정 수정 범위 선택">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditScopeModal({ open: false, form: null })} />
+                    <div className="relative bg-[#111113] border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-2xl">
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-lg">🔄</span>
+                            <h3 className="text-sm font-bold text-slate-100">반복 일정 수정</h3>
+                        </div>
+                        <p className="text-xs text-slate-400 mb-4">어느 범위까지 수정할까요?</p>
+                        <div className="flex flex-col gap-2">
+                            <button
+                                onClick={() => handleEditScopeConfirm('this')}
+                                className="w-full px-4 py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-xl hover:bg-indigo-500/20 transition-all text-left"
+                            >
+                                ✏️ 이 일정만 수정
+                                <span className="block text-[10px] text-slate-500 font-normal mt-0.5">이 날짜의 일정만 변경됩니다</span>
+                            </button>
+                            <button
+                                onClick={() => handleEditScopeConfirm('all')}
+                                className="w-full px-4 py-2.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all text-left"
+                            >
+                                🔄 모든 반복 일정 수정
+                                <span className="block text-[10px] text-slate-500 font-normal mt-0.5">같은 그룹의 모든 일정에 적용됩니다</span>
+                            </button>
+                            <button
+                                onClick={() => setEditScopeModal({ open: false, form: null })}
+                                className="w-full px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors"
+                            >
+                                취소
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <header className="mb-6 border-b border-white/10 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-400">
@@ -746,13 +821,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                     </div>
                                                                                     <div className="flex justify-end gap-2 mt-2">
                                                                                         <button onClick={(e) => { e.stopPropagation(); setEditId(null); }} className="px-3 py-1.5 text-[11px] font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10 transition-colors">취소</button>
-                                                                                        <button onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            if (!editForm.title.trim()) return toast.error('일정 제목을 입력해주세요.');
-                                                                                            setSchedules(prev => prev.map(s => s.id === editId ? editForm : s));
-                                                                                            setEditId(null);
-                                                                                            toast.success('일정이 수정되었습니다.', { icon: '✏️' });
-                                                                                        }} className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-500 rounded-lg shadow-none hover:bg-indigo-600 transition-colors">저장 완료</button>
+                                                                                        <button onClick={handleEditSaveRequest} className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-500 rounded-lg shadow-none hover:bg-indigo-600 transition-colors">저장 완료</button>
                                                                                     </div>
                                                                                 </div>
                                                                             ) : (
