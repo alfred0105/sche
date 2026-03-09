@@ -17,7 +17,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
-import { format, subDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval, getDayOfYear } from 'date-fns';
+import { format, subDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval, getDayOfYear, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { generateId } from '../utils/helpers';
@@ -126,7 +126,15 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
-    const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores'
+    const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores' | 'planner'
+
+    // 공부 플래너 state
+    const [studyPlans, setStudyPlans] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('studyPlans') || '[]'); } catch { return []; }
+    });
+    const [planAddMode, setPlanAddMode] = useState(false);
+    const [planForm, setPlanForm] = useState({ studyId: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00', endTime: '10:00', note: '' });
+    const [planWeekOffset, setPlanWeekOffset] = useState(0);
 
     // #57 Flashcards state
     const [flashcards, setFlashcards] = useState(() => {
@@ -142,6 +150,37 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     useEffect(() => {
         try { localStorage.setItem('flashcards', JSON.stringify(flashcards)); } catch { }
     }, [flashcards]);
+
+    useEffect(() => {
+        try { localStorage.setItem('studyPlans', JSON.stringify(studyPlans)); } catch { }
+    }, [studyPlans]);
+
+    const addStudyPlan = useCallback(() => {
+        if (!planForm.studyId) return toast.error('과목을 선택하세요.');
+        if (!planForm.date) return toast.error('날짜를 선택하세요.');
+        const subject = studies.find(s => s.id === planForm.studyId);
+        setStudyPlans(prev => [...prev, {
+            id: generateId(),
+            studyId: planForm.studyId,
+            subjectTitle: subject?.title || '알 수 없음',
+            date: planForm.date,
+            time: planForm.time,
+            endTime: planForm.endTime,
+            note: planForm.note.trim(),
+            done: false,
+        }]);
+        setPlanAddMode(false);
+        setPlanForm(p => ({ ...p, note: '', studyId: '' }));
+        toast.success('공부 계획이 추가되었습니다!', { icon: '📅' });
+    }, [planForm, studies]);
+
+    const togglePlanDone = useCallback((id) => {
+        setStudyPlans(prev => prev.map(p => p.id === id ? { ...p, done: !p.done } : p));
+    }, []);
+
+    const deletePlan = useCallback((id) => {
+        setStudyPlans(prev => prev.filter(p => p.id !== id));
+    }, []);
 
     const todayStr2 = format(currentDate, 'yyyy-MM-dd');
     const dueFlashcards = useMemo(() =>
@@ -479,6 +518,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
                 {[
                     { id: 'tracker', label: '트래커', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
+                    { id: 'planner', label: '플래너', icon: <span className="text-xs">📆</span> },
                     { id: 'stats', label: '통계', icon: <PieIcon className="w-3.5 h-3.5" /> },
                     { id: 'report', label: '리포트', icon: <BarChart3 className="w-3.5 h-3.5" /> },
                     { id: 'flashcards', label: '플래시카드', icon: <span className="text-xs">🃏</span> },
@@ -673,6 +713,147 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     )}
                 </div>
             )}
+
+            {/* 공부 플래너 탭 */}
+            {activeSubTab === 'planner' && (() => {
+                const weekStart = startOfWeek(addDays(currentDate, planWeekOffset * 7), { weekStartsOn: 1 });
+                const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+                const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+                const weekPlans = studyPlans.filter(p => {
+                    const d = parseISO(p.date);
+                    return d >= weekStart && d < addDays(weekStart, 7);
+                });
+                const totalPlanMins = weekPlans.reduce((sum, p) => {
+                    const [sh, sm] = (p.time || '00:00').split(':').map(Number);
+                    const [eh, em] = (p.endTime || '00:00').split(':').map(Number);
+                    return sum + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+                }, 0);
+                return (
+                    <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                        {/* 헤더 */}
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-bold text-slate-400">📆 공부 플래너</h3>
+                                <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                                    이번 주 {Math.floor(totalPlanMins / 60)}h {totalPlanMins % 60}m 계획
+                                </span>
+                            </div>
+                            <button onClick={() => setPlanAddMode(p => !p)} className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-lg text-xs font-bold hover:bg-indigo-500/20 transition-colors">
+                                {planAddMode ? '취소' : '+ 추가'}
+                            </button>
+                        </div>
+
+                        {/* 주 이동 */}
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                            <button onClick={() => setPlanWeekOffset(p => p - 1)} className="px-2 py-1 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">← 이전 주</button>
+                            <span className="text-slate-300">
+                                {format(weekStart, 'M/d')} ~ {format(addDays(weekStart, 6), 'M/d')}
+                            </span>
+                            <button onClick={() => setPlanWeekOffset(p => p + 1)} className="px-2 py-1 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">다음 주 →</button>
+                        </div>
+
+                        {/* 추가 폼 */}
+                        <AnimatePresence>
+                            {planAddMode && (
+                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                                    <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="col-span-2">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
+                                                <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500">
+                                                    <option value="">-- 과목 선택 --</option>
+                                                    {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
+                                                <input type="date" value={planForm.date} onChange={e => setPlanForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">시작</label>
+                                                    <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                                </div>
+                                                <div>
+                                                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">종료</label>
+                                                    <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
+                                                <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="공부 내용, 목표 페이지 등..." className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" onKeyDown={e => e.key === 'Enter' && addStudyPlan()} />
+                                            </div>
+                                        </div>
+                                        <button onClick={addStudyPlan} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">계획 저장</button>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* 주간 날짜별 플랜 목록 */}
+                        <div className="space-y-2">
+                            {weekDays.map((day, idx) => {
+                                const ds = format(day, 'yyyy-MM-dd');
+                                const dayPlans = studyPlans.filter(p => p.date === ds).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+                                const isToday = isSameDay(day, new Date());
+                                return (
+                                    <div key={ds}>
+                                        <div className={`flex items-center gap-2 px-1 mb-1`}>
+                                            <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isToday ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>{DAY_LABELS[idx]}</span>
+                                            <span className={`text-[10px] font-bold ${isToday ? 'text-indigo-400' : 'text-slate-600'}`}>{format(day, 'M/d')}</span>
+                                            {dayPlans.length > 0 && (
+                                                <span className="text-[9px] font-bold text-slate-600">
+                                                    {dayPlans.reduce((sum, p) => {
+                                                        const [sh, sm] = (p.time || '00:00').split(':').map(Number);
+                                                        const [eh, em] = (p.endTime || '00:00').split(':').map(Number);
+                                                        return sum + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
+                                                    }, 0)}분
+                                                </span>
+                                            )}
+                                        </div>
+                                        {dayPlans.length === 0 ? (
+                                            <div className="ml-7 text-[10px] text-slate-700 py-1">계획 없음</div>
+                                        ) : (
+                                            <div className="ml-7 space-y-1.5">
+                                                {dayPlans.map(plan => {
+                                                    const subject = studies.find(s => s.id === plan.studyId);
+                                                    return (
+                                                        <div key={plan.id} className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${plan.done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#09090b] border-white/10'}`}>
+                                                            <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 active:scale-90 transition-transform">
+                                                                {plan.done
+                                                                    ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                                                                    : <Target className="w-4 h-4 text-slate-600" />}
+                                                            </button>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center gap-1.5">
+                                                                    <span className={`text-xs font-bold truncate ${plan.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{subject?.title || plan.subjectTitle}</span>
+                                                                    <span className="text-[10px] text-slate-500 shrink-0">{plan.time}{plan.endTime ? ` ~ ${plan.endTime}` : ''}</span>
+                                                                </div>
+                                                                {plan.note && <p className="text-[10px] text-slate-500 truncate mt-0.5">{plan.note}</p>}
+                                                            </div>
+                                                            <button onClick={() => deletePlan(plan.id)} className="text-slate-700 hover:text-rose-500 transition-colors shrink-0">
+                                                                <X className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {weekPlans.length === 0 && !planAddMode && (
+                            <div className="text-center py-8 text-slate-600">
+                                <p className="text-3xl mb-2">📆</p>
+                                <p className="text-sm font-bold">이번 주 공부 계획이 없습니다.</p>
+                                <p className="text-xs mt-1">+ 추가 버튼으로 계획을 세워보세요!</p>
+                            </div>
+                        )}
+                    </div>
+                );
+            })()}
 
             {/* #59 Exam scores tab */}
             {activeSubTab === 'scores' && (
