@@ -4,7 +4,7 @@
  * Added: repeat field (#5), week grid view (#7), template save/load (#9),
  *         focus mode (#12), completion heatmap (#14)
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
@@ -12,6 +12,7 @@ import { isSameDay, isSameWeek, isSameMonth, parseISO, format, addDays, addWeeks
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { timeToMinutes, generateId } from '../utils/helpers';
+import { DEFAULT_SCHEDULE_CATEGORIES } from '../constants';
 
 const COLOR_OPTIONS = [
     { label: '빨강', value: '#ef4444' },
@@ -65,13 +66,17 @@ function getDurationBadge(time, endTime) {
 }
 
 export default function ScheduleView({ schedules, setSchedules, currentDate, setCurrentDate }) {
-    const { Calendar, CheckCircle2, Circle, ChevronDown, Check, Trash2, Clock, MoveRight, RefreshCw, X } = IconMap;
+    const { Calendar, CheckCircle2, Circle, ChevronDown, Check, Trash2, Clock, MoveRight, RefreshCw, X, Copy, Search, ArrowUpDown } = IconMap;
 
     const [filterType, setFilterType] = useState('daily');
     const [viewMode, setViewMode] = useState('list'); // 'list' | 'timeline' | 'week-grid'
     const [expandedId, setExpandedId] = useState(null);
     const [editId, setEditId] = useState(null);
     const [editForm, setEditForm] = useState(null);
+    // #4 Search
+    const [searchQuery, setSearchQuery] = useState('');
+    // #8 Priority sort toggle
+    const [prioritySortOn, setPrioritySortOn] = useState(false);
     const [confirmState, setConfirmState] = useState({ open: false, id: null, isGroup: false });
     // #5 Edit scope modal for recurring schedules
     const [editScopeModal, setEditScopeModal] = useState({ open: false, form: null });
@@ -79,24 +84,98 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
     // #12 Focus Mode
     const [focusMode, setFocusMode] = useState(false);
 
+    // #3 Timeline drag-to-reschedule state
+    const timelineDragRef = useRef(null); // { scheduleId, startY, startMins, durationMins }
+    const [timelineDragPos, setTimelineDragPos] = useState(null); // { scheduleId, top }
+
+    const handleTimelinePointerDown = useCallback((e, schedule) => {
+        // Only left mouse button / single touch
+        if (e.button !== undefined && e.button !== 0) return;
+        e.currentTarget.setPointerCapture(e.pointerId);
+        const startMins = timeToMinutes(schedule.time);
+        const endMins = schedule.endTime ? timeToMinutes(schedule.endTime) : startMins + 60;
+        timelineDragRef.current = {
+            scheduleId: schedule.id,
+            startY: e.clientY,
+            startMins,
+            durationMins: Math.max(30, endMins - startMins),
+        };
+        setTimelineDragPos({ scheduleId: schedule.id, top: startMins });
+    }, []);
+
+    const handleTimelinePointerMove = useCallback((e) => {
+        if (!timelineDragRef.current) return;
+        const { startY, startMins, scheduleId } = timelineDragRef.current;
+        const delta = e.clientY - startY;
+        const newMins = Math.max(0, Math.min(23 * 60 + 55, startMins + delta));
+        const snapped = Math.round(newMins / 5) * 5;
+        setTimelineDragPos({ scheduleId, top: snapped });
+    }, []);
+
+    const handleTimelinePointerUp = useCallback((e) => {
+        if (!timelineDragRef.current) return;
+        const { scheduleId, startY, startMins, durationMins } = timelineDragRef.current;
+        timelineDragRef.current = null;
+        const delta = e.clientY - startY;
+        let newMins = Math.round((startMins + delta) / 5) * 5;
+        newMins = Math.max(0, Math.min(23 * 60 + 55, newMins));
+        if (Math.abs(newMins - startMins) < 5) { setTimelineDragPos(null); return; }
+        const pad = (n) => String(Math.floor(n)).padStart(2, '0');
+        const newTime = `${pad(newMins / 60)}:${pad(newMins % 60)}`;
+        const newEndMins = newMins + durationMins;
+        const newEndTime = `${pad(newEndMins / 60)}:${pad(newEndMins % 60)}`;
+        setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, time: newTime, endTime: newEndTime } : s));
+        setTimelineDragPos(null);
+        toast.success(`일정 시간이 ${newTime}으로 변경되었습니다.`, { icon: '🕐' });
+    }, [setSchedules]);
+
+    // Timeline auto-scroll ref
+    const timelineRef = useRef(null);
+    useEffect(() => {
+        if (viewMode === 'timeline' && timelineRef.current) {
+            const now = new Date();
+            const minutesSinceMidnight = now.getHours() * 60 + now.getMinutes();
+            const scrollTarget = Math.max(0, minutesSinceMidnight - 120); // 2시간 앞 여유
+            timelineRef.current.scrollTop = scrollTarget;
+        }
+    }, [viewMode]);
+
     // #9 Template states
     const [templates, setTemplates] = useState(loadTemplates);
     const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
 
     // Memoized filtered & sorted schedules
     const filteredSchedules = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
         return schedules.filter((s) => {
             const sDate = parseISO(s.date);
-            if (filterType === 'daily') return isSameDay(sDate, currentDate);
-            if (filterType === 'weekly') return isSameWeek(sDate, currentDate);
-            if (filterType === 'monthly' || filterType === 'monthly-cal') return isSameMonth(sDate, currentDate);
+            const dateOk = (() => {
+                if (filterType === 'daily') return isSameDay(sDate, currentDate);
+                if (filterType === 'weekly') return isSameWeek(sDate, currentDate);
+                if (filterType === 'monthly' || filterType === 'monthly-cal') return isSameMonth(sDate, currentDate);
+                return true;
+            })();
+            if (!dateOk) return false;
+            if (q) {
+                return (s.title || '').toLowerCase().includes(q)
+                    || (s.memo || '').toLowerCase().includes(q)
+                    || (s.category || '').toLowerCase().includes(q)
+                    || (s.location || '').toLowerCase().includes(q);
+            }
             return true;
         }).sort((a, b) => {
+            // #8 Priority sort: High=1 > Medium=2 > Low=3 (missing = 3)
+            if (prioritySortOn) {
+                const PRIO_VAL = { High: 1, Medium: 2, Low: 3 };
+                const pa = PRIO_VAL[a.priority] || 3;
+                const pb = PRIO_VAL[b.priority] || 3;
+                if (pa !== pb) return pa - pb;
+            }
             const dateCmp = a.date.localeCompare(b.date);
             if (dateCmp !== 0) return dateCmp;
             return timeToMinutes(a.time) - timeToMinutes(b.time);
         });
-    }, [schedules, filterType, currentDate]);
+    }, [schedules, filterType, currentDate, searchQuery, prioritySortOn]);
 
     const groupedSchedules = useMemo(() => {
         return filteredSchedules.reduce((acc, schedule) => {
@@ -273,6 +352,23 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
         setEditId(null);
     }, [editScopeModal, setSchedules]);
 
+    // #5 Copy schedule to today
+    const handleCopySchedule = useCallback((e, schedule) => {
+        e.stopPropagation();
+        const todayStr = format(currentDate, 'yyyy-MM-dd');
+        const copied = { ...schedule, id: generateId(), date: todayStr, completed: false, groupId: undefined };
+        setSchedules(prev => [...prev, copied]);
+        toast.success(`"${schedule.title}" 오늘로 복사됐습니다!`, { icon: '📋' });
+    }, [currentDate, setSchedules]);
+
+    // #6 Bulk complete all visible schedules
+    const handleBulkComplete = useCallback(() => {
+        const visibleIds = new Set(filteredSchedules.filter(s => !s.completed).map(s => s.id));
+        if (visibleIds.size === 0) return toast('모든 일정이 이미 완료 상태입니다.', { icon: '✅' });
+        setSchedules(prev => prev.map(s => visibleIds.has(s.id) ? { ...s, completed: true } : s));
+        toast.success(`${visibleIds.size}개 일정을 모두 완료 처리했습니다!`, { icon: '🎉' });
+    }, [filteredSchedules, setSchedules]);
+
     // #9 Save template handler
     const handleSaveTemplate = useCallback((schedule) => {
         const tpl = {
@@ -286,7 +382,6 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
         saveTemplate(tpl);
         setTemplates(loadTemplates());
         toast.success(`"${schedule.title}" 템플릿으로 저장되었습니다.`, { icon: '📋' });
-        setTemplateFromId(null);
     }, []);
 
     const handleDeleteTemplate = useCallback((id) => {
@@ -366,6 +461,21 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                     <Calendar className="w-7 h-7 text-indigo-500" aria-hidden="true" /> 종합 스케줄러
                 </h2>
                 <div className="flex items-center gap-2 flex-wrap">
+                    {/* #15 Copy today's schedule as text */}
+                    <button
+                        onClick={() => {
+                            const todaySchedules = filteredSchedules.filter(s => s.date === format(currentDate, 'yyyy-MM-dd'));
+                            if (todaySchedules.length === 0) return toast('오늘 일정이 없습니다.', { icon: '📅' });
+                            const text = `📅 ${format(currentDate, 'M월 d일')} 일정\n` +
+                                todaySchedules.map(s => `${s.completed ? '✅' : '⬜'} ${s.time}${s.endTime ? `~${s.endTime}` : ''} ${s.title}${s.location ? ` (${s.location})` : ''}`).join('\n');
+                            navigator.clipboard?.writeText(text).then(() => toast.success('오늘 일정이 클립보드에 복사됐습니다!', { icon: '📋' })).catch(() => toast.error('복사 실패'));
+                        }}
+                        className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+                        title="오늘 일정 전체를 텍스트로 복사"
+                    >
+                        <Copy className="w-3.5 h-3.5" /> 일정 공유
+                    </button>
+
                     {/* #12 Focus Mode button */}
                     <button
                         onClick={() => setFocusMode(f => !f)}
@@ -477,6 +587,41 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         transition={{ duration: 0.3 }}
                         className="flex-1 flex flex-col"
                     >
+                        {/* #4 Search bar */}
+                        <div className="flex gap-2 mb-3">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={e => setSearchQuery(e.target.value)}
+                                    placeholder="일정 검색 (제목/메모/카테고리/장소)..."
+                                    className="w-full bg-[#111113] border border-white/10 pl-8 pr-3 py-2 rounded-lg text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none placeholder:text-slate-600"
+                                />
+                                {searchQuery && (
+                                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                )}
+                            </div>
+                            {/* #8 Priority sort toggle */}
+                            <button
+                                onClick={() => setPrioritySortOn(v => !v)}
+                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 whitespace-nowrap ${prioritySortOn ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400' : 'bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/30'}`}
+                                title="우선순위 순으로 정렬"
+                            >
+                                <ArrowUpDown className="w-3.5 h-3.5" /> 우선순위
+                            </button>
+                            {/* #6 Bulk complete */}
+                            <button
+                                onClick={handleBulkComplete}
+                                className="px-3 py-2 text-xs font-bold rounded-lg border bg-[#111113] border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                title="현재 보이는 미완료 일정 전체 완료 처리"
+                            >
+                                <CheckCircle2 className="w-3.5 h-3.5" /> 전체 완료
+                            </button>
+                        </div>
+
                         <div className="flex gap-2 mb-6 flex-wrap" role="tablist" aria-label="기간 필터">
                             {['daily', 'weekly', 'monthly', 'monthly-cal'].map((type) => (
                                 <button
@@ -619,7 +764,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                         <p className="font-bold">조건에 맞는 일정이 없습니다.</p>
                                     </div>
                                 ) : viewMode === 'timeline' && filterType === 'daily' ? (
-                                    <div className="relative border-l border-slate-200 dark:border-[#333] ml-[60px] pb-10" style={{ height: '1440px' }}>
+                                    <div ref={timelineRef} className="overflow-y-auto max-h-[80vh]">
+                                    <div className="relative border-l border-slate-200 dark:border-[#333] ml-[60px] pb-10" style={{ minHeight: '1440px' }}>
                                         {Array.from({ length: 24 }).map((_, i) => (
                                             <div key={i} className="absolute w-full border-t border-white/10" style={{ top: `${i * 60}px` }}>
                                                 <span className="absolute -left-[50px] -top-3 text-xs font-bold text-slate-400 w-10 text-right pr-2">
@@ -633,12 +779,18 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                             if (endMins <= startMins) endMins = startMins + 60;
                                             const durationMins = endMins - startMins;
                                             const isShort = durationMins < 45;
+                                            const isDragging = timelineDragPos?.scheduleId === schedule.id;
+                                            const displayTop = isDragging ? timelineDragPos.top : startMins;
 
                                             return (
                                                 <div
                                                     key={schedule.id}
-                                                    className={`absolute left-2 right-4 rounded-xl p-2 md:p-3 overflow-hidden border shadow-none transition-all hover:scale-[1.01] hover:shadow-none hover:z-10 bg-indigo-50/90 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 ${schedule.completed ? 'opacity-60 grayscale' : ''}`}
-                                                    style={{ top: `${startMins}px`, height: `${durationMins}px`, borderLeftColor: schedule.color || undefined, borderLeftWidth: schedule.color ? '3px' : undefined }}
+                                                    onPointerDown={(e) => handleTimelinePointerDown(e, schedule)}
+                                                    onPointerMove={handleTimelinePointerMove}
+                                                    onPointerUp={handleTimelinePointerUp}
+                                                    onPointerCancel={() => { timelineDragRef.current = null; setTimelineDragPos(null); }}
+                                                    className={`absolute left-2 right-4 rounded-xl p-2 md:p-3 overflow-hidden border shadow-none transition-[top] hover:z-10 bg-indigo-50/90 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 ${schedule.completed ? 'opacity-60 grayscale' : ''} ${isDragging ? 'cursor-grabbing z-20 ring-2 ring-indigo-400 shadow-lg shadow-indigo-500/20' : 'cursor-grab hover:scale-[1.01]'}`}
+                                                    style={{ top: `${displayTop}px`, height: `${durationMins}px`, borderLeftColor: schedule.color || undefined, borderLeftWidth: schedule.color ? '3px' : undefined, touchAction: 'none' }}
                                                 >
                                                     <div className={`flex ${isShort ? 'flex-row items-center gap-2' : 'flex-col'} w-full h-full`}>
                                                         <div className="flex items-center justify-between">
@@ -667,6 +819,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                             );
                                         })}
                                     </div>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col gap-4 md:p-5 w-full">
                                         {Object.entries(groupedSchedules).map(([dateStr, schedulesForDate]) => (
@@ -677,6 +830,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                 <div className="relative border-l-[3px] border-slate-100 dark:border-[#1a1c23] ml-4 space-y-6 flex-1 pr-2">
                                                     {schedulesForDate.map((schedule) => {
                                                         const durationBadge = getDurationBadge(schedule.time, schedule.endTime);
+                                                        const isOverdue = !schedule.completed && schedule.date < format(new Date(), 'yyyy-MM-dd');
                                                         return (
                                                             <div key={schedule.id} className="relative pl-6 flex flex-col group">
                                                                 <div className="flex items-start justify-between">
@@ -721,7 +875,13 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                     {schedule.priority === 'High' ? '🔥 높음' : schedule.priority === 'Medium' ? '보통' : '낮음'}
                                                                                 </span>
                                                                             )}
-                                                                            <p className={`text-base font-bold transition-all ${schedule.completed ? 'text-slate-400 line-through' : 'text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
+                                                                            {/* #11 Overdue badge */}
+                                                                            {isOverdue && (
+                                                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                                                                                    ⚠️ 미완료
+                                                                                </span>
+                                                                            )}
+                                                                            <p className={`text-base font-bold transition-all ${schedule.completed ? 'text-slate-400 line-through' : isOverdue ? 'text-rose-400' : 'text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'}`}>
                                                                                 {schedule.title}
                                                                             </p>
                                                                             <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-300 ${expandedId === schedule.id ? 'rotate-180' : ''}`} aria-hidden="true" />
@@ -806,6 +966,19 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                             ))}
                                                                                         </div>
                                                                                     </div>
+                                                                                    {/* #2 Category dropdown in edit form */}
+                                                                                    <div className="mb-2">
+                                                                                        <p className="text-[10px] font-bold text-slate-500 mb-1.5">카테고리</p>
+                                                                                        <select
+                                                                                            value={editForm.category || ''}
+                                                                                            onChange={e => setEditForm({ ...editForm, category: e.target.value })}
+                                                                                            className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                                                        >
+                                                                                            {DEFAULT_SCHEDULE_CATEGORIES.map(c => (
+                                                                                                <option key={c.id} value={c.label}>{c.label}</option>
+                                                                                            ))}
+                                                                                        </select>
+                                                                                    </div>
                                                                                     {/* #5 Repeat field in edit form */}
                                                                                     <div className="mb-2">
                                                                                         <p className="text-[10px] font-bold text-slate-500 mb-1.5">반복</p>
@@ -836,6 +1009,12 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                             ✏️ 수정하기
                                                                                         </button>
                                                                                         {/* #9 Save as template button */}
+                                                                                        <button
+                                                                                            onClick={(e) => handleCopySchedule(e, schedule)}
+                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
+                                                                                        >
+                                                                                            <Copy className="w-3.5 h-3.5" /> 오늘로 복사
+                                                                                        </button>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleSaveTemplate(schedule); }}
                                                                                             className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"

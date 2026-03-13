@@ -3,7 +3,7 @@
  * Added: D-Day widget (#78), daily quote (#79), productivity score (#80), activity feed (#83)
  * Added: weather widget (#77), quick entry bar (#81), weekly report banner (#84)
  */
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, differenceInDays, getDay, getDayOfYear, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
@@ -57,8 +57,41 @@ function getWeekKey(date) {
     return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
-export default function HomeView({ schedules, setSchedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions }) {
-    const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity, Plus, X } = IconMap;
+// #76 Widget definitions (id → 표시 이름)
+const WIDGET_DEFS = [
+    { id: 'stats', label: '날씨·D-Day·점수 스트립' },
+    { id: 'schedule', label: '오늘의 일정' },
+    { id: 'finance', label: '재정 요약' },
+    { id: 'goal', label: '주요 목표' },
+    { id: 'activity', label: '최근 활동 피드' },
+    { id: 'quote', label: '오늘의 격언' },
+];
+
+const HIDDEN_WIDGETS_KEY = 'homeHiddenWidgets';
+
+function loadHiddenWidgets() {
+    try { return new Set(JSON.parse(localStorage.getItem(HIDDEN_WIDGETS_KEY) || '[]')); }
+    catch { return new Set(); }
+}
+
+export default function HomeView({ schedules, setSchedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions, reviews = [] }) {
+    const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity, Plus, X, ClipboardList, Settings } = IconMap;
+
+    // #76 Widget visibility
+    const [hiddenWidgets, setHiddenWidgets] = useState(loadHiddenWidgets);
+    const [showWidgetSettings, setShowWidgetSettings] = useState(false);
+
+    const isVisible = (id) => !hiddenWidgets.has(id);
+
+    const toggleWidget = (id) => {
+        setHiddenWidgets(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            try { localStorage.setItem(HIDDEN_WIDGETS_KEY, JSON.stringify([...next])); } catch { }
+            return next;
+        });
+    };
 
     const toggleSchedule = (id) => {
         if (!setSchedules) return;
@@ -192,6 +225,16 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
     }, [transactions, totalAssets, currentDate]);
 
     const primaryGoal = useMemo(() => goals.find((g) => g.type === 'short' && g.progress < 100) || goals[0], [goals]);
+    // #49 Top 3 in-progress goals for mini widget
+    const topGoals = useMemo(() => goals.filter(g => g.progress < 100).slice(0, 3), [goals]);
+
+    // #77 Today's study plans from localStorage
+    const todayStudyPlans = useMemo(() => {
+        try {
+            const plans = JSON.parse(localStorage.getItem('studyPlans') || '[]');
+            return plans.filter(p => p.date === todayStr);
+        } catch { return []; }
+    }, [todayStr]);
 
     // #78 D-Day widget: nearest upcoming goal deadline
     const ddayGoal = useMemo(() => {
@@ -237,6 +280,50 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
     const scoreColor = productivityScore >= 70 ? 'text-emerald-400' : productivityScore >= 40 ? 'text-amber-400' : 'text-rose-400';
     const scoreBg = productivityScore >= 70 ? 'bg-emerald-500/10 border-emerald-500/20' : productivityScore >= 40 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20';
+
+    // #71 Review streak (daily reviews)
+    const reviewStreak = useMemo(() => {
+        const dailyDates = new Set(reviews.filter(r => r.type === 'daily').map(r => r.date));
+        let count = 0;
+        let checkDate = new Date(currentDate);
+        while (dailyDates.has(format(checkDate, 'yyyy-MM-dd'))) {
+            count++;
+            checkDate = subDays(checkDate, 1);
+        }
+        return count;
+    }, [reviews, currentDate]);
+
+    // #78 Weekly schedule completion chart — past 7 days
+    const weeklyCompletionData = useMemo(() => {
+        return Array.from({ length: 7 }, (_, i) => {
+            const d = subDays(currentDate, 6 - i);
+            const ds = format(d, 'yyyy-MM-dd');
+            const daySchedules = schedules.filter(s => s.date === ds);
+            const completed = daySchedules.filter(s => s.completed).length;
+            const total = daySchedules.length;
+            return { label: format(d, 'EEE').slice(0, 1), completed, total, isToday: ds === todayStr };
+        });
+    }, [schedules, currentDate, todayStr]);
+
+    // #82 Quick timer state
+    const [quickTimerActive, setQuickTimerActive] = useState(false);
+    const [quickTimerSecs, setQuickTimerSecs] = useState(0);
+    const quickTimerRef = useRef(null);
+    useEffect(() => {
+        if (quickTimerActive) {
+            quickTimerRef.current = setInterval(() => setQuickTimerSecs(s => s + 1), 1000);
+        } else {
+            clearInterval(quickTimerRef.current);
+        }
+        return () => clearInterval(quickTimerRef.current);
+    }, [quickTimerActive]);
+    const formatQuickTimer = (secs) => {
+        const h = Math.floor(secs / 3600);
+        const m = Math.floor((secs % 3600) / 60);
+        const s = secs % 60;
+        if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
 
     // #83 Recent activity feed (last 2 days, last 8 events)
     const activityFeed = useMemo(() => {
@@ -288,6 +375,35 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
     return (
         <div className="flex flex-col gap-3 md:gap-5">
+            {/* #76 Widget settings button */}
+            <div className="flex justify-end">
+                <button
+                    onClick={() => setShowWidgetSettings(v => !v)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${showWidgetSettings ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300'}`}
+                    aria-expanded={showWidgetSettings}
+                >
+                    <Settings className="w-3 h-3" /> 위젯 설정
+                </button>
+            </div>
+
+            {/* #76 Widget settings panel */}
+            {showWidgetSettings && (
+                <section className="glass-card p-3 rounded-xl border border-indigo-500/20" aria-label="위젯 표시 설정">
+                    <p className="text-[10px] font-bold text-slate-500 mb-2">표시할 위젯 선택</p>
+                    <div className="flex flex-wrap gap-2">
+                        {WIDGET_DEFS.map(w => (
+                            <button
+                                key={w.id}
+                                onClick={() => toggleWidget(w.id)}
+                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all ${isVisible(w.id) ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-500 border-white/10'}`}
+                            >
+                                {isVisible(w.id) ? '✓ ' : ''}{w.label}
+                            </button>
+                        ))}
+                    </div>
+                </section>
+            )}
+
             {/* #84 Weekly Report Banner — Monday only */}
             {isMonday && !bannerDismissed && weeklyBannerStats && (
                 <section className="glass-card p-3 md:p-5 relative overflow-hidden border border-amber-500/20" aria-label="지난 주 성과 요약">
@@ -365,7 +481,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             </section>
 
             {/* Compact Stats Strip: Weather + D-Day + Score */}
-            <section className="grid grid-cols-3 gap-2" aria-label="오늘의 현황">
+            {isVisible('stats') && <section className="grid grid-cols-3 gap-2" aria-label="오늘의 현황">
                 {/* Weather */}
                 <div className="glass-card p-2.5 flex flex-col items-center justify-center gap-0.5" aria-label="날씨">
                     {weather ? (
@@ -398,16 +514,25 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                     )}
                 </div>
 
-                {/* Productivity Score */}
-                <div className={`glass-card p-2.5 flex flex-col items-center justify-center gap-0.5 border ${scoreBg}`} aria-label="생산성 점수">
+                {/* Productivity Score + Review streak */}
+                <div
+                    className={`glass-card p-2.5 flex flex-col items-center justify-center gap-0.5 border cursor-pointer hover:opacity-80 transition-opacity ${scoreBg}`}
+                    aria-label="생산성 점수 및 회고 스트릭"
+                    onClick={() => setCurrentTab('review')}
+                >
                     <Activity className="w-4 h-4 text-indigo-400" aria-hidden="true" />
                     <span className={`text-lg font-bold tracking-tight ${scoreColor}`}>{productivityScore}</span>
                     <span className="text-[9px] text-slate-500">주간점수</span>
+                    {reviewStreak > 0 ? (
+                        <span className="text-[9px] font-bold text-orange-400">🔥{reviewStreak}일 회고</span>
+                    ) : (
+                        <span className="text-[9px] text-slate-600">회고 쓰기</span>
+                    )}
                 </div>
-            </section>
+            </section>}
 
             {/* Schedule Widget */}
-            <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="오늘의 일정">
+            {isVisible('schedule') && <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="오늘의 일정">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-400/10 dark:bg-indigo-500/20 blur-3xl rounded-full" aria-hidden="true" />
                 <div className="relative">
                     <div className="flex justify-between items-center mb-3">
@@ -460,10 +585,10 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                         </div>
                     )}
                 </div>
-            </section>
+            </section>}
 
             {/* Finance Widget */}
-            <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="재정 요약">
+            {isVisible('finance') && <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="재정 요약">
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-rose-400/10 dark:bg-fuchsia-500/10 blur-3xl rounded-full" aria-hidden="true" />
                 <div className="relative">
                     <div className="flex justify-between items-center mb-2.5">
@@ -487,6 +612,9 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                     <div className="mt-3" aria-label="자산 추이 차트" role="img">
                         <p className="text-[10px] font-bold text-slate-500 mb-1.5">최근 {CHART_DAYS_RANGE}일 자산 추이</p>
                         <div className="h-24 w-full rounded-xl overflow-hidden bg-white/[0.02] p-1.5 border border-white/10">
+                            {transactions.length === 0 ? (
+                                <div className="h-full flex items-center justify-center text-slate-600 text-xs font-bold">아직 거래 내역이 없습니다</div>
+                            ) : (
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart data={assetData}>
                                     <defs>
@@ -499,48 +627,128 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                                     <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '11px', fontWeight: 'bold', color: '#e2e8f0' }} />
                                 </AreaChart>
                             </ResponsiveContainer>
+                            )}
                         </div>
                     </div>
                 </div>
-            </section>
+            </section>}
 
-            {/* Goal Widget */}
-            {primaryGoal && (
-                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="주요 목표">
+            {/* #49 Goal Mini Gauges Widget */}
+            {isVisible('goal') && topGoals.length > 0 && (
+                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="진행 중 목표">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-purple-400/10 dark:bg-purple-500/20 blur-3xl rounded-full" aria-hidden="true" />
                     <div className="relative">
                         <div className="flex justify-between items-center mb-2.5">
                             <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
-                                <Flag className="w-4 h-4 text-purple-500" aria-hidden="true" /> 주요 목표
+                                <Flag className="w-4 h-4 text-purple-500" aria-hidden="true" /> 진행 중 목표
                             </h2>
                             <button onClick={() => setCurrentTab('goal')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5" aria-label="목표 상세 보기">
                                 전체 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                         </div>
-                        <div className="bg-white/[0.03] p-3 rounded-xl border border-white/10">
-                            <div className="flex items-center gap-2.5 mb-2.5">
-                                <span className="text-xl" aria-hidden="true">{primaryGoal.icon || '🎯'}</span>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-0.5">
-                                        <p className="text-xs font-bold text-slate-100 truncate">{primaryGoal.title}</p>
-                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 ${differenceInDays(parseISO(primaryGoal.deadline), new Date()) < 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-indigo-500/10 text-indigo-400'}`}>
-                                            D{differenceInDays(parseISO(primaryGoal.deadline), new Date()) < 0 ? '+' : '-'}{Math.abs(differenceInDays(parseISO(primaryGoal.deadline), new Date()))}
-                                        </span>
+                        <div className="space-y-2.5">
+                            {topGoals.map(goal => (
+                                <div key={goal.id} className="bg-white/[0.03] p-3 rounded-xl border border-white/10">
+                                    <div className="flex items-center gap-2 mb-1.5">
+                                        <span className="text-base" aria-hidden="true">{goal.icon || '🎯'}</span>
+                                        <p className="text-xs font-bold text-slate-100 flex-1 truncate">{goal.title}</p>
+                                        <span className="text-sm font-bold tracking-tight text-indigo-400 shrink-0">{goal.progress}%</span>
                                     </div>
-                                    <p className="text-[10px] text-slate-500">{primaryGoal.deadline} 까지</p>
+                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
+                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700" style={{ width: `${goal.progress}%` }} />
+                                    </div>
+                                    {goal.deadline && (
+                                        <p className="text-[10px] text-slate-500 mt-1">
+                                            {(() => {
+                                                const d = differenceInDays(parseISO(goal.deadline), new Date());
+                                                return d < 0 ? `D+${Math.abs(d)} 초과` : d === 0 ? 'D-Day!' : `D-${d}`;
+                                            })()}
+                                        </p>
+                                    )}
                                 </div>
-                                <span className="text-base font-bold tracking-tight text-indigo-400 shrink-0">{primaryGoal.progress}%</span>
-                            </div>
-                            <div className="h-2 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={primaryGoal.progress} aria-valuemin={0} aria-valuemax={100}>
-                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700" style={{ width: `${primaryGoal.progress}%` }} />
-                            </div>
+                            ))}
                         </div>
                     </div>
                 </section>
             )}
 
+            {/* #77 Today's Study Plans */}
+            {todayStudyPlans.length > 0 && (
+                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="오늘의 공부 계획">
+                    <div className="flex justify-between items-center mb-2.5">
+                        <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
+                            📚 오늘의 공부 계획
+                        </h2>
+                        <button onClick={() => setCurrentTab('study')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5">
+                            공부 탭 <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                    <div className="space-y-1.5">
+                        {todayStudyPlans.map(plan => (
+                            <div key={plan.id} className={`flex items-center gap-2 py-1.5 px-2 rounded-lg border ${plan.done ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-white/[0.02] border-white/5'}`}>
+                                <span className="text-[10px] font-bold text-slate-500 shrink-0">{plan.time}~{plan.endTime}</span>
+                                <p className={`text-xs font-bold flex-1 truncate ${plan.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{plan.subjectTitle}{plan.note ? ` — ${plan.note}` : ''}</p>
+                                {plan.done && <span className="text-[10px] text-emerald-400">✅</span>}
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* #78 Weekly schedule completion mini chart */}
+            {weeklyCompletionData.some(d => d.total > 0) && (
+                <section className="glass-card p-3 md:p-4" aria-label="주간 일정 달성 현황">
+                    <h2 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">이번 주 일정 달성</h2>
+                    <div className="flex items-end gap-1.5 h-12">
+                        {weeklyCompletionData.map((d, i) => {
+                            const pct = d.total > 0 ? (d.completed / d.total) * 100 : 0;
+                            return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                    <div className="w-full flex flex-col justify-end" style={{ height: '2.5rem' }}>
+                                        <div
+                                            className={`w-full rounded-t-sm transition-all ${d.isToday ? 'bg-indigo-500' : pct >= 100 ? 'bg-emerald-500' : pct > 0 ? 'bg-indigo-500/50' : 'bg-white/10'}`}
+                                            style={{ height: `${Math.max(d.total > 0 ? pct : 5, 5)}%` }}
+                                            title={`${d.completed}/${d.total}`}
+                                        />
+                                    </div>
+                                    <span className={`text-[9px] font-bold ${d.isToday ? 'text-indigo-400' : 'text-slate-600'}`}>{d.label}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
+
+            {/* #82 Quick timer */}
+            <section className="glass-card p-3 flex items-center gap-3" aria-label="빠른 타이머">
+                <span className="text-base">⏱️</span>
+                <span className="text-xs font-bold text-slate-400 flex-1">빠른 타이머</span>
+                <span className="text-sm font-mono font-bold text-indigo-400 min-w-[3.5rem] text-right">
+                    {formatQuickTimer(quickTimerSecs)}
+                </span>
+                <button
+                    onClick={() => {
+                        if (quickTimerActive) {
+                            setQuickTimerActive(false);
+                            toast(`⏱️ ${formatQuickTimer(quickTimerSecs)} 기록 완료!`, { duration: 3000 });
+                            setQuickTimerSecs(0);
+                        } else {
+                            setQuickTimerActive(true);
+                        }
+                    }}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${quickTimerActive ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                >
+                    {quickTimerActive ? '⏸ 종료' : '▶ 시작'}
+                </button>
+                {quickTimerSecs > 0 && !quickTimerActive && (
+                    <button onClick={() => setQuickTimerSecs(0)} className="text-slate-500 hover:text-slate-300 text-xs">
+                        <X className="w-3.5 h-3.5" />
+                    </button>
+                )}
+            </section>
+
             {/* #83 Recent Activity Feed */}
-            {activityFeed.length > 0 && (
+            {isVisible('activity') && activityFeed.length > 0 && (
                 <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="최근 활동 피드">
                     <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5 mb-2.5">
                         <Activity className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 최근 활동
@@ -562,10 +770,10 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             )}
 
             {/* #79 Daily Quote */}
-            <section className="glass-card p-3 md:p-4 relative overflow-hidden" aria-label="오늘의 격언">
+            {isVisible('quote') && <section className="glass-card p-3 md:p-4 relative overflow-hidden" aria-label="오늘의 격언">
                 <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5" aria-hidden="true" />
                 <p className="relative text-[11px] italic text-slate-400 text-center leading-relaxed">"{dailyQuote}"</p>
-            </section>
+            </section>}
         </div>
     );
 }
@@ -582,5 +790,5 @@ HomeView.propTypes = {
     studyTimes: PropTypes.object,
     budgets: PropTypes.object,
     setTransactions: PropTypes.func,
-    setSchedules: PropTypes.func,
+    reviews: PropTypes.array,
 };

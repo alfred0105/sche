@@ -119,12 +119,13 @@ function getStreak(logs, currentDate) {
     return streak;
 }
 
-export default function StudyView({ studies, setStudies, currentDate, studyTimes = {}, setStudyTimes, authPhotos = {}, setAuthPhotos, session, userProfile }) {
-    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon, BarChart3, PieChart: PieIcon, Share2, X } = IconMap;
+export default function StudyView({ studies, setStudies, currentDate, studyTimes = {}, setStudyTimes, authPhotos = {}, setAuthPhotos, session, userProfile, goals = [], setGoals, setSchedules }) {
+    const { BookOpen, CheckCircle2, Trash2, Plus, Target, TrendingUp, Calendar: CalIcon, Flame, Trophy, Camera, Users, ImageIcon, BarChart3, PieChart: PieIcon, Share2, X, Flag, Pencil } = IconMap;
 
     const [isAddMode, setIsAddMode] = useState(false);
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
+    const [newLinkedGoalId, setNewLinkedGoalId] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
     const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores' | 'planner'
 
@@ -159,8 +160,9 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
         if (!planForm.studyId) return toast.error('과목을 선택하세요.');
         if (!planForm.date) return toast.error('날짜를 선택하세요.');
         const subject = studies.find(s => s.id === planForm.studyId);
-        setStudyPlans(prev => [...prev, {
-            id: generateId(),
+        const planId = generateId();
+        const newPlan = {
+            id: planId,
             studyId: planForm.studyId,
             subjectTitle: subject?.title || '알 수 없음',
             date: planForm.date,
@@ -168,19 +170,42 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             endTime: planForm.endTime,
             note: planForm.note.trim(),
             done: false,
-        }]);
+        };
+        setStudyPlans(prev => [...prev, newPlan]);
+        // Sync to schedules for cross-tab visibility
+        if (setSchedules) {
+            setSchedules(prev => [...prev, {
+                id: generateId(),
+                title: `📚 ${subject?.title || '공부'}${planForm.note.trim() ? ` — ${planForm.note.trim()}` : ''}`,
+                date: planForm.date,
+                time: planForm.time,
+                completed: false,
+                category: 'study',
+                studyPlanId: planId,
+            }]);
+        }
         setPlanAddMode(false);
         setPlanForm(p => ({ ...p, note: '', studyId: '' }));
         toast.success('공부 계획이 추가되었습니다!', { icon: '📅' });
-    }, [planForm, studies]);
+    }, [planForm, studies, setSchedules]);
 
     const togglePlanDone = useCallback((id) => {
-        setStudyPlans(prev => prev.map(p => p.id === id ? { ...p, done: !p.done } : p));
-    }, []);
+        setStudyPlans(prev => {
+            const updated = prev.map(p => p.id === id ? { ...p, done: !p.done } : p);
+            const plan = updated.find(p => p.id === id);
+            if (setSchedules) {
+                setSchedules(prev => prev.map(s => s.studyPlanId === id ? { ...s, completed: plan?.done ?? false } : s));
+            }
+            return updated;
+        });
+    }, [setSchedules]);
 
     const deletePlan = useCallback((id) => {
         setStudyPlans(prev => prev.filter(p => p.id !== id));
-    }, []);
+        if (setSchedules) {
+            setSchedules(prev => prev.filter(s => s.studyPlanId !== id));
+        }
+    }, [setSchedules]);
 
     const todayStr2 = format(currentDate, 'yyyy-MM-dd');
     const dueFlashcards = useMemo(() =>
@@ -315,6 +340,28 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
         }
     }, [pomodoroEnabled]);
 
+    // #50 Study-Goal linkage: when timer stops, auto-update linked goal progress (in minutes)
+    const prevIsRunningRef = useRef(false);
+    useEffect(() => {
+        const wasRunning = prevIsRunningRef.current;
+        prevIsRunningRef.current = timerState.isRunning;
+        if (wasRunning && !timerState.isRunning && timerState.activeId && setGoals) {
+            const study = studies.find(s => s.id === timerState.activeId);
+            if (study?.linkedGoalId && sessionSecsRef.current > 0) {
+                const minutesStudied = Math.floor(sessionSecsRef.current / 60);
+                if (minutesStudied > 0) {
+                    setGoals(prev => prev.map(g => {
+                        if (g.id !== study.linkedGoalId || !g.tracker) return g;
+                        const newCurrent = Math.min(g.tracker.current + minutesStudied, g.tracker.target);
+                        const newProgress = Math.round((newCurrent / g.tracker.target) * 100);
+                        return { ...g, tracker: { ...g.tracker, current: newCurrent }, progress: newProgress };
+                    }));
+                    toast.success(`목표 진행도에 ${minutesStudied}분 추가됐습니다!`, { icon: '🎯' });
+                }
+            }
+        }
+    }, [timerState.isRunning, timerState.activeId, studies, setGoals]);
+
     // Live sync to/from Supabase public_leaderboard
     const totalUserTime = Object.values(studyTimes).reduce((sum, val) => sum + val, 0);
     const activeSubject = Object.values(currentSubjects).find(s => s?.trim()) || '열공 중 🔥';
@@ -335,7 +382,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     setLiveUsers(data.filter(u => u.user_id !== session.user.id));
                 }
             } catch (err) {
-                console.error('[Leaderboard] 조회 오류:', err);
+                if (import.meta.env.DEV) console.error('[Leaderboard] 조회 오류:', err);
             }
         };
 
@@ -372,9 +419,9 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     subject: activeSubject,
                     updated_at: new Date().toISOString()
                 }, { onConflict: 'user_id' });
-                if (error) console.error('[Leaderboard] Upsert 실패:', error.message);
+                if (error && import.meta.env.DEV) console.error('[Leaderboard] Upsert 실패:', error.message);
             } catch (err) {
-                console.error('[Leaderboard] Upsert 예외:', err);
+                if (import.meta.env.DEV) console.error('[Leaderboard] Upsert 예외:', err);
             }
         };
 
@@ -442,6 +489,51 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
         }));
     }, [studies, studyTimes]);
 
+    // #65 Global study streak (any subject checked in = study day)
+    const allStudyDays = useMemo(() => {
+        const daySet = new Set();
+        studies.forEach(s => (s.logs || []).forEach(d => daySet.add(d)));
+        return daySet;
+    }, [studies]);
+
+    const globalStreak = useMemo(() => {
+        let count = 0;
+        let check = new Date(currentDate);
+        while (allStudyDays.has(format(check, 'yyyy-MM-dd'))) {
+            count++;
+            check = subDays(check, 1);
+        }
+        return count;
+    }, [allStudyDays, currentDate]);
+
+    // #65 Challenge key saved in localStorage
+    const CHALLENGE_KEY = 'studyChallenges';
+    const [challenges, setChallenges] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(CHALLENGE_KEY) || '[]'); } catch { return []; }
+    });
+    useEffect(() => {
+        try { localStorage.setItem(CHALLENGE_KEY, JSON.stringify(challenges)); } catch { }
+    }, [challenges]);
+
+    const addChallenge = (targetDays) => {
+        const existing = challenges.find(c => c.targetDays === targetDays && !c.completed);
+        if (existing) { toast('이미 진행 중인 챌린지입니다!', { icon: '⚡' }); return; }
+        setChallenges(prev => [...prev, { id: generateId(), targetDays, startDate: format(currentDate, 'yyyy-MM-dd'), completed: false }]);
+        toast.success(`${targetDays}일 연속 공부 챌린지 시작!`, { icon: '🏆' });
+    };
+
+    // Auto-complete challenges when streak meets target
+    useEffect(() => {
+        setChallenges(prev => prev.map(c => {
+            if (!c.completed && globalStreak >= c.targetDays) {
+                toast.success(`🏆 ${c.targetDays}일 챌린지 달성! 축하합니다!`, { duration: 5000 });
+                return { ...c, completed: true, completedAt: format(currentDate, 'yyyy-MM-dd') };
+            }
+            return c;
+        }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [globalStreak]);
+
     // #56 Daily quote
     const dailyQuote = useMemo(() => {
         const dayOfYear = getDayOfYear(currentDate);
@@ -457,17 +549,34 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             icon: 'BookOpen',
             totalDays: parseInt(newTarget),
             logs: [],
+            linkedGoalId: newLinkedGoalId || null,
         }]);
         setNewTitle('');
+        setNewLinkedGoalId('');
         setIsAddMode(false);
         toast.success('새로운 공부 목표가 추가되었습니다.', { icon: '🎯' });
-    }, [newTitle, newTarget, setStudies]);
+    }, [newTitle, newTarget, newLinkedGoalId, setStudies]);
 
     const handleDeleteConfirm = useCallback(() => {
         setStudies((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
         setDeleteConfirm({ open: false, id: null });
         toast.success('삭제 완료', { icon: '🗑️' });
     }, [deleteConfirm.id, setStudies]);
+
+    // #53 Study subject edit
+    const [editStudyId, setEditStudyId] = useState(null);
+    const [editStudyForm, setEditStudyForm] = useState({ title: '', totalDays: 30, linkedGoalId: '' });
+
+    const handleEditStudySave = useCallback(() => {
+        if (!editStudyForm.title.trim()) return toast.error('과목명을 입력해주세요.');
+        setStudies(prev => prev.map(s =>
+            s.id === editStudyId
+                ? { ...s, title: editStudyForm.title.trim(), totalDays: Number(editStudyForm.totalDays) || s.totalDays, linkedGoalId: editStudyForm.linkedGoalId || null }
+                : s
+        ));
+        setEditStudyId(null);
+        toast.success('과목이 수정되었습니다!', { icon: '✏️' });
+    }, [editStudyId, editStudyForm, setStudies]);
 
     const handleCheckIn = useCallback((study) => {
         const todayStr = format(currentDate, 'yyyy-MM-dd');
@@ -565,6 +674,52 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* #65 Study challenge section in stats tab */}
+            {activeSubTab === 'stats' && (
+                <div className="glass-card p-4 md:p-5 rounded-xl">
+                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                        🏆 공부 챌린지
+                        <span className="text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full">현재 {globalStreak}일 연속</span>
+                    </h3>
+                    <div className="flex gap-2 flex-wrap mb-4">
+                        {[7, 14, 30, 100].map(days => (
+                            <button
+                                key={days}
+                                onClick={() => addChallenge(days)}
+                                className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-white/5 text-slate-400 border-white/10 hover:border-indigo-500/40 hover:text-indigo-400 transition-all"
+                            >
+                                + {days}일 챌린지
+                            </button>
+                        ))}
+                    </div>
+                    {challenges.length === 0 ? (
+                        <p className="text-xs text-slate-600 text-center py-2">아직 시작한 챌린지가 없습니다.</p>
+                    ) : (
+                        <div className="space-y-2">
+                            {challenges.slice().reverse().map(c => {
+                                const pct = Math.min(Math.round((globalStreak / c.targetDays) * 100), 100);
+                                return (
+                                    <div key={c.id} className={`p-3 rounded-xl border ${c.completed ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-xs font-bold text-slate-300">{c.targetDays}일 연속 공부 챌린지</span>
+                                            {c.completed
+                                                ? <span className="text-xs font-bold text-amber-400">🏅 달성 {c.completedAt}</span>
+                                                : <span className="text-xs font-bold text-indigo-400">{globalStreak}/{c.targetDays}일</span>
+                                            }
+                                        </div>
+                                        {!c.completed && (
+                                            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div className="h-full bg-indigo-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
@@ -981,7 +1136,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                         <span className={`text-[13px] font-bold tracking-tight truncate ${user.isMe ? 'text-indigo-400' : 'text-slate-400'}`}>{user.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2 justify-end">
-                                        <span className={`text-[11px] font-bold truncate max-w-[100px] border border-white/5 px-2 py-0.5 rounded-full ${user.isMe ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 bg-white/5'}`}>{user.subject}</span>
+                                        <span title={user.subject} className={`text-[11px] font-bold truncate max-w-[100px] border border-white/5 px-2 py-0.5 rounded-full ${user.isMe ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 bg-white/5'}`}>{user.subject}</span>
                                         <span className={`text-sm font-mono tracking-wider font-bold w-16 text-right ${user.isMe ? 'text-indigo-400' : 'text-slate-500'}`}>
                                             {formatTime(user.time)}
                                         </span>
@@ -1010,6 +1165,15 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                         <label htmlFor="study-target" className="text-xs font-bold text-slate-400 mb-1 block">목표 달성 출석일수 (일)</label>
                                         <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
                                     </div>
+                                    {goals.length > 0 && (
+                                        <div>
+                                            <label htmlFor="study-linked-goal" className="text-xs font-bold text-slate-400 mb-1 block">연결할 목표 (선택 — 타이머 종료 시 분 단위로 목표 진행도 자동 업데이트)</label>
+                                            <select id="study-linked-goal" value={newLinkedGoalId} onChange={e => setNewLinkedGoalId(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-300">
+                                                <option value="">-- 연결 안 함 --</option>
+                                                {goals.map(g => <option key={g.id} value={g.id}>{g.icon} {g.title}</option>)}
+                                            </select>
+                                        </div>
+                                    )}
                                     <button onClick={handleAdd} className="w-full mt-2 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold tracking-tight rounded-xl shadow-none transition-colors">트래커 생성하기</button>
                                 </div>
                             </motion.div>
@@ -1056,16 +1220,74 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                             <CalIcon className="w-3 h-3" aria-hidden="true" /> 목표 {study.totalDays}일 중 {study.logs.length}일 출석
                                                             {remaining > 0 && <span className="text-indigo-400">· 남은 {remaining}일</span>}
                                                         </p>
+                                                        {study.linkedGoalId && (() => {
+                                                            const linkedGoal = goals.find(g => g.id === study.linkedGoalId);
+                                                            return linkedGoal ? (
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mt-1">
+                                                                    <Flag className="w-2.5 h-2.5" /> {linkedGoal.icon} {linkedGoal.title}
+                                                                </span>
+                                                            ) : null;
+                                                        })()}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => setDeleteConfirm({ open: true, id: study.id })}
-                                                    className="p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-                                                    aria-label={`${study.title} 삭제`}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => { setEditStudyId(study.id); setEditStudyForm({ title: study.title, totalDays: study.totalDays || 30, linkedGoalId: study.linkedGoalId || '' }); }}
+                                                        className="p-2 text-slate-400 hover:text-indigo-400 transition-colors"
+                                                        aria-label={`${study.title} 수정`}
+                                                    >
+                                                        <Pencil className="w-4 h-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeleteConfirm({ open: true, id: study.id })}
+                                                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                                                        aria-label={`${study.title} 삭제`}
+                                                    >
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                </div>
                                             </div>
+
+                                            {/* #53 Inline edit form */}
+                                            {editStudyId === study.id && (
+                                                <div className="bg-[#09090b] border border-indigo-500/30 rounded-xl p-4 mb-4 space-y-3">
+                                                    <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">과목 수정</p>
+                                                    <input
+                                                        value={editStudyForm.title}
+                                                        onChange={e => setEditStudyForm(f => ({ ...f, title: e.target.value }))}
+                                                        className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                        placeholder="과목명"
+                                                    />
+                                                    <div className="flex gap-2">
+                                                        <div className="flex-1">
+                                                            <p className="text-[10px] font-bold text-slate-500 mb-1">목표 일수</p>
+                                                            <input
+                                                                type="number" min="1" max="365"
+                                                                value={editStudyForm.totalDays}
+                                                                onChange={e => setEditStudyForm(f => ({ ...f, totalDays: e.target.value }))}
+                                                                className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                            />
+                                                        </div>
+                                                        {goals.length > 0 && (
+                                                            <div className="flex-1">
+                                                                <p className="text-[10px] font-bold text-slate-500 mb-1">연결 목표</p>
+                                                                <select
+                                                                    value={editStudyForm.linkedGoalId}
+                                                                    onChange={e => setEditStudyForm(f => ({ ...f, linkedGoalId: e.target.value }))}
+                                                                    className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                                >
+                                                                    <option value="">연결 없음</option>
+                                                                    {goals.map(g => <option key={g.id} value={g.id}>{g.icon} {g.title}</option>)}
+                                                                </select>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex gap-2 justify-end">
+                                                        <button onClick={() => setEditStudyId(null)} className="px-3 py-1.5 text-xs font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10 transition-colors">취소</button>
+                                                        <button onClick={handleEditStudySave} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600 transition-colors">저장</button>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {/* Stats Row */}
                                             <div className="grid grid-cols-3 gap-3 mb-4">
@@ -1164,6 +1386,32 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                                     className="flex-1 bg-transparent border-none outline-none text-[11px] font-bold text-slate-300 py-1.5 placeholder-slate-600"
                                                                 />
                                                             </div>
+                                                            {/* #54 Manual time entry */}
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[10px] font-bold text-slate-500 shrink-0">수동 추가:</span>
+                                                                <input
+                                                                    type="number"
+                                                                    min="1"
+                                                                    max="720"
+                                                                    placeholder="분"
+                                                                    id={`manual-time-${study.id}`}
+                                                                    className="w-16 bg-[#09090b] border border-white/10 px-2 py-1 rounded-lg text-xs font-bold text-slate-300 outline-none focus:border-indigo-500 text-center"
+                                                                />
+                                                                <button
+                                                                    onClick={() => {
+                                                                        const input = document.getElementById(`manual-time-${study.id}`);
+                                                                        const mins = parseInt(input?.value || '0');
+                                                                        if (!mins || mins <= 0) return toast.error('분을 입력하세요.');
+                                                                        setStudyTimes(prev => ({ ...prev, [study.id]: (prev[study.id] || 0) + mins * 60 }));
+                                                                        if (input) input.value = '';
+                                                                        toast.success(`${mins}분 추가됐습니다!`, { icon: '⏱️' });
+                                                                    }}
+                                                                    className="px-2 py-1 text-[10px] font-bold bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 rounded-lg hover:bg-indigo-500/25 transition-colors"
+                                                                >
+                                                                    추가
+                                                                </button>
+                                                                <span className="text-[10px] text-slate-500">분</span>
+                                                            </div>
                                                         </div>
 
                                                         {/* Photo Auth UI */}
@@ -1202,17 +1450,32 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                 {/* Right: Heatmap Calendar */}
                                                 <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10">
                                                     <AttendanceHeatmap logs={study.logs} currentDate={currentDate} />
-                                                    {/* #65 Streak share button */}
-                                                    <button
-                                                        onClick={() => {
-                                                            const thisMonthLogs = study.logs.filter(l => l.startsWith(format(currentDate, 'yyyy-MM')));
-                                                            const text = `📚 올라운더 공부 스트릭\n🔥 ${streak}일 연속\n📅 이번 달 ${thisMonthLogs.length}일 출석\n\n열심히 공부 중! 💪`;
-                                                            navigator.clipboard.writeText(text).then(() => toast.success('클립보드에 복사되었습니다!', { icon: '📋' })).catch(() => toast.error('복사 실패'));
-                                                        }}
-                                                        className="mt-3 w-full flex items-center justify-center gap-1.5 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
-                                                    >
-                                                        <Share2 className="w-3 h-3" /> 스트릭 공유
-                                                    </button>
+                                                    {/* #65 Streak share button + #63 Review link */}
+                                                    <div className="mt-3 flex gap-1.5">
+                                                        <button
+                                                            onClick={() => {
+                                                                const thisMonthLogs = study.logs.filter(l => l.startsWith(format(currentDate, 'yyyy-MM')));
+                                                                const text = `📚 올라운더 공부 스트릭\n🔥 ${streak}일 연속\n📅 이번 달 ${thisMonthLogs.length}일 출석\n\n열심히 공부 중! 💪`;
+                                                                navigator.clipboard.writeText(text).then(() => toast.success('클립보드에 복사되었습니다!', { icon: '📋' })).catch(() => toast.error('복사 실패'));
+                                                            }}
+                                                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-indigo-400 transition-colors"
+                                                        >
+                                                            <Share2 className="w-3 h-3" /> 스트릭 공유
+                                                        </button>
+                                                        <button
+                                                            onClick={() => {
+                                                                const secs = studyTimes[study.id] || 0;
+                                                                const hrs = Math.floor(secs / 3600);
+                                                                const mins = Math.floor((secs % 3600) / 60);
+                                                                const todayLog = study.logs.includes(format(currentDate, 'yyyy-MM-dd')) ? '출석 완료' : '미출석';
+                                                                const text = `[${study.title}] ${todayLog} · 누적 ${hrs}h ${mins}m`;
+                                                                navigator.clipboard.writeText(text).then(() => toast.success('공부 요약이 복사되었습니다!\n회고 탭 Keep에 붙여넣기하세요.', { duration: 4000, icon: '✏️' })).catch(() => toast.error('복사 실패'));
+                                                            }}
+                                                            className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] font-bold text-slate-400 hover:text-purple-400 transition-colors"
+                                                        >
+                                                            📝 회고 연동
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1237,4 +1500,7 @@ StudyView.propTypes = {
     setAuthPhotos: PropTypes.func,
     session: PropTypes.object,
     userProfile: PropTypes.object,
+    goals: PropTypes.array,
+    setGoals: PropTypes.func,
+    setSchedules: PropTypes.func,
 };

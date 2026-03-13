@@ -52,7 +52,7 @@ export default function SearchModal({
         return [...tRes, ...sRes, ...gRes].sort((a, b) => {
             const dA = a.date || a.deadline || '1970-01-01';
             const dB = b.date || b.deadline || '1970-01-01';
-            return dB.localeCompare(dA); // Latest first
+            return new Date(dB) - new Date(dA); // Latest first
         });
     }, [query, transactions, schedules, goals]);
 

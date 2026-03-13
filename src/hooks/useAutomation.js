@@ -21,12 +21,15 @@ export function useAutomation({ accounts, calculatedBalances, setTransactions, u
     const hasRun = useRef(false);
 
     useEffect(() => {
-        // Only run once per app load, and only when accounts are available
-        if (hasRun.current || !accounts || accounts.length === 0) return;
+        // Only run once per day — use sessionStorage to survive component remounts
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const ranDate = sessionStorage.getItem('automationRanDate');
+        if (hasRun.current || ranDate === todayStr || !accounts || accounts.length === 0) return;
 
         const timer = setTimeout(() => {
             if (hasRun.current) return;
             hasRun.current = true;
+            sessionStorage.setItem('automationRanDate', todayStr);
             runAutomations();
         }, AUTOMATION_DELAY_MS);
 

@@ -402,6 +402,29 @@ export default function SettingsModal({
                                 </button>
                             </div>
 
+                            {/* #67: Anthropic Claude API key for AI review summary */}
+                            <div className="glass-card p-5 space-y-4">
+                                <h4 className="text-sm font-bold text-slate-400 flex items-center gap-2">
+                                    ✨ AI 회고 요약 (Claude API)
+                                </h4>
+                                <p className="text-xs font-medium text-slate-500 bg-[#111113] p-3 rounded-xl border border-white/10">
+                                    Anthropic API 키를 입력하면 회고 탭에서 AI 자동 요약 기능을 사용할 수 있습니다. 키는 기기에만 저장됩니다.
+                                </p>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Anthropic API Key</label>
+                                    <input
+                                        type="password"
+                                        value={userProfile?.anthropicApiKey || ''}
+                                        onChange={e => setUserProfile(p => ({ ...p, anthropicApiKey: e.target.value }))}
+                                        placeholder="sk-ant-..."
+                                        className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-2 text-sm font-bold focus:border-indigo-500 outline-none transition-colors"
+                                    />
+                                </div>
+                                <p className="text-[10px] text-slate-600">
+                                    api.anthropic.com/v1/messages 엔드포인트를 직접 호출합니다. claude-haiku-4-5-20251001 모델 사용.
+                                </p>
+                            </div>
+
                             {/* #90: JSON Backup/Restore */}
                             <div className="glass-card p-5 space-y-4">
                                 <h4 className="text-sm font-bold text-slate-400 flex items-center gap-2">

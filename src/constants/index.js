@@ -34,19 +34,57 @@ export const ALL_KR_HOLIDAYS = [...KR_FIXED_HOLIDAYS, ...KR_FLOATING_HOLIDAYS];
 // Default Categories
 // ============================================================
 export const DEFAULT_EXPENSE_CATEGORIES = [
+  // 식음료
   { id: 'food', label: '식비', icon: 'Utensils' },
-  { id: 'transit', label: '교통비', icon: 'Train' },
   { id: 'cafe', label: '카페', icon: 'Coffee' },
+  { id: 'alcohol', label: '술/유흥', icon: 'Coffee' },
+  { id: 'snack', label: '간식/디저트', icon: 'Coffee' },
+  // 이동
+  { id: 'transit', label: '교통비', icon: 'Train' },
+  { id: 'taxi', label: '택시/카풀', icon: 'Activity' },
+  { id: 'fuel', label: '주유/충전', icon: 'Activity' },
+  // 쇼핑/생활
   { id: 'shopping', label: '쇼핑', icon: 'ShoppingBag' },
+  { id: 'grocery', label: '마트/장보기', icon: 'ShoppingBag' },
+  { id: 'clothing', label: '의류/패션', icon: 'ShoppingBag' },
+  { id: 'household', label: '생활용품', icon: 'ShoppingBag' },
+  // 주거
+  { id: 'rent', label: '월세/관리비', icon: 'Landmark' },
+  { id: 'utility', label: '공과금/통신비', icon: 'Activity' },
+  // 건강
+  { id: 'medical', label: '병원/약국', icon: 'Activity' },
+  { id: 'fitness', label: '헬스/운동', icon: 'Activity' },
+  // 자기계발
+  { id: 'education', label: '교육/강의', icon: 'BookOpen' },
+  { id: 'books', label: '도서/문구', icon: 'BookOpen' },
+  // 여가
+  { id: 'leisure', label: '여가/취미', icon: 'Calendar' },
+  { id: 'travel', label: '여행/숙박', icon: 'Calendar' },
+  { id: 'culture', label: '영화/공연', icon: 'Calendar' },
+  { id: 'gaming', label: '게임', icon: 'Calendar' },
+  // 금융
+  { id: 'subscription', label: '구독/멤버십', icon: 'RefreshCw' },
+  { id: 'insurance', label: '보험료', icon: 'Briefcase' },
   { id: 'invest_loss', label: '투자 손실', icon: 'TrendingDown' },
+  { id: 'loan', label: '대출 상환', icon: 'Landmark' },
+  // 기타
+  { id: 'gift', label: '선물/경조사', icon: 'Flag' },
+  { id: 'pet', label: '반려동물', icon: 'Activity' },
+  { id: 'etc_expense', label: '기타 지출', icon: 'Briefcase' },
 ];
 
 export const DEFAULT_INCOME_CATEGORIES = [
   { id: 'salary', label: '급여', icon: 'Briefcase' },
+  { id: 'parttime', label: '아르바이트', icon: 'Briefcase' },
+  { id: 'freelance', label: '프리랜서', icon: 'Briefcase' },
   { id: 'allowance', label: '용돈', icon: 'PieChart' },
-  { id: 'bonus', label: '보너스', icon: 'Target' },
+  { id: 'bonus', label: '보너스/인센티브', icon: 'Target' },
   { id: 'interest', label: '이자 수익', icon: 'TrendingUp' },
   { id: 'invest_profit', label: '투자 수익', icon: 'PieChart' },
+  { id: 'rental', label: '임대 수익', icon: 'Landmark' },
+  { id: 'refund', label: '환급/환불', icon: 'RefreshCw' },
+  { id: 'gift_income', label: '선물/용돈 수령', icon: 'Flag' },
+  { id: 'etc_income', label: '기타 수입', icon: 'Briefcase' },
 ];
 
 export const DEFAULT_SCHEDULE_CATEGORIES = [
@@ -55,6 +93,12 @@ export const DEFAULT_SCHEDULE_CATEGORIES = [
   { id: 'exam', label: '시험/평가', icon: 'Target' },
   { id: 'study', label: '개인 공부', icon: 'Coffee' },
   { id: 'appointment', label: '약속/동아리', icon: 'Utensils' },
+  { id: 'exercise', label: '운동/헬스', icon: 'Activity' },
+  { id: 'work', label: '업무/회의', icon: 'Briefcase' },
+  { id: 'medical', label: '병원/검진', icon: 'Activity' },
+  { id: 'travel', label: '여행/외출', icon: 'Calendar' },
+  { id: 'routine', label: '루틴/습관', icon: 'RefreshCw' },
+  { id: 'etc_schedule', label: '기타', icon: 'Calendar' },
 ];
 
 // ============================================================

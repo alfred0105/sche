@@ -295,7 +295,7 @@ export default function App() {
           exit={{ opacity: 0, y: -15 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
         >
-          {currentTab === 'home' && <HomeView schedules={schedules} setSchedules={setSchedules} transactions={transactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} />}
+          {currentTab === 'home' && <HomeView schedules={schedules} setSchedules={setSchedules} transactions={transactions} setTransactions={setTransactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} reviews={reviews} />}
           {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
           {currentTab === 'finance' &&
             <FinanceView
@@ -311,11 +311,12 @@ export default function App() {
               setInitialBalances={setInitialBalances}
               financeDiary={financeDiary}
               setFinanceDiary={setFinanceDiary}
+              goals={goals}
             />
           }
-          {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} />}
-          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} session={session} userProfile={userProfile} />}
-          {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} />}
+          {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} studyTimes={studyTimes} studies={studies} />}
+          {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} session={session} userProfile={userProfile} goals={goals} setGoals={setGoals} setSchedules={setSchedules} />}
+          {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} studyTimes={studyTimes} goals={goals} userProfile={userProfile} />}
         </motion.div>
       </main>
 

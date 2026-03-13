@@ -13,6 +13,73 @@ import { toast } from 'react-hot-toast';
 import { EMOJI_LIST, GRADIENT_LIST, TRACKER_UNITS } from '../constants';
 import { generateId } from '../utils/helpers';
 import { format, addWeeks, addMonths, parseISO, differenceInDays } from 'date-fns';
+import {
+    DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+
+// #40 Priority badge colors
+const PRIORITY_COLORS = ['', 'bg-rose-500/15 text-rose-400 border-rose-500/30', 'bg-orange-500/15 text-orange-400 border-orange-500/30', 'bg-amber-500/15 text-amber-400 border-amber-500/30', 'bg-sky-500/15 text-sky-400 border-sky-500/30', 'bg-slate-500/15 text-slate-400 border-slate-500/30'];
+// #47 Difficulty colors
+const DIFFICULTY_COLORS = { '쉬움': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30', '보통': 'bg-amber-500/10 text-amber-400 border-amber-500/30', '어려움': 'bg-rose-500/10 text-rose-400 border-rose-500/30' };
+
+// #49 Sortable goal item wrapper
+function SortableGoalItem({ goal, handleGoalClick, studies, TAG_COLORS, RefreshCw, BookOpen, GripVertical }) {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: goal.id });
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 50 : 'auto',
+    };
+    return (
+        <div ref={setNodeRef} style={style} className="relative">
+            <GoalCard goal={goal} onClick={handleGoalClick} />
+            {/* Drag handle */}
+            <button
+                {...attributes}
+                {...listeners}
+                className="absolute top-2 left-2 p-1 rounded-lg bg-black/20 hover:bg-black/40 text-slate-400 cursor-grab active:cursor-grabbing opacity-0 group-hover/card:opacity-100 transition-opacity touch-none"
+                aria-label="드래그하여 순서 변경"
+                title="드래그하여 순서 변경"
+                onMouseDown={e => e.stopPropagation()}
+            >
+                <GripVertical className="w-3.5 h-3.5" />
+            </button>
+            {/* #36 Repeat badge, #40 Priority, #45 Tag badge, #47 Difficulty, #50 Study link badge */}
+            <div className="absolute top-2 right-2 flex gap-1 flex-wrap justify-end">
+                {goal.priority && goal.priority !== 3 && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${PRIORITY_COLORS[goal.priority]}`} title={`우선순위 ${goal.priority}`}>
+                        P{goal.priority}
+                    </span>
+                )}
+                {goal.difficulty && goal.difficulty !== '보통' && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${DIFFICULTY_COLORS[goal.difficulty] || ''}`}>
+                        {goal.difficulty}
+                    </span>
+                )}
+                {goal.repeat && goal.repeat !== 'none' && (
+                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full p-1" title={goal.repeat === 'weekly' ? '매주 반복' : '매월 반복'}>
+                        <RefreshCw className="w-3 h-3" />
+                    </span>
+                )}
+                {goal.tag && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TAG_COLORS[goal.tag] || TAG_COLORS['기타']}`}>
+                        {goal.tag}
+                    </span>
+                )}
+                {studies.some(s => s.linkedGoalId === goal.id) && (
+                    <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full p-1" title={`연결된 공부: ${studies.filter(s => s.linkedGoalId === goal.id).map(s => s.title).join(', ')}`}>
+                        <BookOpen className="w-3 h-3" />
+                    </span>
+                )}
+            </div>
+        </div>
+    );
+}
 
 // #45 Tag color map
 const TAG_COLORS = {
@@ -24,8 +91,24 @@ const TAG_COLORS = {
 };
 const TAGS = ['건강', '재정', '학습', '취미', '기타'];
 
-export default function GoalView({ goals, setGoals, studyTimes = {} }) {
-    const { Flag, Plus, Trash2, X, Target, CheckSquare, List, ChevronDown, RefreshCw } = IconMap;
+export default function GoalView({ goals, setGoals, studyTimes = {}, studies = [] }) {
+    const { Flag, Plus, Trash2, X, Target, CheckSquare, List, ChevronDown, RefreshCw, BookOpen, Trophy, ChevronUp, GripVertical } = IconMap;
+
+    // #49 Drag sensors
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+    const handleDragEnd = useCallback((event) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+        setGoals(prev => {
+            const activeGoal = prev.find(g => g.id === active.id);
+            const overGoal = prev.find(g => g.id === over.id);
+            if (!activeGoal || !overGoal || activeGoal.type !== overGoal.type) return prev;
+            const oldIndex = prev.indexOf(activeGoal);
+            const newIndex = prev.indexOf(overGoal);
+            return arrayMove(prev, oldIndex, newIndex);
+        });
+    }, [setGoals]);
 
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedGoalId, setSelectedGoalId] = useState(null);
@@ -33,12 +116,24 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
     const [newMilestoneText, setNewMilestoneText] = useState('');
     // #45 Tag filter
     const [activeTagFilter, setActiveTagFilter] = useState('전체');
+    // #39 Retrospective report toggle
+    const [showRetro, setShowRetro] = useState(false);
 
     const [goalForm, setGoalForm] = useState({
         type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0,
         trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100,
-        repeat: 'none', tag: '기타',
+        repeat: 'none', tag: '기타', priority: 3, difficulty: '보통',
     });
+
+    // #44 Monday check-in reminder
+    const mondayReminderRef = useRef(false);
+    useEffect(() => {
+        if (mondayReminderRef.current) return;
+        mondayReminderRef.current = true;
+        if (new Date().getDay() === 1 && goals.some(g => g.progress < 100)) {
+            setTimeout(() => toast('📋 월요일입니다! 목표 진행 상황을 업데이트해보세요.', { duration: 6000, icon: '🎯' }), 1500);
+        }
+    }, [goals]);
 
     // #50 Study hours this week from studyTimes
     const weeklyStudySeconds = useMemo(() => Object.values(studyTimes).reduce((a, b) => a + b, 0), [studyTimes]);
@@ -126,6 +221,8 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                         : format(addMonths(parseISO(updated.deadline), 1), 'yyyy-MM-dd');
                     return { ...updated, progress: 0, deadline: newDeadline, tracker: updated.tracker ? { ...updated.tracker, current: 0 } : updated.tracker, tasks: updated.tasks?.map(t => ({ ...t, done: false })), milestones: updated.milestones?.map(m => ({ ...m, done: false })) };
                 }
+                // #39 Store completedAt for retrospective
+                return { ...updated, completedAt: format(new Date(), 'yyyy-MM-dd') };
             }
             return updated;
         }));
@@ -152,10 +249,12 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
             memo: '',
             repeat: goalForm.repeat,
             tag: goalForm.tag,
+            priority: goalForm.priority,
+            difficulty: goalForm.difficulty,
             tracker: { type: goalForm.trackerType, unit: goalForm.trackerUnit, current: 0, target: Number(goalForm.targetValue) || 100 },
         }]);
         setIsCreateModalOpen(false);
-        setGoalForm({ type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0, trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100, repeat: 'none', tag: '기타' });
+        setGoalForm({ type: 'short', title: '', deadline: '', icon: '🎯', colorIdx: 0, trackerType: 'checklist', trackerUnit: '% (수동 퍼센트)', targetValue: 100, repeat: 'none', tag: '기타', priority: 3, difficulty: '보통' });
         toast.success('새로운 목표가 등록되었습니다!', { icon: '✨' });
     }, [goalForm, setGoals]);
 
@@ -178,6 +277,8 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                         : format(addMonths(parseISO(updated.deadline), 1), 'yyyy-MM-dd');
                     return { ...updated, progress: 0, deadline: newDeadline, tracker: { ...updated.tracker, current: 0 } };
                 }
+                // #39 Store completedAt for retrospective
+                return { ...updated, completedAt: format(new Date(), 'yyyy-MM-dd') };
             }
             return updated;
         }));
@@ -249,28 +350,23 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                 </h3>
                 <span className="bg-[#111113] text-slate-400 text-xs px-2.5 py-0.5 rounded-lg font-bold tracking-tight border border-white/10 shadow-none" aria-label={`${items.length}개`}>{items.length}</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3" role="list" aria-label={`${label} 목표 목록`}>
-                <AnimatePresence>
+            <SortableContext items={items.map(g => g.id)} strategy={verticalListSortingStrategy}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-3" role="list" aria-label={`${label} 목표 목록`}>
                     {items.map((g) => (
-                        <div key={g.id} className="relative">
-                            <GoalCard goal={g} onClick={handleGoalClick} />
-                            {/* #36 Repeat badge, #45 Tag badge */}
-                            <div className="absolute top-2 right-2 flex gap-1">
-                                {g.repeat && g.repeat !== 'none' && (
-                                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full p-1" title={g.repeat === 'weekly' ? '매주 반복' : '매월 반복'}>
-                                        <RefreshCw className="w-3 h-3" />
-                                    </span>
-                                )}
-                                {g.tag && (
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TAG_COLORS[g.tag] || TAG_COLORS['기타']}`}>
-                                        {g.tag}
-                                    </span>
-                                )}
-                            </div>
+                        <div key={g.id} className="group/card">
+                            <SortableGoalItem
+                                goal={g}
+                                handleGoalClick={handleGoalClick}
+                                studies={studies}
+                                TAG_COLORS={TAG_COLORS}
+                                RefreshCw={RefreshCw}
+                                BookOpen={BookOpen}
+                                GripVertical={GripVertical}
+                            />
                         </div>
                     ))}
-                </AnimatePresence>
-            </div>
+                </div>
+            </SortableContext>
             {items.length === 0 && (
                 <button
                     onClick={() => { setGoalForm({ ...goalForm, type }); setIsCreateModalOpen(true); }}
@@ -302,11 +398,25 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
             </header>
 
             {/* #50 Weekly study hours stat */}
-            <div className="glass-card p-3 rounded-xl mb-3 flex items-center gap-3 border border-white/10">
+            <div className="glass-card p-3 rounded-xl mb-3 flex items-center gap-3 border border-white/10 flex-wrap">
                 <span className="text-indigo-400 text-lg">📚</span>
                 <span className="text-sm font-bold text-slate-400">
                     이번 주 총 공부시간: <span className="text-indigo-400">{weeklyStudyHours}h {weeklyStudyMins}m</span>
                 </span>
+                {studies.filter(s => s.linkedGoalId).length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap ml-auto">
+                        {studies.filter(s => s.linkedGoalId).map(s => {
+                            const linked = goals.find(g => g.id === s.linkedGoalId);
+                            if (!linked) return null;
+                            const secs = studyTimes[s.id] || 0;
+                            return (
+                                <span key={s.id} className="text-[10px] font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full">
+                                    {s.title} → {linked.icon} {Math.floor(secs / 60)}분
+                                </span>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             {/* #45 Tag filter bar */}
@@ -322,11 +432,87 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                 ))}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 md:p-5 overflow-x-auto pb-4 snap-x [&::-webkit-scrollbar]:hidden">
-                {renderColumn('short', '단기 (과제/일반)', 'bg-rose-400', shorts)}
-                {renderColumn('mid', '중기 (학기/자격증)', 'bg-blue-400', mids)}
-                {renderColumn('long', '장기 (연간/취업/목돈)', 'bg-purple-500', longs)}
-            </div>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <div className="flex flex-col md:flex-row gap-4 md:p-5 overflow-x-auto pb-4 snap-x [&::-webkit-scrollbar]:hidden">
+                    {renderColumn('short', '단기 (과제/일반)', 'bg-rose-400', shorts)}
+                    {renderColumn('mid', '중기 (학기/자격증)', 'bg-blue-400', mids)}
+                    {renderColumn('long', '장기 (연간/취업/목돈)', 'bg-purple-500', longs)}
+                </div>
+            </DndContext>
+
+            {/* #39 Retrospective Report — Completed Goals Archive */}
+            {(() => {
+                const completedGoals = goals.filter(g => g.progress >= 100 && (!g.repeat || g.repeat === 'none'));
+                if (completedGoals.length === 0) return null;
+                const byTag = completedGoals.reduce((acc, g) => { acc[g.tag || '기타'] = (acc[g.tag || '기타'] || 0) + 1; return acc; }, {});
+                const byType = { short: completedGoals.filter(g => g.type === 'short').length, mid: completedGoals.filter(g => g.type === 'mid').length, long: completedGoals.filter(g => g.type === 'long').length };
+                return (
+                    <div className="mt-2 bg-amber-500/5 border border-amber-500/20 rounded-xl overflow-hidden">
+                        <button
+                            onClick={() => setShowRetro(v => !v)}
+                            className="w-full flex items-center justify-between px-5 py-4 hover:bg-amber-500/5 transition-colors"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Trophy className="w-4 h-4 text-amber-400" />
+                                <span className="text-sm font-bold text-amber-400">달성된 목표 보관함</span>
+                                <span className="bg-amber-500/20 text-amber-300 text-xs font-bold px-2 py-0.5 rounded-full">{completedGoals.length}개</span>
+                            </div>
+                            {showRetro ? <ChevronUp className="w-4 h-4 text-amber-400" /> : <ChevronDown className="w-4 h-4 text-amber-400" />}
+                        </button>
+                        <AnimatePresence>
+                            {showRetro && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="px-5 pb-5 space-y-4">
+                                        {/* Stats row */}
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[
+                                                { label: '단기 달성', count: byType.short, color: 'text-rose-400' },
+                                                { label: '중기 달성', count: byType.mid, color: 'text-blue-400' },
+                                                { label: '장기 달성', count: byType.long, color: 'text-purple-400' },
+                                            ].map(({ label, count, color }) => (
+                                                <div key={label} className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                                    <span className={`text-2xl font-bold ${color}`}>{count}</span>
+                                                    <p className="text-[10px] text-slate-500 mt-1 font-bold">{label}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        {/* Tag breakdown */}
+                                        <div className="flex flex-wrap gap-2">
+                                            {Object.entries(byTag).map(([tag, count]) => (
+                                                <span key={tag} className={`text-xs font-bold px-2 py-1 rounded border ${TAG_COLORS[tag] || TAG_COLORS['기타']}`}>
+                                                    {tag} · {count}개
+                                                </span>
+                                            ))}
+                                        </div>
+                                        {/* Completed goals list */}
+                                        <div className="space-y-2 max-h-64 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+                                            {completedGoals.sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || '')).map(g => (
+                                                <div key={g.id} className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
+                                                    <span className="text-xl">{g.icon}</span>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-bold text-slate-200 truncate">{g.title}</p>
+                                                        <p className="text-[10px] text-slate-500">
+                                                            {g.completedAt ? `달성: ${g.completedAt}` : '달성'}
+                                                            {g.deadline && ` · 마감: ${g.deadline}`}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border shrink-0 ${TAG_COLORS[g.tag] || TAG_COLORS['기타']}`}>{g.tag || '기타'}</span>
+                                                    <span className="text-xs font-bold text-amber-400">✓ 100%</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                );
+            })()}
 
             {/* Goal Detail Overlay */}
             <AnimatePresence>
@@ -357,6 +543,16 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                                     />
                                     <div className="flex flex-wrap gap-3 text-xs font-bold text-slate-400">
                                         <div className="flex items-center gap-1"><Flag className="w-3.5 h-3.5" aria-hidden="true" /> 데드라인: {selectedGoal.deadline}</div>
+                                        {selectedGoal.priority && selectedGoal.priority !== 3 && (
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${PRIORITY_COLORS[selectedGoal.priority]}`}>
+                                                P{selectedGoal.priority} 우선순위
+                                            </span>
+                                        )}
+                                        {selectedGoal.difficulty && selectedGoal.difficulty !== '보통' && (
+                                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded border ${DIFFICULTY_COLORS[selectedGoal.difficulty] || ''}`}>
+                                                {selectedGoal.difficulty}
+                                            </span>
+                                        )}
                                         {selectedGoal.repeat && selectedGoal.repeat !== 'none' && (
                                             <div className="flex items-center gap-1 text-emerald-400">
                                                 <RefreshCw className="w-3.5 h-3.5" /> {selectedGoal.repeat === 'weekly' ? '매주 반복' : '매월 반복'}
@@ -526,6 +722,41 @@ export default function GoalView({ goals, setGoals, studyTimes = {} }) {
                                         </div>
                                     </div>
 
+                                    {/* #40 Priority selector */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">우선순위</label>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4, 5].map(p => (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    onClick={() => setGoalForm({ ...goalForm, priority: p })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${goalForm.priority === p ? PRIORITY_COLORS[p] : 'bg-white/5 text-slate-500 border-white/10 hover:border-white/20'}`}
+                                                >
+                                                    P{p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <p className="text-[10px] text-slate-600 mt-1">P1=최고 중요, P5=낮음</p>
+                                    </div>
+
+                                    {/* #47 Difficulty selector */}
+                                    <div>
+                                        <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">난이도</label>
+                                        <div className="flex gap-2">
+                                            {['쉬움', '보통', '어려움'].map(d => (
+                                                <button
+                                                    key={d}
+                                                    type="button"
+                                                    onClick={() => setGoalForm({ ...goalForm, difficulty: d })}
+                                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold border transition-all ${goalForm.difficulty === d ? DIFFICULTY_COLORS[d] : 'bg-white/5 text-slate-500 border-white/10 hover:border-white/20'}`}
+                                                >
+                                                    {d}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
                                     {/* #40 Repeat selector */}
                                     <div>
                                         <label className="block text-[11px] font-bold tracking-tight text-slate-500 mb-2 uppercase tracking-wider">반복 설정</label>
@@ -605,4 +836,5 @@ GoalView.propTypes = {
     goals: PropTypes.array.isRequired,
     setGoals: PropTypes.func.isRequired,
     studyTimes: PropTypes.object,
+    studies: PropTypes.array,
 };

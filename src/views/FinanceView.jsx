@@ -4,10 +4,11 @@
  * Added: anomaly detection (#17), savings goal progress (#19), net worth chart (#21),
  *         spending pattern (#26), portfolio donut (#29), subscription management (#33)
  */
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
+import BankImportModal from '../components/BankImportModal';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, Legend } from 'recharts';
@@ -16,6 +17,7 @@ import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
 import { generateId } from '../utils/helpers';
 
 const SUBSCRIPTIONS_KEY = 'subscriptions';
+const DEBTS_KEY = 'ollarounder_debts';
 
 function loadSubscriptions() {
     try {
@@ -25,11 +27,21 @@ function loadSubscriptions() {
     }
 }
 
+function loadDebts() {
+    try {
+        return JSON.parse(localStorage.getItem(DEBTS_KEY) || '[]');
+    } catch {
+        return [];
+    }
+}
+
 const WEEKDAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
 const ASSET_TYPE_LABELS = { cash: '현금', bank: '입출금', savings: '저축', investment: '투자' };
 
 export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary, goals }) {
-    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart, X, Plus } = IconMap;
+    const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart, X, Plus, Upload, Pencil, Search, Filter, ArrowUpDown, Copy } = IconMap;
+
+    const [showBankImport, setShowBankImport] = useState(false);
 
     const [filterType, setFilterType] = useState('daily');
     const [activeSubTab, setActiveSubTab] = useState('list');
@@ -42,26 +54,104 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const [resetConfirmOpen, setResetConfirmOpen] = useState(false);
     const [initBalanceModal, setInitBalanceModal] = useState({ open: false, accId: null, accName: '', currentInit: 0 });
 
+    // 거래 수정 modal
+    const [editTxModal, setEditTxModal] = useState({ open: false, tx: null });
+    const [editTxForm, setEditTxForm] = useState({});
+
+    const openEditTx = useCallback((tx) => {
+        setEditTxForm({
+            title: tx.title || '',
+            amount: String(tx.amount || ''),
+            date: tx.date || '',
+            type: tx.type || 'expense',
+            category: tx.category || '',
+            account: tx.account || '',
+            memo: tx.memo || '',
+            taxDeductible: tx.taxDeductible || false,
+        });
+        setEditTxModal({ open: true, tx });
+    }, []);
+
+    const saveEditTx = useCallback(() => {
+        if (!editTxForm.title?.trim()) return toast.error('항목명을 입력하세요.');
+        const amt = Number(editTxForm.amount);
+        if (!amt || amt <= 0) return toast.error('올바른 금액을 입력하세요.');
+        setTransactions(prev => prev.map(t =>
+            t.id === editTxModal.tx.id
+                ? { ...t, ...editTxForm, amount: amt }
+                : t
+        ));
+        setEditTxModal({ open: false, tx: null });
+        toast.success('거래 내역이 수정되었습니다!', { icon: '✏️' });
+    }, [editTxForm, editTxModal.tx, setTransactions]);
+
     // #17 Anomaly detection banner
     const [anomalyDismissed, setAnomalyDismissed] = useState(false);
+
+    // Transaction list pagination
+    const [txVisibleCount, setTxVisibleCount] = useState(20);
+    useEffect(() => { setTxVisibleCount(20); }, [filterType]);
+
+    // #18 Filter + sort + #19 Search
+    const [txSearch, setTxSearch] = useState('');
+    const [txCategoryFilter, setTxCategoryFilter] = useState('all');
+    const [txSortOrder, setTxSortOrder] = useState('newest'); // 'newest' | 'oldest' | 'amount_desc' | 'amount_asc'
 
     // #33 Subscriptions state
     const [subscriptions, setSubscriptions] = useState(loadSubscriptions);
     const [showAddSub, setShowAddSub] = useState(false);
     const [newSub, setNewSub] = useState({ name: '', amount: '', cycle: 'monthly', nextDate: '', category: '구독' });
 
+    // #22 Debt management state
+    const [debts, setDebts] = useState(loadDebts);
+    const [showAddDebt, setShowAddDebt] = useState(false);
+    const [newDebt, setNewDebt] = useState({ name: '', principal: '', interestRate: '', monthlyPayment: '', dueDate: '', memo: '' });
+
+    const saveDebts = (updated) => {
+        localStorage.setItem(DEBTS_KEY, JSON.stringify(updated));
+        setDebts(updated);
+    };
+    const handleAddDebt = () => {
+        if (!newDebt.name.trim() || !newDebt.principal) return toast.error('이름과 원금을 입력해주세요.');
+        saveDebts([...debts, { ...newDebt, id: generateId(), principal: Number(newDebt.principal), interestRate: Number(newDebt.interestRate) || 0, monthlyPayment: Number(newDebt.monthlyPayment) || 0 }]);
+        setNewDebt({ name: '', principal: '', interestRate: '', monthlyPayment: '', dueDate: '', memo: '' });
+        setShowAddDebt(false);
+        toast.success('부채 항목이 추가되었습니다.');
+    };
+    const handleDeleteDebt = (id) => {
+        saveDebts(debts.filter(d => d.id !== id));
+        toast('부채 항목을 삭제했습니다.', { icon: '🗑️' });
+    };
+
     const filteredTxs = useMemo(() => {
-        return transactions.filter((t) => {
+        const q = txSearch.trim().toLowerCase();
+        let result = transactions.filter((t) => {
             const tDate = parseISO(t.date);
-            if (filterType === 'daily') return isSameDay(tDate, currentDate);
-            if (filterType === 'weekly') return isSameWeek(tDate, currentDate);
-            if (filterType === 'monthly') return isSameMonth(tDate, currentDate);
+            const dateOk = (() => {
+                if (filterType === 'daily') return isSameDay(tDate, currentDate);
+                if (filterType === 'weekly') return isSameWeek(tDate, currentDate);
+                if (filterType === 'monthly') return isSameMonth(tDate, currentDate);
+                return true;
+            })();
+            if (!dateOk) return false;
+            if (txCategoryFilter !== 'all' && t.category !== txCategoryFilter) return false;
+            if (q) {
+                return (t.title || '').toLowerCase().includes(q)
+                    || (t.category || '').toLowerCase().includes(q)
+                    || (t.memo || '').toLowerCase().includes(q)
+                    || String(t.amount).includes(q);
+            }
             return true;
-        }).sort((a, b) => {
-            if (typeof a.id === 'string' && typeof b.id === 'string') return b.id.localeCompare(a.id);
-            return 0;
         });
-    }, [transactions, filterType, currentDate]);
+        result = [...result].sort((a, b) => {
+            if (txSortOrder === 'amount_desc') return b.amount - a.amount;
+            if (txSortOrder === 'amount_asc') return a.amount - b.amount;
+            if (txSortOrder === 'oldest') return a.date.localeCompare(b.date);
+            // newest (default)
+            return b.date.localeCompare(a.date) || (typeof a.id === 'string' && typeof b.id === 'string' ? b.id.localeCompare(a.id) : 0);
+        });
+        return result;
+    }, [transactions, filterType, currentDate, txSearch, txCategoryFilter, txSortOrder]);
 
     const totalIncome = useMemo(() => filteredTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0), [filteredTxs]);
     const totalExpense = useMemo(() => filteredTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0), [filteredTxs]);
@@ -152,6 +242,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const healthColor = financialHealthScore >= 70 ? 'text-emerald-400' : financialHealthScore >= 40 ? 'text-amber-400' : 'text-rose-400';
     const healthBg = financialHealthScore >= 70 ? 'bg-emerald-500/10 border-emerald-500/30' : financialHealthScore >= 40 ? 'bg-amber-500/10 border-amber-500/30' : 'bg-rose-500/10 border-rose-500/30';
     const healthLabel = financialHealthScore >= 70 ? '재정 건강 양호' : financialHealthScore >= 40 ? '개선 여지 있음' : '위험 신호';
+    // #35 A~F grade
+    const healthGrade = financialHealthScore >= 80 ? 'A' : financialHealthScore >= 65 ? 'B' : financialHealthScore >= 50 ? 'C' : financialHealthScore >= 35 ? 'D' : 'F';
 
     // Finance diary helpers (#34)
     const todayStr = format(currentDate, 'yyyy-MM-dd');
@@ -227,6 +319,21 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             }));
     }, [accounts, balances]);
 
+    // #20 Spending prediction — 3-month average extrapolated to full month
+    const spendingPrediction = useMemo(() => {
+        const today = currentDate;
+        const dayOfMonth = today.getDate();
+        const daysInMonth = getDaysInMonth(today);
+        const avg3m = Array.from({ length: 3 }, (_, i) => {
+            const m = subMonths(today, i + 1);
+            return transactions
+                .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), m))
+                .reduce((s, t) => s + t.amount, 0);
+        }).reduce((a, b) => a + b, 0) / 3;
+        const projected = dayOfMonth > 0 ? Math.round((currentMonthExpense / dayOfMonth) * daysInMonth) : 0;
+        return { avg3m: Math.round(avg3m), projected, dayOfMonth, daysInMonth };
+    }, [transactions, currentDate, currentMonthExpense]);
+
     // #33 Subscription helpers
     const subMonthlyCost = useMemo(() => {
         return subscriptions.reduce((s, sub) => {
@@ -260,6 +367,47 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         if (!goals) return [];
         return goals.filter(g => g.targetAmount > 0 || g.type === 'savings');
     }, [goals]);
+
+    // #27 Savings rate
+    const savingsRate = currentMonthIncome > 0
+        ? Math.round(((currentMonthIncome - currentMonthExpense) / currentMonthIncome) * 100)
+        : null;
+
+    // #31 Duplicate detection (same date + amount + category in current month)
+    const [dupeDismissed, setDupeDismissed] = useState(false);
+    const duplicateTxs = useMemo(() => {
+        const seen = {};
+        const dupes = [];
+        transactions
+            .filter(t => isSameMonth(parseISO(t.date), currentDate))
+            .forEach(t => {
+                const key = `${t.date}-${t.amount}-${t.category}`;
+                if (seen[key]) {
+                    dupes.push(t);
+                } else {
+                    seen[key] = t;
+                }
+            });
+        return dupes;
+    }, [transactions, currentDate]);
+
+    // #21 Budget gauge — top-5 categories with budget set
+    const budgetGauges = useMemo(() => {
+        if (!budgets || Object.keys(budgets).length === 0) return [];
+        const catSpend = {};
+        transactions
+            .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), currentDate))
+            .forEach(t => { catSpend[t.category] = (catSpend[t.category] || 0) + t.amount; });
+        return Object.entries(budgets)
+            .filter(([, limit]) => limit > 0)
+            .map(([catId, limit]) => {
+                const spent = catSpend[catId] || 0;
+                const pct = Math.min(Math.round((spent / limit) * 100), 100);
+                return { catId, limit, spent, pct, exceeded: spent > limit };
+            })
+            .sort((a, b) => b.pct - a.pct)
+            .slice(0, 5);
+    }, [budgets, transactions, currentDate]);
 
     const deleteTx = useCallback((txId) => {
         const tx = transactions.find((t) => t.id === txId);
@@ -329,8 +477,99 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         setInitBalanceModal({ open: false, accId: null, accName: '', currentInit: 0 });
     }, [initBalanceModal, setInitialBalances]);
 
+    // 카테고리 레이블 헬퍼
+    const allCategories = useMemo(() => {
+        const cats = [...(expenseCategories || [])];
+        return cats;
+    }, [expenseCategories]);
+
     return (
         <section className="mb-8 space-y-6" aria-label="재정 관리">
+            {/* 거래 수정 모달 */}
+            {editTxModal.open && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="거래 수정">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditTxModal({ open: false, tx: null })} />
+                    <div className="relative bg-[#111113] border border-white/10 rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
+                                <Pencil className="w-4 h-4 text-indigo-400" /> 거래 내역 수정
+                            </h3>
+                            <button onClick={() => setEditTxModal({ open: false, tx: null })} className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors">
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        {/* 수입/지출 토글 */}
+                        <div className="flex gap-2 bg-white/5 p-1 rounded-xl">
+                            {['expense', 'income'].map(t => (
+                                <button key={t} onClick={() => setEditTxForm(p => ({ ...p, type: t }))}
+                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${editTxForm.type === t ? (t === 'expense' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white') : 'text-slate-400'}`}>
+                                    {t === 'expense' ? '지출' : '수입'}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">항목명</label>
+                                <input type="text" value={editTxForm.title} onChange={e => setEditTxForm(p => ({ ...p, title: e.target.value }))}
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">금액 (원)</label>
+                                <input type="number" value={editTxForm.amount} onChange={e => setEditTxForm(p => ({ ...p, amount: e.target.value }))}
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
+                                <input type="date" value={editTxForm.date} onChange={e => setEditTxForm(p => ({ ...p, date: e.target.value }))}
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                            </div>
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">분류</label>
+                                <select value={editTxForm.category} onChange={e => setEditTxForm(p => ({ ...p, category: e.target.value }))}
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
+                                    <option value="">-- 분류 선택 --</option>
+                                    {allCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                </select>
+                            </div>
+                            {accounts.length > 0 && (
+                                <div className="col-span-2">
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">계좌</label>
+                                    <select value={editTxForm.account} onChange={e => setEditTxForm(p => ({ ...p, account: e.target.value }))}
+                                        className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
+                                        <option value="">-- 계좌 선택 --</option>
+                                        {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                    </select>
+                                </div>
+                            )}
+                            <div className="col-span-2">
+                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모 (선택)</label>
+                                <input type="text" value={editTxForm.memo} onChange={e => setEditTxForm(p => ({ ...p, memo: e.target.value }))}
+                                    placeholder="메모를 입력하세요"
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-indigo-500" />
+                            </div>
+                            <label className="col-span-2 flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={editTxForm.taxDeductible} onChange={e => setEditTxForm(p => ({ ...p, taxDeductible: e.target.checked }))}
+                                    className="w-4 h-4 rounded accent-indigo-500" />
+                                <span className="text-xs font-bold text-slate-400">영수증/연말정산 대상</span>
+                            </label>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                            <button onClick={() => setEditTxModal({ open: false, tx: null })}
+                                className="flex-1 py-2.5 bg-white/5 text-slate-400 font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
+                                취소
+                            </button>
+                            <button onClick={saveEditTx}
+                                className="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">
+                                수정 완료
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <ConfirmModal
                 isOpen={deleteConfirmState.open}
                 onClose={() => setDeleteConfirmState({ open: false, txId: null, hasGroup: false })}
@@ -390,6 +629,15 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 inputType="number"
             />
 
+            {/* Bank import modal */}
+            {showBankImport && (
+                <BankImportModal
+                    onClose={() => setShowBankImport(false)}
+                    transactions={transactions}
+                    setTransactions={setTransactions}
+                />
+            )}
+
             {/* #17 Anomaly detection banner */}
             <AnimatePresence>
                 {anomalyData.isAnomaly && !anomalyDismissed && (
@@ -417,6 +665,13 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         <div className="flex items-center gap-2 mb-2">
                             <div className="bg-indigo-500/10 p-2.5 rounded-xl" aria-hidden="true"><Wallet className="w-5 h-5 text-indigo-400" /></div>
                             <h2 className="text-xl font-bold tracking-tight text-slate-100">자산 및 재정 분석</h2>
+                            <button
+                                onClick={() => setShowBankImport(true)}
+                                className="ml-2 flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/20 transition-colors font-medium"
+                                title="은행 거래내역 가져오기 (스크린샷/CSV)"
+                            >
+                                <Upload className="w-3.5 h-3.5" /> 거래내역 가져오기
+                            </button>
                         </div>
                         <p className="text-2xl md:text-3xl md:text-4xl font-bold tracking-tight tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400" aria-label={`총 자산 ${totalAssets.toLocaleString()}원`}>
                             ₩{totalAssets.toLocaleString()}
@@ -457,8 +712,9 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     <Heart className="w-4 h-4 text-rose-400" /> 재정 건강 점수
                 </h3>
                 <div className="flex items-center gap-4">
-                    <div className={`w-16 h-16 rounded-full border-4 flex items-center justify-center shrink-0 ${healthBg}`}>
-                        <span className={`text-xl font-bold ${healthColor}`}>{financialHealthScore}</span>
+                    <div className={`w-16 h-16 rounded-full border-4 flex flex-col items-center justify-center shrink-0 ${healthBg}`}>
+                        <span className={`text-xl font-bold leading-none ${healthColor}`}>{healthGrade}</span>
+                        <span className={`text-[10px] font-bold ${healthColor}`}>{financialHealthScore}점</span>
                     </div>
                     <div className="flex-1">
                         <div className="flex justify-between text-xs font-bold text-slate-500 mb-1">
@@ -467,7 +723,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                             <div className={`h-full rounded-full transition-all duration-700 ${financialHealthScore >= 70 ? 'bg-emerald-400' : financialHealthScore >= 40 ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${financialHealthScore}%` }} />
                         </div>
-                        <p className={`text-xs font-bold mt-1.5 ${healthColor}`}>{healthLabel} · {financialHealthScore}/100점</p>
+                        <p className={`text-xs font-bold mt-1.5 ${healthColor}`}>{healthLabel} · {healthGrade}등급 ({financialHealthScore}/100점)</p>
                     </div>
                 </div>
             </div>
@@ -521,6 +777,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
                         { id: 'budgets', label: '예산 통제', icon: 'Target' },
                         { id: 'subscriptions', label: '구독', icon: 'RefreshCw' },
+                        { id: 'debts', label: '부채', icon: 'TrendingDown' },
                     ].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
@@ -544,7 +801,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 <motion.div key={activeSubTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
                     {activeSubTab === 'list' && (
                         <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <div className="flex justify-between items-center mb-5">
+                            <div className="flex justify-between items-center mb-3">
                                 <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                     <DollarSign className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 거래 리스트
                                 </h3>
@@ -553,11 +810,89 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     <span className="text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-3 py-1 rounded-full" aria-label={`지출 ${totalExpense.toLocaleString()}원`}>-{totalExpense.toLocaleString()}원</span>
                                 </div>
                             </div>
+                            {/* #27 Savings rate widget */}
+                            {savingsRate !== null && (
+                                <div className={`flex items-center gap-3 mb-3 p-3 rounded-xl border ${savingsRate >= 20 ? 'bg-emerald-500/5 border-emerald-500/20' : savingsRate >= 0 ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
+                                    <TrendingUp className={`w-4 h-4 shrink-0 ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`} />
+                                    <span className="text-xs font-bold text-slate-400 flex-1">이번 달 저축률</span>
+                                    <span className={`text-sm font-bold ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>{savingsRate}%</span>
+                                    <span className="text-[10px] text-slate-600">{savingsRate >= 20 ? '우수' : savingsRate >= 0 ? '보통' : '적자'}</span>
+                                </div>
+                            )}
+                            {/* #31 Duplicate detection banner */}
+                            {duplicateTxs.length > 0 && !dupeDismissed && (
+                                <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                                    <span className="text-sm">⚠️</span>
+                                    <span className="text-xs text-amber-400 flex-1">이번 달 중복 의심 거래 {duplicateTxs.length}건이 감지되었습니다. (같은 날짜·금액·분류)</span>
+                                    <button onClick={() => setDupeDismissed(true)} className="text-slate-500 hover:text-slate-300 p-1"><X className="w-3.5 h-3.5" /></button>
+                                </div>
+                            )}
+                            {/* #21 Budget gauge bars */}
+                            {budgetGauges.length > 0 && (
+                                <div className="mb-4 space-y-2">
+                                    {budgetGauges.map(({ catId, limit, spent, pct, exceeded }) => (
+                                        <div key={catId}>
+                                            <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                                                <span className="text-slate-400">{catId}</span>
+                                                <span className={exceeded ? 'text-rose-400' : 'text-slate-500'}>{spent.toLocaleString()} / {limit.toLocaleString()}원</span>
+                                            </div>
+                                            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all ${exceeded ? 'bg-rose-500' : pct >= 80 ? 'bg-amber-400' : 'bg-emerald-500'}`}
+                                                    style={{ width: `${pct}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {/* #18 Filter + Sort + #19 Search */}
+                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                                    <input
+                                        type="text"
+                                        value={txSearch}
+                                        onChange={e => { setTxSearch(e.target.value); setTxVisibleCount(20); }}
+                                        placeholder="거래 검색 (항목명/카테고리/메모/금액)..."
+                                        className="w-full bg-[#111113] border border-white/10 pl-8 pr-3 py-2 rounded-lg text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none placeholder:text-slate-600"
+                                    />
+                                    {txSearch && (
+                                        <button onClick={() => setTxSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                                            <X className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="flex gap-2 shrink-0">
+                                    <select
+                                        value={txCategoryFilter}
+                                        onChange={e => { setTxCategoryFilter(e.target.value); setTxVisibleCount(20); }}
+                                        className="bg-[#111113] border border-white/10 px-2 py-2 rounded-lg text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none"
+                                        aria-label="카테고리 필터"
+                                    >
+                                        <option value="all">전체 카테고리</option>
+                                        {[...new Set(transactions.map(t => t.category).filter(Boolean))].sort().map(cat => (
+                                            <option key={cat} value={cat}>{cat}</option>
+                                        ))}
+                                    </select>
+                                    <select
+                                        value={txSortOrder}
+                                        onChange={e => { setTxSortOrder(e.target.value); setTxVisibleCount(20); }}
+                                        className="bg-[#111113] border border-white/10 px-2 py-2 rounded-lg text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none"
+                                        aria-label="정렬 순서"
+                                    >
+                                        <option value="newest">최신순</option>
+                                        <option value="oldest">오래된순</option>
+                                        <option value="amount_desc">금액 많은순</option>
+                                        <option value="amount_asc">금액 적은순</option>
+                                    </select>
+                                </div>
+                            </div>
                             {filteredTxs.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400"><PieChartIcon className="w-10 h-10 mx-auto mb-3 text-slate-200 dark:text-white/5" aria-hidden="true" /><p className="font-bold">조건에 해당하는 거래 내역이 없습니다.</p></div>
                             ) : (
                                 <div className="space-y-2" role="list" aria-label="거래 목록">
-                                    {filteredTxs.map((tx) => (
+                                    {filteredTxs.slice(0, txVisibleCount).map((tx) => (
                                         <div key={tx.id} className="flex items-center gap-4 py-2.5 px-4 hover:bg-white/10 rounded-xl group transition-colors" role="listitem">
                                             <div className={`w-10 h-10 rounded-xl ${tx.type === 'income' ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-rose-50 dark:bg-rose-500/10'} flex items-center justify-center shrink-0 shadow-none`} aria-hidden="true">
                                                 {tx.type === 'income' ? <TrendingUp className="w-5 h-5 text-blue-500" /> : <TrendingDown className="w-5 h-5 text-rose-500" />}
@@ -574,11 +909,36 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             <span className={`text-base font-bold tracking-tight whitespace-nowrap ${tx.type === 'income' ? 'text-blue-500' : 'text-rose-500'}`}>
                                                 {tx.type === 'income' ? '+' : '-'}₩{tx.amount.toLocaleString()}
                                             </span>
-                                            <button onClick={() => deleteTx(tx.id)} className="opacity-0 group-hover:opacity-100 text-slate-300 hover:text-rose-500 p-1.5 rounded-lg transition-all" aria-label={`${tx.title} 거래 삭제`}>
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
+                                                <button onClick={() => openEditTx(tx)} className="text-slate-400 hover:text-indigo-400 p-1.5 rounded-lg transition-colors" aria-label={`${tx.title} 수정`}>
+                                                    <Pencil className="w-3.5 h-3.5" />
+                                                </button>
+                                                {/* #20 Copy transaction */}
+                                                <button
+                                                    onClick={() => {
+                                                        const copied = { ...tx, id: generateId(), date: format(new Date(), 'yyyy-MM-dd'), time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) };
+                                                        setTransactions(prev => [...prev, copied]);
+                                                        toast.success(`"${tx.title}" 오늘 날짜로 복사됐습니다!`, { icon: '📋' });
+                                                    }}
+                                                    className="text-slate-400 hover:text-indigo-400 p-1.5 rounded-lg transition-colors"
+                                                    aria-label={`${tx.title} 복사`}
+                                                >
+                                                    <Copy className="w-3.5 h-3.5" />
+                                                </button>
+                                                <button onClick={() => deleteTx(tx.id)} className="text-slate-300 hover:text-rose-500 p-1.5 rounded-lg transition-colors" aria-label={`${tx.title} 거래 삭제`}>
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
+                                    {filteredTxs.length > txVisibleCount && (
+                                        <button
+                                            onClick={() => setTxVisibleCount(c => c + 20)}
+                                            className="w-full py-2 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 rounded-xl transition-all"
+                                        >
+                                            + {filteredTxs.length - txVisibleCount}개 더 보기
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -636,6 +996,37 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             <Bar dataKey="지출" fill="#f43f5e" radius={[6, 6, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
+                                </div>
+                            )}
+
+                            {/* #20 Spending prediction */}
+                            {spendingPrediction.avg3m > 0 && (
+                                <div className="mt-5 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                                    <p className="text-xs font-bold text-slate-500 mb-3">📊 이번 달 지출 예측</p>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-bold text-slate-500 mb-1">현재까지</p>
+                                            <p className="text-sm font-bold text-rose-400">₩{currentMonthExpense.toLocaleString()}</p>
+                                            <p className="text-[9px] text-slate-600">{spendingPrediction.dayOfMonth}일째</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-bold text-slate-500 mb-1">예상 월말</p>
+                                            <p className={`text-sm font-bold ${spendingPrediction.projected > spendingPrediction.avg3m ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                                ₩{spendingPrediction.projected.toLocaleString()}
+                                            </p>
+                                            <p className="text-[9px] text-slate-600">일비율 기반</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-[10px] font-bold text-slate-500 mb-1">3개월 평균</p>
+                                            <p className="text-sm font-bold text-indigo-400">₩{spendingPrediction.avg3m.toLocaleString()}</p>
+                                            <p className="text-[9px] text-slate-600">기준선</p>
+                                        </div>
+                                    </div>
+                                    {spendingPrediction.projected > spendingPrediction.avg3m && (
+                                        <p className="text-[10px] font-bold text-amber-400 mt-2 text-center">
+                                            ⚠️ 평균보다 ₩{(spendingPrediction.projected - spendingPrediction.avg3m).toLocaleString()} 초과 예상
+                                        </p>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -950,6 +1341,117 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                             </button>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* #22 Debt Management Tab */}
+                    {activeSubTab === 'debts' && (
+                        <div className="space-y-4">
+                            {/* Total debt summary */}
+                            {debts.length > 0 && (
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4 text-center">
+                                        <p className="text-xl font-bold text-rose-400">₩{debts.reduce((s, d) => s + d.principal, 0).toLocaleString()}</p>
+                                        <p className="text-xs text-slate-500 mt-1 font-bold">총 부채 원금</p>
+                                    </div>
+                                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center">
+                                        <p className="text-xl font-bold text-amber-400">₩{debts.reduce((s, d) => s + (d.monthlyPayment || 0), 0).toLocaleString()}</p>
+                                        <p className="text-xs text-slate-500 mt-1 font-bold">월 상환 합계</p>
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center col-span-2 md:col-span-1">
+                                        <p className="text-xl font-bold text-slate-200">{debts.length}건</p>
+                                        <p className="text-xs text-slate-500 mt-1 font-bold">부채 항목 수</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Add debt toggle */}
+                            <button
+                                onClick={() => setShowAddDebt(v => !v)}
+                                className="flex items-center gap-2 text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 px-4 py-2 rounded-xl transition-colors"
+                            >
+                                <Plus className="w-4 h-4" /> 부채/대출 추가
+                            </button>
+
+                            <AnimatePresence>
+                                {showAddDebt && (
+                                    <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden"
+                                    >
+                                        <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 space-y-3">
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">항목명 *</label>
+                                                    <input value={newDebt.name} onChange={e => setNewDebt(p => ({ ...p, name: e.target.value }))} placeholder="예: 학자금 대출" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">원금 *</label>
+                                                    <input type="number" value={newDebt.principal} onChange={e => setNewDebt(p => ({ ...p, principal: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">연이율 (%)</label>
+                                                    <input type="number" step="0.1" value={newDebt.interestRate} onChange={e => setNewDebt(p => ({ ...p, interestRate: e.target.value }))} placeholder="0.0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">월 상환액</label>
+                                                    <input type="number" value={newDebt.monthlyPayment} onChange={e => setNewDebt(p => ({ ...p, monthlyPayment: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">만기일</label>
+                                                    <input type="date" value={newDebt.dueDate} onChange={e => setNewDebt(p => ({ ...p, dueDate: e.target.value }))} className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors [color-scheme:dark]" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">메모</label>
+                                                    <input value={newDebt.memo} onChange={e => setNewDebt(p => ({ ...p, memo: e.target.value }))} placeholder="비고 사항" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                </div>
+                                            </div>
+                                            <button onClick={handleAddDebt} className="w-full bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 font-bold py-2.5 rounded-xl text-sm transition-colors">추가하기</button>
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+
+                            {debts.length === 0 ? (
+                                <div className="text-center py-16 text-slate-500">
+                                    <TrendingDown className="w-10 h-10 mx-auto mb-3 text-white/5" />
+                                    <p className="font-bold">등록된 부채/대출이 없습니다.</p>
+                                    <p className="text-xs mt-1">+ 추가 버튼으로 대출 항목을 등록하세요.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {debts.map(debt => {
+                                        const monthlyInterest = debt.interestRate > 0 ? Math.round(debt.principal * (debt.interestRate / 100) / 12) : 0;
+                                        const monthsLeft = debt.monthlyPayment > 0 ? Math.ceil(debt.principal / debt.monthlyPayment) : null;
+                                        return (
+                                            <div key={debt.id} className="flex items-start gap-4 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-rose-500/20 transition-all">
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <p className="text-sm font-bold text-slate-200">{debt.name}</p>
+                                                        {debt.dueDate && <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-1.5 py-0.5 rounded">만기 {debt.dueDate}</span>}
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-3 text-xs font-bold">
+                                                        <span className="text-rose-400">원금 ₩{debt.principal.toLocaleString()}</span>
+                                                        {debt.interestRate > 0 && <span className="text-amber-400">연 {debt.interestRate}% · 월이자 ₩{monthlyInterest.toLocaleString()}</span>}
+                                                        {debt.monthlyPayment > 0 && <span className="text-slate-400">월 상환 ₩{debt.monthlyPayment.toLocaleString()}</span>}
+                                                        {monthsLeft && <span className="text-indigo-400">약 {monthsLeft}개월 후 완납 예정</span>}
+                                                    </div>
+                                                    {debt.memo && <p className="text-[10px] text-slate-600 mt-1">{debt.memo}</p>}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeleteDebt(debt.id)}
+                                                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all p-1.5 rounded-lg shrink-0"
+                                                    aria-label={`${debt.name} 삭제`}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

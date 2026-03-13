@@ -179,8 +179,9 @@ export default function InputModal({
                 ? `지출 내역 ${count > 1 ? `(${count}회 반복) ` : ''}저장 완료!`
                 : `수입 내역 ${count > 1 ? `(${count}회 반복) ` : ''}저장 완료!`, { icon: '📝' });
         } else {
-            // Schedule — 종료 시간이 시작 시간보다 빠르면 오류
-            if (scheduleEndTime <= scheduleTime) {
+            // Schedule — 종료 시간이 시작 시간보다 빠르면 오류 (분 단위 숫자 비교)
+            const toMinutes = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            if (toMinutes(scheduleEndTime) <= toMinutes(scheduleTime)) {
                 return toast.error('종료 시간은 시작 시간보다 늦어야 합니다.');
             }
             const config = { formDate, recurringType, count, excludeHolidays, customRecurringDays };
@@ -311,6 +312,20 @@ export default function InputModal({
                                     />
                                     <span className="font-bold text-slate-400 pl-2 select-none">원</span>
                                 </div>
+                            </div>
+
+                            {/* #34 Quick amount buttons */}
+                            <div className="flex gap-2 flex-wrap">
+                                {[1, 5, 10, 30, 50].map(wan => (
+                                    <button
+                                        key={wan}
+                                        type="button"
+                                        onClick={() => setInputValue(prev => String((Number(prev) || 0) + wan * 10000))}
+                                        className="flex-1 min-w-0 py-2 text-xs font-bold bg-[#111113] border border-white/10 rounded-lg text-slate-400 hover:border-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                    >
+                                        +{wan}만
+                                    </button>
+                                ))}
                             </div>
 
                             <div className="flex items-center gap-4 bg-[#09090b] p-3 rounded-xl border border-white/10">
