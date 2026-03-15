@@ -408,7 +408,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
     }, [currentDate, setSchedules]);
 
     return (
-        <div className="glass-card p-3 md:p-3 min-h-[600px] mb-8 flex flex-col relative overflow-hidden">
+        <div className="min-h-[600px] mb-8 flex flex-col">
             <ConfirmModal
                 isOpen={confirmState.open}
                 onClose={() => setConfirmState({ open: false, id: null, isGroup: false })}
@@ -423,7 +423,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
             {editScopeModal.open && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="반복 일정 수정 범위 선택">
                     <div className="absolute inset-0 bg-black/60" onClick={() => setEditScopeModal({ open: false, form: null })} />
-                    <div className="relative bg-[#111113] border border-white/10 rounded-md p-3 w-full max-w-xs ">
+                    <div className="relative bg-[#111113] border border-white/10 p-3 w-full max-w-xs" style={{ borderRadius: '6px' }}>
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-lg">🔄</span>
                             <h3 className="text-sm font-bold text-slate-100">반복 일정 수정</h3>
@@ -432,14 +432,16 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         <div className="flex flex-col gap-2">
                             <button
                                 onClick={() => handleEditScopeConfirm('this')}
-                                className="w-full px-3 py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-md hover:bg-indigo-500/20 transition-all text-left"
+                                className="w-full px-3 py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 transition-all text-left"
+                                style={{ borderRadius: '3px' }}
                             >
                                 ✏️ 이 일정만 수정
                                 <span className="block text-[10px] text-slate-500 font-normal mt-0.5">이 날짜의 일정만 변경됩니다</span>
                             </button>
                             <button
                                 onClick={() => handleEditScopeConfirm('all')}
-                                className="w-full px-3 py-2.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-md hover:bg-amber-500/20 transition-all text-left"
+                                className="w-full px-3 py-2.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 transition-all text-left"
+                                style={{ borderRadius: '3px' }}
                             >
                                 🔄 모든 반복 일정 수정
                                 <span className="block text-[10px] text-slate-500 font-normal mt-0.5">같은 그룹의 모든 일정에 적용됩니다</span>
@@ -469,7 +471,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                 todaySchedules.map(s => `${s.completed ? '✅' : '⬜'} ${s.time}${s.endTime ? `~${s.endTime}` : ''} ${s.title}${s.location ? ` (${s.location})` : ''}`).join('\n');
                             navigator.clipboard?.writeText(text).then(() => toast.success('오늘 일정이 클립보드에 복사됐습니다!', { icon: '📋' })).catch(() => toast.error('복사 실패'));
                         }}
-                        className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+                        className="px-3 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:text-indigo-400 hover:bg-white/6 transition-all flex items-center gap-1.5"
+                        style={{ borderRadius: '3px' }}
                         title="오늘 일정 전체를 텍스트로 복사"
                     >
                         <Copy className="w-3.5 h-3.5" /> 일정 공유
@@ -478,7 +481,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                     {/* #12 Focus Mode button */}
                     <button
                         onClick={() => setFocusMode(f => !f)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${focusMode ? 'bg-indigo-500 border-indigo-400 text-white' : 'bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50'}`}
+                        className={`px-3 py-1.5 text-xs font-bold border transition-all flex items-center gap-1.5 ${focusMode ? 'bg-indigo-500 border-indigo-400 text-white' : 'border-white/10 text-slate-400 hover:text-indigo-400 hover:bg-white/6'}`}
+                        style={{ borderRadius: '3px' }}
                         aria-pressed={focusMode}
                     >
                         <CheckCircle2 className="w-3.5 h-3.5" /> 집중 모드
@@ -488,12 +492,13 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                     <div className="relative">
                         <button
                             onClick={() => setShowTemplateDropdown(d => !d)}
-                            className="px-3 py-1.5 text-xs font-bold rounded-lg border bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/50 transition-all flex items-center gap-1.5"
+                            className="px-3 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:text-indigo-400 hover:bg-white/6 transition-all flex items-center gap-1.5"
+                            style={{ borderRadius: '3px' }}
                         >
                             📋 템플릿 불러오기
                         </button>
                         {showTemplateDropdown && (
-                            <div className="absolute top-full right-0 mt-1 w-64 bg-[#111113] border border-white/10 rounded-md z-50 overflow-hidden">
+                            <div className="absolute top-full right-0 mt-1 w-64 bg-[#111113] border border-white/10 z-50 overflow-hidden" style={{ borderRadius: '3px' }}>
                                 <div className="p-3 border-b border-white/10 flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-400">저장된 템플릿</span>
                                     <button onClick={() => setShowTemplateDropdown(false)} className="text-slate-500 hover:text-slate-300">
@@ -513,7 +518,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                 </div>
                                                 <button
                                                     onClick={() => handleAddFromTemplate(tpl)}
-                                                    className="text-[10px] font-bold text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-500 px-2 py-1 rounded-md transition-all shrink-0"
+                                                    className="text-[10px] font-bold text-indigo-400 hover:text-white bg-indigo-500/10 hover:bg-indigo-500 px-2 py-1 transition-all shrink-0"
+                                                    style={{ borderRadius: '3px' }}
                                                 >
                                                     추가
                                                 </button>
@@ -539,7 +545,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         className="flex-1 flex flex-col items-center justify-center py-12"
                     >
                         {focusSchedule ? (
-                            <div className="w-full max-w-lg bg-indigo-500/10 border border-indigo-500/30 rounded-md p-8 text-center ">
+                            <div className="w-full max-w-lg bg-indigo-500/10 border border-indigo-500/30 p-8 text-center" style={{ borderRadius: '6px' }}>
                                 <p className="text-xs font-bold text-indigo-400 mb-3 tracking-widest uppercase">현재 집중 중</p>
                                 <h3 className="text-2xl md:text-3xl font-bold text-slate-100 mb-3">{focusSchedule.title}</h3>
                                 <p className="text-lg font-bold text-indigo-400 mb-2">{focusSchedule.time} {focusSchedule.endTime ? `~ ${focusSchedule.endTime}` : ''}</p>
@@ -548,13 +554,14 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                 )}
                                 <button
                                     onClick={(e) => { toggleSchedule(e, focusSchedule.id); setFocusMode(false); }}
-                                    className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-base transition-all active:scale-95 shadow-indigo-500/30"
+                                    className="px-8 py-3 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-base transition-all active:scale-95"
+                                    style={{ borderRadius: '3px' }}
                                 >
                                     ✅ 완료
                                 </button>
                             </div>
                         ) : (
-                            <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-md p-8 text-center">
+                            <div className="w-full max-w-lg border border-white/10 p-8 text-center" style={{ borderRadius: '6px' }}>
                                 <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
                                 <h3 className="text-xl font-bold text-slate-300 mb-2">오늘 할 일정이 없습니다!</h3>
                                 <p className="text-sm text-slate-500">모든 일정을 완료했거나 오늘 일정이 없어요.</p>
@@ -582,7 +589,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                     value={searchQuery}
                                     onChange={e => setSearchQuery(e.target.value)}
                                     placeholder="일정 검색 (제목/메모/카테고리/장소)..."
-                                    className="w-full bg-[#111113] border border-white/10 pl-8 pr-3 py-2 rounded-lg text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none placeholder:text-slate-600"
+                                    className="w-full bg-[#0d0d0f] border-b border-white/10 pl-8 pr-3 py-2 text-xs font-bold text-slate-300 focus:border-indigo-500 outline-none placeholder:text-slate-600"
                                 />
                                 {searchQuery && (
                                     <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
@@ -593,7 +600,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                             {/* #8 Priority sort toggle */}
                             <button
                                 onClick={() => setPrioritySortOn(v => !v)}
-                                className={`px-3 py-2 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 whitespace-nowrap ${prioritySortOn ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400' : 'bg-[#111113] border-white/10 text-slate-400 hover:text-indigo-400 hover:border-indigo-500/30'}`}
+                                className={`px-3 py-2 text-xs font-bold border transition-all flex items-center gap-1.5 whitespace-nowrap ${prioritySortOn ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400' : 'border-white/10 text-slate-400 hover:text-indigo-400 hover:bg-white/6'}`}
+                                style={{ borderRadius: '3px' }}
                                 title="우선순위 순으로 정렬"
                             >
                                 <ArrowUpDown className="w-3.5 h-3.5" /> 우선순위
@@ -601,7 +609,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                             {/* #6 Bulk complete */}
                             <button
                                 onClick={handleBulkComplete}
-                                className="px-3 py-2 text-xs font-bold rounded-lg border bg-[#111113] border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                className="px-3 py-2 text-xs font-bold border border-white/10 text-slate-400 hover:text-emerald-400 hover:bg-white/6 transition-all flex items-center gap-1.5 whitespace-nowrap"
+                                style={{ borderRadius: '3px' }}
                                 title="현재 보이는 미완료 일정 전체 완료 처리"
                             >
                                 <CheckCircle2 className="w-3.5 h-3.5" /> 전체 완료
@@ -615,30 +624,30 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                     role="tab"
                                     aria-selected={filterType === type}
                                     onClick={() => setFilterType(type)}
-                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filterType === type ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    className={`px-3 py-1.5 text-xs font-bold transition-colors border-b-2 ${filterType === type ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-200'}`}
                                 >
                                     {type === 'daily' ? '일간' : type === 'weekly' ? '주간' : type === 'monthly' ? '월간' : '월간 캘린더'}
                                 </button>
                             ))}
                             {filterType === 'daily' && (
-                                <div className="ml-2 flex bg-white/5 p-1 rounded-lg border border-white/10">
-                                    <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${viewMode === 'list' ? 'bg-[#111113]-700 shadow-none text-indigo-500' : 'text-slate-400 hover:text-slate-600'}`}>리스트</button>
-                                    <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${viewMode === 'timeline' ? 'bg-[#111113]-700 shadow-none text-indigo-500 flex items-center gap-1' : 'text-slate-400 hover:text-slate-600 flex items-center gap-1'}`}>
+                                <div className="ml-2 flex border-b border-white/10">
+                                    <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 text-[11px] font-bold border-b-2 transition-all ${viewMode === 'list' ? 'border-indigo-400 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>리스트</button>
+                                    <button onClick={() => setViewMode('timeline')} className={`px-3 py-1.5 text-[11px] font-bold border-b-2 transition-all flex items-center gap-1 ${viewMode === 'timeline' ? 'border-indigo-400 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
                                         타임블록
                                     </button>
                                     {/* #7 Week grid button shown on daily filter */}
-                                    <button onClick={() => { setViewMode('week-grid'); setFilterType('weekly'); }} className="px-3 py-1.5 text-[11px] font-bold rounded-md transition-all text-slate-400 hover:text-slate-600">
+                                    <button onClick={() => { setViewMode('week-grid'); setFilterType('weekly'); }} className="px-3 py-1.5 text-[11px] font-bold border-b-2 border-transparent transition-all text-slate-400 hover:text-slate-200">
                                         주간 그리드
                                     </button>
                                 </div>
                             )}
                             {filterType === 'weekly' && (
-                                <div className="ml-2 flex bg-white/5 p-1 rounded-lg border border-white/10">
-                                    <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${viewMode !== 'week-grid' ? 'text-indigo-500' : 'text-slate-400'}`}>리스트</button>
-                                    <button onClick={() => setViewMode('week-grid')} className={`px-3 py-1.5 text-[11px] font-bold rounded-md transition-all ${viewMode === 'week-grid' ? 'text-indigo-500' : 'text-slate-400'}`}>주간 그리드</button>
+                                <div className="ml-2 flex border-b border-white/10">
+                                    <button onClick={() => setViewMode('list')} className={`px-3 py-1.5 text-[11px] font-bold border-b-2 transition-all ${viewMode !== 'week-grid' ? 'border-indigo-400 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>리스트</button>
+                                    <button onClick={() => setViewMode('week-grid')} className={`px-3 py-1.5 text-[11px] font-bold border-b-2 transition-all ${viewMode === 'week-grid' ? 'border-indigo-400 text-indigo-500' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>주간 그리드</button>
                                 </div>
                             )}
-                            <div className="ml-auto text-sm font-bold tracking-tight text-indigo-400 px-3 py-1.5 bg-indigo-500/10 rounded-lg" aria-live="polite">
+                            <div className="ml-auto text-sm font-bold tracking-tight text-indigo-400 px-3 py-1.5" aria-live="polite">
                                 {format(currentDate, 'M월 d일')} 기준 일정
                             </div>
                         </div>
@@ -726,26 +735,26 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         ) : (
                             <>
                                 {totalCount > 0 && (
-                                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-md p-3 sm:p-3 mb-2 text-white shadow-none flex flex-col md:flex-row md:items-center justify-between gap-2.5" role="status" aria-label="달성률">
+                                    <div className="border-b border-white/6 py-3 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-2.5" role="status" aria-label="달성률">
                                         <div>
-                                            <h3 className="text-sm font-semibold text-indigo-100 flex items-center gap-1.5 mb-1">
-                                                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                                            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+                                                <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
                                                 {filterType === 'daily' ? '오늘의' : filterType === 'weekly' ? '이번 주' : '이번 달'} 일정 달성률
                                             </h3>
-                                            <p className="text-xl md:text-2xl font-bold tracking-tight">
-                                                {completionRate}% <span className="text-sm font-medium text-indigo-200 ml-1">({completedCount}/{totalCount}개 완료)</span>
+                                            <p className="text-xl md:text-2xl font-bold font-mono tabular-nums tracking-tight text-slate-100">
+                                                {completionRate}% <span className="text-sm font-medium text-slate-500 ml-1">({completedCount}/{totalCount}개 완료)</span>
                                             </p>
                                         </div>
                                         <div className="flex-1 w-full max-w-sm" role="progressbar" aria-valuenow={completionRate} aria-valuemin={0} aria-valuemax={100}>
-                                            <div className="h-4 md:h-5 w-full bg-white/20 rounded-full overflow-hidden border border-white/30 shadow-none">
-                                                <div className="h-full bg-white rounded-full transition-all duration-1000 shadow-none" style={{ width: `${Math.max(completionRate, completionRate > 0 ? 3 : 0)}%`, minWidth: completionRate > 0 ? '12px' : '0' }} />
+                                            <div className="w-full h-1 bg-white/8">
+                                                <div className="h-1 bg-indigo-500 transition-all duration-1000" style={{ width: `${Math.max(completionRate, completionRate > 0 ? 3 : 0)}%`, minWidth: completionRate > 0 ? '12px' : '0' }} />
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
                                 {filteredSchedules.length === 0 ? (
-                                    <div className="text-center py-24 text-slate-400 bg-slate-50/50 dark:bg-[#0f1115]/50 rounded-md border border-white/10 shadow-none">
+                                    <div className="text-center py-24 text-slate-400 border-b border-white/6">
                                         <Calendar className="w-12 h-12 mx-auto mb-2 text-slate-200 dark:text-white/5" aria-hidden="true" />
                                         <p className="font-bold">조건에 맞는 일정이 없습니다.</p>
                                     </div>
@@ -807,26 +816,26 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                     </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-2.5 md:p-3 w-full">
+                                    <div className="flex flex-col w-full">
                                         {Object.entries(groupedSchedules).map(([dateStr, schedulesForDate]) => (
                                             <div key={dateStr} className="w-full">
-                                                <div className="text-sm font-bold tracking-tight text-slate-500 mb-3 bg-[#09090b] inline-block px-3 py-1 rounded border border-white/10">
-                                                    {format(parseISO(dateStr), 'yyyy. MM. dd')}일 일정
+                                                <div className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8">
+                                                    {format(parseISO(dateStr), 'yyyy. MM. dd')} 일정
                                                 </div>
-                                                <div className="relative border-l-[3px] border-slate-100 dark:border-[#1a1c23] ml-4 space-y-3 flex-1 pr-2">
+                                                <div className="flex flex-col flex-1">
                                                     {schedulesForDate.map((schedule) => {
                                                         const durationBadge = getDurationBadge(schedule.time, schedule.endTime);
                                                         const isOverdue = !schedule.completed && schedule.date < format(new Date(), 'yyyy-MM-dd');
                                                         return (
-                                                            <div key={schedule.id} className="relative pl-6 flex flex-col group">
-                                                                <div className="flex items-start justify-between">
-                                                                    <div className={`absolute -left-[12px] top-1 rounded-full p-0.5 bg-[#111113] transition-colors duration-300 ${schedule.completed ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true">
+                                                            <div key={schedule.id} className="flex flex-col border-b border-white/6 hover:bg-white/[0.03] group">
+                                                                <div className="flex items-start justify-between py-2.5">
+                                                                    <div className={`shrink-0 transition-colors duration-300 mr-3 mt-0.5 ${schedule.completed ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true">
                                                                         {schedule.color ? (
-                                                                            <div className="w-[20px] h-[20px] rounded-full flex items-center justify-center" style={{ backgroundColor: schedule.color + '33', border: `2px solid ${schedule.color}` }}>
-                                                                                {schedule.completed && <Check className="w-3 h-3" style={{ color: schedule.color }} />}
+                                                                            <div className="w-4 h-4 flex items-center justify-center" style={{ backgroundColor: schedule.color + '33', border: `2px solid ${schedule.color}`, borderRadius: '50%' }}>
+                                                                                {schedule.completed && <Check className="w-2.5 h-2.5" style={{ color: schedule.color }} />}
                                                                             </div>
                                                                         ) : (
-                                                                            schedule.completed ? <CheckCircle2 className="w-[20px] h-[20px] fill-indigo-100 dark:fill-indigo-500/20" /> : <Circle className="w-[20px] h-[20px]" />
+                                                                            schedule.completed ? <CheckCircle2 className="w-4 h-4 fill-indigo-500/20" /> : <Circle className="w-4 h-4" />
                                                                         )}
                                                                     </div>
 
@@ -842,28 +851,28 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                         }
                                                                     }}>
                                                                         <div className="flex flex-wrap items-center gap-2">
-                                                                            <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-md text-slate-400 border border-slate-200/50 dark:border-white/5 shadow-none">{schedule.category}</span>
+                                                                            <span className="text-[10px] font-bold bg-white/5 px-1.5 py-0.5 text-slate-400 border border-white/8">{schedule.category}</span>
                                                                             {schedule.color && (
                                                                                 <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: schedule.color }} aria-label="색상 라벨" />
                                                                             )}
                                                                             {/* #5 Repeat badge */}
                                                                             {schedule.repeat && schedule.repeat !== 'none' && (
-                                                                                <span className="text-[10px] font-bold flex items-center gap-1 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                                                                                <span className="text-[10px] font-bold flex items-center gap-1 text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 border border-indigo-500/20">
                                                                                     <RefreshCw className="w-3 h-3" />
                                                                                     {schedule.repeat === 'daily' ? '매일' : schedule.repeat === 'weekly' ? '매주' : '매월'}
                                                                                 </span>
                                                                             )}
                                                                             {schedule.priority && (
-                                                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shadow-none ${schedule.priority === 'High' ? 'bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-400' :
-                                                                                    schedule.priority === 'Medium' ? 'bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/30 dark:text-amber-400' :
-                                                                                        'bg-slate-50 border-slate-200 text-slate-500 dark:bg-slate-500/10 dark:border-slate-500/30 dark:text-slate-400'
+                                                                                <span className={`text-[10px] font-bold px-1.5 py-0.5 border ${schedule.priority === 'High' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
+                                                                                    schedule.priority === 'Medium' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                                                                                        'bg-slate-500/10 border-slate-500/30 text-slate-400'
                                                                                     }`}>
                                                                                     {schedule.priority === 'High' ? '🔥 높음' : schedule.priority === 'Medium' ? '보통' : '낮음'}
                                                                                 </span>
                                                                             )}
                                                                             {/* #11 Overdue badge */}
                                                                             {isOverdue && (
-                                                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-400">
+                                                                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-rose-500/15 border border-rose-500/30 text-rose-400">
                                                                                     ⚠️ 미완료
                                                                                 </span>
                                                                             )}
@@ -877,12 +886,12 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                 {schedule.time} {schedule.endTime ? `~ ${schedule.endTime}` : ''}
                                                                             </p>
                                                                             {durationBadge && (
-                                                                                <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/5">
+                                                                                <span className="text-[10px] font-bold text-slate-500 bg-white/5 px-1.5 py-0.5 flex items-center gap-1 border border-white/8">
                                                                                     <Clock className="w-3 h-3" /> {durationBadge}
                                                                                 </span>
                                                                             )}
                                                                             {schedule.location && (
-                                                                                <span className="text-[11px] font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                                                <span className="text-[11px] font-bold text-slate-500 px-1.5 py-0.5 flex items-center gap-1">
                                                                                     📍 {schedule.location}
                                                                                 </span>
                                                                             )}
@@ -892,7 +901,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                     <div className="flex flex-col gap-1 ml-4 justify-center items-center h-full shrink-0 relative z-20">
                                                                         <button
                                                                             onClick={(e) => toggleSchedule(e, schedule.id)}
-                                                                            className={`w-10 h-10 rounded-md flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-emerald-500/10 text-emerald-500 border-emerald-200 dark:border-emerald-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-emerald-300 hover:text-emerald-500 dark:hover:border-emerald-500/50 dark:hover:text-emerald-400'}`}
+                                                                            className={`w-8 h-8 flex items-center justify-center transition-all border active:scale-95 ${schedule.completed ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'text-slate-400 border-white/10 hover:border-emerald-500/50 hover:text-emerald-400'}`}
+                                                                            style={{ borderRadius: '3px' }}
                                                                             aria-label={schedule.completed ? '일정 완료 취소' : '일정 완료 처리'}
                                                                         >
                                                                             <Check className="w-5 h-5 stroke-[3]" aria-hidden="true" />
@@ -901,7 +911,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                         {!schedule.completed && filterType === 'daily' && (
                                                                             <button
                                                                                 onClick={(e) => postponeToTomorrow(e, schedule.id)}
-                                                                                className="w-10 h-6 shrink-0 rounded-lg flex items-center justify-center text-[10px] bg-[#111113] text-slate-400 border border-white/10 hover:border-indigo-500/50 hover:text-indigo-400 transition-colors active:scale-95 group/postpone"
+                                                                                className="w-8 h-6 shrink-0 flex items-center justify-center text-[10px] text-slate-400 border border-white/10 hover:border-indigo-500/50 hover:text-indigo-400 transition-colors active:scale-95 group/postpone"
+                                                                                style={{ borderRadius: '3px' }}
                                                                                 aria-label="내일로 미루기"
                                                                                 title="내일로 연기"
                                                                             >
@@ -916,14 +927,14 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                             className="overflow-hidden"
                                                                         >
                                                                             {editId === schedule.id && editForm ? (
-                                                                                <div className="bg-[#09090b] p-3 rounded-md border border-indigo-500/30 mt-3 relative">
-                                                                                    <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none" placeholder="일정 제목" />
+                                                                                <div className="border-b border-indigo-500/20 py-3 mt-1 relative">
+                                                                                    <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 mb-2 outline-none" placeholder="일정 제목" />
                                                                                     <div className="flex gap-2 mb-2">
-                                                                                        <input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none w-full" />
-                                                                                        <input type="time" value={editForm.endTime || ''} onChange={e => setEditForm({ ...editForm, endTime: e.target.value })} className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none w-full" />
+                                                                                        <input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 outline-none w-full" />
+                                                                                        <input type="time" value={editForm.endTime || ''} onChange={e => setEditForm({ ...editForm, endTime: e.target.value })} className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 outline-none w-full" />
                                                                                     </div>
-                                                                                    <input value={editForm.location || ''} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none" placeholder="장소 (선택)" />
-                                                                                    <textarea value={editForm.memo || ''} onChange={e => setEditForm({ ...editForm, memo: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none resize-none" placeholder="상세 메모" rows={2} />
+                                                                                    <input value={editForm.location || ''} onChange={e => setEditForm({ ...editForm, location: e.target.value })} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 mb-2 outline-none" placeholder="장소 (선택)" />
+                                                                                    <textarea value={editForm.memo || ''} onChange={e => setEditForm({ ...editForm, memo: e.target.value })} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 mb-2 outline-none resize-none" placeholder="상세 메모" rows={2} />
                                                                                     {/* #2 Color picker in edit form */}
                                                                                     <div className="mb-2">
                                                                                         <p className="text-[10px] font-bold text-slate-500 mb-1.5">색상 라벨</p>
@@ -954,7 +965,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                         <select
                                                                                             value={editForm.category || ''}
                                                                                             onChange={e => setEditForm({ ...editForm, category: e.target.value })}
-                                                                                            className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                                                            className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 outline-none"
                                                                                         >
                                                                                             {DEFAULT_SCHEDULE_CATEGORIES.map(c => (
                                                                                                 <option key={c.id} value={c.label}>{c.label}</option>
@@ -967,7 +978,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                         <select
                                                                                             value={editForm.repeat || 'none'}
                                                                                             onChange={e => setEditForm({ ...editForm, repeat: e.target.value })}
-                                                                                            className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                                                            className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-200 outline-none"
                                                                                         >
                                                                                             {REPEAT_OPTIONS.map(o => (
                                                                                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -975,37 +986,41 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                         </select>
                                                                                     </div>
                                                                                     <div className="flex justify-end gap-2 mt-2">
-                                                                                        <button onClick={(e) => { e.stopPropagation(); setEditId(null); }} className="px-3 py-1.5 text-[11px] font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10 transition-colors">취소</button>
-                                                                                        <button onClick={handleEditSaveRequest} className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-500 rounded-lg shadow-none hover:bg-indigo-600 transition-colors">저장 완료</button>
+                                                                                        <button onClick={(e) => { e.stopPropagation(); setEditId(null); }} className="px-3 py-1.5 text-[11px] font-bold text-slate-400 border border-white/10 hover:bg-white/6 transition-colors" style={{ borderRadius: '3px' }}>취소</button>
+                                                                                        <button onClick={handleEditSaveRequest} className="px-3 py-1.5 text-[11px] font-bold text-white bg-indigo-500 hover:bg-indigo-400 transition-colors" style={{ borderRadius: '3px' }}>저장 완료</button>
                                                                                     </div>
                                                                                 </div>
                                                                             ) : (
-                                                                                <div className="text-sm text-slate-400 bg-[#09090b] p-3 rounded-md border border-slate-200/60 dark:border-white/5 leading-relaxed shadow-none mt-3 mb-2 relative">
-                                                                                    <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: schedule.color ? `linear-gradient(to bottom, ${schedule.color}, ${schedule.color}88)` : 'linear-gradient(to bottom, #6366f1, #818cf8)' }} aria-hidden="true" />
-                                                                                    <p className="pl-2">{schedule.memo || '작성된 상세 메모가 없습니다.'}</p>
-                                                                                    <div className="mt-2 flex gap-2 pl-2 relative z-10 flex-wrap">
+                                                                                <div className="text-sm text-slate-400 py-2 border-b border-white/6 leading-relaxed">
+                                                                                    <div className="w-0.5 h-full inline-block mr-2 align-top" style={{ background: schedule.color || '#6366f1' }} aria-hidden="true" />
+                                                                                    <p>{schedule.memo || '작성된 상세 메모가 없습니다.'}</p>
+                                                                                    <div className="mt-2 flex gap-2 flex-wrap">
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); setEditForm({ ...schedule }); setEditId(schedule.id); }}
-                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
+                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 px-3 py-1.5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
+                                                                                            style={{ borderRadius: '3px' }}
                                                                                         >
                                                                                             ✏️ 수정하기
                                                                                         </button>
                                                                                         {/* #9 Save as template button */}
                                                                                         <button
                                                                                             onClick={(e) => handleCopySchedule(e, schedule)}
-                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
+                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 px-3 py-1.5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
+                                                                                            style={{ borderRadius: '3px' }}
                                                                                         >
                                                                                             <Copy className="w-3.5 h-3.5" /> 오늘로 복사
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleSaveTemplate(schedule); }}
-                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
+                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-slate-400 px-3 py-1.5 border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 transition-all"
+                                                                                            style={{ borderRadius: '3px' }}
                                                                                         >
                                                                                             📋 템플릿으로 저장
                                                                                         </button>
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); handleDeleteRequest(schedule.id); }}
-                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-rose-500 dark:text-rose-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-rose-200 dark:hover:border-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-500/10 shadow-none transition-all"
+                                                                                            className="text-[11px] font-bold flex items-center gap-1 text-rose-400 px-3 py-1.5 border border-rose-500/30 hover:bg-rose-500/10 transition-all"
+                                                                                            style={{ borderRadius: '3px' }}
                                                                                             aria-label={`${schedule.title} 삭제`}
                                                                                         >
                                                                                             <Trash2 className="w-3.5 h-3.5" aria-hidden="true" /> 삭제하기
@@ -1027,9 +1042,9 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         )}
 
                         {/* #14 Completion Heatmap */}
-                        <div className="mt-8 pt-6 border-t border-white/10">
-                            <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2">
-                                <CheckCircle2 className="w-4 h-4 text-indigo-400" /> 일정 완료율 히트맵 (최근 10주)
+                        <div className="mt-6 pt-4">
+                            <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8 flex items-center gap-2 mb-3">
+                                <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" /> 일정 완료율 히트맵 (최근 10주)
                             </h3>
                             <div className="overflow-x-auto">
                                 <div className="flex gap-1 min-w-max">

@@ -17,18 +17,19 @@ function GoalCard({ goal, onClick }) {
     return (
         <div
             onClick={() => onClick(goal.id)}
-            className={`group cursor-pointer bg-[#111113] rounded-xl overflow-hidden shadow-none hover:shadow-none border border-slate-200/60 dark:border-white/5 transition-all flex flex-col relative ${goal.progress === 100 ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-[#0f1115]' : ''}`}
+            className={`group cursor-pointer bg-[#111113] overflow-hidden border border-white/8 transition-all flex flex-col relative hover:bg-white/[0.02] ${goal.progress === 100 ? 'border-emerald-500/40' : ''}`}
+            style={{ borderRadius: '3px' }}
             role="button"
             tabIndex={0}
             aria-label={`${goal.title} — ${goal.progress}% 완료`}
             onKeyDown={(e) => e.key === 'Enter' && onClick(goal.id)}
         >
             <div className={`h-20 bg-gradient-to-r ${cFrom} ${cTo} relative`} aria-hidden="true">
-                <div className="absolute -bottom-5 left-4 w-11 h-11 bg-[#111113] rounded-xl flex items-center justify-center text-xl shadow-none border border-white/10">
+                <div className="absolute -bottom-5 left-4 w-11 h-11 bg-[#111113] flex items-center justify-center text-xl border border-white/10" style={{ borderRadius: '3px' }}>
                     {goal.icon || '🎯'}
                 </div>
                 {dDay !== null && (
-                    <div className={`absolute top-2.5 right-2.5 text-[10px] font-bold tracking-tight px-2 py-0.5 rounded-full backdrop-blur-sm ${dDay < 0 ? 'bg-red-500/80 text-white' : dDay <= 3 ? 'bg-orange-500/80 text-white' : 'bg-white/30 text-white'}`}>
+                    <div className={`absolute top-2.5 right-2.5 text-[10px] font-bold tracking-tight px-2 py-0.5 font-mono tabular-nums ${dDay < 0 ? 'bg-red-500/80 text-white' : dDay <= 3 ? 'bg-orange-500/80 text-white' : 'bg-white/30 text-white'}`}>
                         {dDay < 0 ? `D+${Math.abs(dDay)}` : dDay === 0 ? 'D-Day!' : `D-${dDay}`}
                     </div>
                 )}
@@ -51,13 +52,11 @@ function GoalCard({ goal, onClick }) {
                         </span>
                         <span className={goal.progress === 100 ? 'text-emerald-500' : 'text-slate-200'}>{goal.progress}%</span>
                     </div>
-                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
+                    <div className="w-full h-1 bg-white/8" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
                         <div
                             style={{ width: `${goal.progress}%` }}
-                            className={`h-full bg-gradient-to-r ${goal.progress === 100 ? 'from-emerald-400 to-emerald-500' : `${cFrom} ${cTo}`} rounded-full relative overflow-hidden`}
-                        >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full" aria-hidden="true" />
-                        </div>
+                            className={`h-1 ${goal.progress === 100 ? 'bg-emerald-400' : 'bg-indigo-500'} transition-all`}
+                        />
                     </div>
                 </div>
             </div>

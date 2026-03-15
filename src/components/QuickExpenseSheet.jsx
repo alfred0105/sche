@@ -130,12 +130,12 @@ export default function QuickExpenseSheet({
 
                     {/* 시트 */}
                     <div
-                        className="fixed bottom-0 left-0 right-0 z-[100] bg-[#111113] rounded-t-3xl border-t border-white/10 overflow-hidden"
-                        style={{ maxWidth: '480px', margin: '0 auto' }}
+                        className="fixed bottom-0 left-0 right-0 z-[100] bg-[#111113] border-t border-white/10 overflow-hidden"
+                        style={{ borderRadius: '8px 8px 0 0', maxWidth: '480px', margin: '0 auto' }}
                     >
                         {/* 드래그 핸들 */}
                         <div className="flex justify-center pt-3">
-                            <div className="w-10 h-1 rounded-full bg-white/20" />
+                            <div className="w-10 h-1 bg-white/20" style={{ borderRadius: '2px' }} />
                         </div>
 
                         {/* 헤더 */}
@@ -148,7 +148,7 @@ export default function QuickExpenseSheet({
                                 >
                                     상세 입력 →
                                 </button>
-                                <button onClick={onClose} className="p-1.5 rounded-full hover:bg-white/10">
+                                <button onClick={onClose} className="p-1.5 hover:bg-white/10" style={{ borderRadius: '3px' }}>
                                     <X size={16} className="text-slate-400" />
                                 </button>
                             </div>
@@ -158,21 +158,23 @@ export default function QuickExpenseSheet({
                         <div className="flex gap-2 px-3 pt-2 pb-3">
                             <button
                                 onClick={() => setType('expense')}
-                                className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all active:scale-95 ${
+                                className={`flex-1 py-2.5 text-sm font-bold transition-all active:scale-95 ${
                                     type === 'expense'
-                                        ? 'bg-rose-500 text-white  shadow-rose-500/20'
+                                        ? 'bg-rose-500 text-white'
                                         : 'bg-white/5 text-slate-400'
                                 }`}
+                                style={{ borderRadius: '3px' }}
                             >
                                 💸 지출
                             </button>
                             <button
                                 onClick={() => setType('income')}
-                                className={`flex-1 py-2.5 rounded-md text-sm font-bold transition-all active:scale-95 ${
+                                className={`flex-1 py-2.5 text-sm font-bold transition-all active:scale-95 ${
                                     type === 'income'
-                                        ? 'bg-blue-500 text-white  shadow-blue-500/20'
+                                        ? 'bg-blue-500 text-white'
                                         : 'bg-white/5 text-slate-400'
                                 }`}
+                                style={{ borderRadius: '3px' }}
                             >
                                 💰 수입
                             </button>
@@ -194,7 +196,8 @@ export default function QuickExpenseSheet({
                                 <button
                                     key={val}
                                     onClick={() => handleQuickAmount(val)}
-                                    className="flex-shrink-0 px-3 py-1.5 rounded-md bg-white/5 text-xs font-bold text-slate-400 hover:bg-white/10 active:scale-95 transition-all border border-white/5"
+                                    className="flex-shrink-0 px-3 py-1.5 bg-white/5 text-xs font-bold text-slate-400 hover:bg-white/10 active:scale-95 transition-all border border-white/10"
+                                    style={{ borderRadius: '3px' }}
                                 >
                                     +{val >= 10000 ? `${val / 10000}만` : val.toLocaleString()}
                                 </button>
@@ -212,11 +215,12 @@ export default function QuickExpenseSheet({
                                         <button
                                             key={acc.id}
                                             onClick={() => setSelectedAccountId(acc.id)}
-                                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold transition-all active:scale-95 ${
+                                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${
                                                 isSelected
-                                                    ? 'bg-indigo-500 text-white  shadow-indigo-500/20'
+                                                    ? 'bg-indigo-500 text-white'
                                                     : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                             }`}
+                                            style={{ borderRadius: '3px' }}
                                         >
                                             <span>{emoji}</span>
                                             <span className="max-w-[80px] truncate">{acc.name}</span>
@@ -238,13 +242,14 @@ export default function QuickExpenseSheet({
                                     <button
                                         key={cat.id}
                                         onClick={() => setSelectedCat(cat.id)}
-                                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded text-sm font-bold transition-all active:scale-95 ${
+                                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${
                                             isSelected
                                                 ? type === 'expense'
-                                                    ? 'bg-rose-500 text-white  shadow-rose-500/20'
-                                                    : 'bg-blue-500 text-white  shadow-blue-500/20'
+                                                    ? 'bg-rose-500 text-white'
+                                                    : 'bg-blue-500 text-white'
                                                 : 'bg-white/5 text-slate-400 hover:bg-white/10'
                                         }`}
+                                        style={{ borderRadius: '3px' }}
                                     >
                                         <CatIcon size={13} />
                                         <span>{cat.label}</span>
@@ -261,7 +266,7 @@ export default function QuickExpenseSheet({
                                     value={memo}
                                     onChange={e => setMemo(e.target.value)}
                                     placeholder="메모 (선택)"
-                                    className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-indigo-500 transition-colors"
+                                    className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm text-slate-300 outline-none focus:border-indigo-500 transition-colors"
                                     autoFocus
                                 />
                             ) : (
@@ -280,11 +285,12 @@ export default function QuickExpenseSheet({
                                 <button
                                     key={i}
                                     onClick={() => handleNumpad(key)}
-                                    className={`h-14 rounded-md font-bold text-xl transition-all active:scale-95 select-none ${
+                                    className={`h-14 font-bold text-xl transition-all active:scale-95 select-none ${
                                         key === '⌫'
                                             ? 'bg-white/5 text-rose-400 text-2xl'
                                             : 'bg-white/8 text-white hover:bg-white/15'
                                     }`}
+                                    style={{ borderRadius: '3px' }}
                                 >
                                     {key}
                                 </button>
@@ -296,11 +302,12 @@ export default function QuickExpenseSheet({
                             <button
                                 onClick={handleSave}
                                 disabled={!amount}
-                                className={`w-full py-2.5 rounded-md text-lg font-bold text-white transition-all active:scale-[0.98] ${
+                                className={`w-full py-2.5 text-lg font-bold text-white transition-all active:scale-[0.98] disabled:opacity-30 ${
                                     type === 'expense'
-                                        ? 'bg-gradient-to-r from-rose-500 to-rose-600  shadow-rose-500/20'
-                                        : 'bg-gradient-to-r from-blue-500 to-blue-600  shadow-blue-500/20'
-                                } disabled:opacity-30`}
+                                        ? 'bg-rose-500 hover:bg-rose-400'
+                                        : 'bg-blue-500 hover:bg-blue-400'
+                                }`}
+                                style={{ borderRadius: '3px' }}
                             >
                                 {amount
                                     ? `${Number(amount).toLocaleString()}원 저장`

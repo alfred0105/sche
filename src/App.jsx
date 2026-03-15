@@ -216,49 +216,74 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen relative pb-28 overflow-x-hidden text-slate-400">
+    <div className="min-h-screen text-slate-300" style={{ paddingBottom: '80px' }}>
       <Toaster
         position="top-right"
         toastOptions={{
           style: {
-            background: 'var(--toast-bg, #111113)',
+            background: 'var(--toast-bg, #1a1a1e)',
             color: 'var(--toast-text, #e2e8f0)',
-            borderRadius: '6px',
-            padding: '10px 16px',
-            border: '1px solid rgba(255,255,255,0.08)',
-            fontSize: '13px',
+            borderRadius: '4px',
+            padding: '8px 14px',
+            border: '1px solid rgba(255,255,255,0.1)',
+            fontSize: '12px',
+            boxShadow: 'none',
           },
         }}
       />
 
-      {/* Top bar */}
-      <div className="sticky top-0 z-30 bg-[#09090b] border-b border-white/8">
-        <div className="max-w-5xl mx-auto px-3 md:px-5">
-          {/* Header row */}
-          <div className="flex items-center justify-between h-11">
-            <div className="flex items-center gap-2">
-              <LayoutDashboard className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-              <span className="text-sm font-bold text-white">올라운더</span>
-              <span className="hidden md:flex items-center gap-1 text-xs text-slate-500">
-                <ChevronLeft className="w-3 h-3 cursor-pointer hover:text-slate-300" onClick={() => setCurrentDate(addDays(currentDate, -1))} />
-                {displayDate} {['일','월','화','수','목','금','토'][currentDate.getDay()]}
-                <ChevronRight className="w-3 h-3 cursor-pointer hover:text-slate-300" onClick={() => setCurrentDate(addDays(currentDate, 1))} />
-                {!isSameDay(currentDate, new Date()) && (
-                  <button onClick={() => setCurrentDate(new Date())} className="text-indigo-400 hover:text-indigo-300 ml-1">오늘</button>
-                )}
-              </span>
+      {/* Top bar — Linear style */}
+      <div className="sticky top-0 z-30 bg-[#090909]" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="max-w-5xl mx-auto px-4">
+          {/* Single row: logo | tabs | date + actions */}
+          <div className="flex items-center gap-0">
+            {/* Logo */}
+            <div className="flex items-center gap-1.5 pr-4 mr-2" style={{ borderRight: '1px solid rgba(255,255,255,0.08)' }}>
+              <LayoutDashboard className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="text-xs font-semibold text-white tracking-tight">올라운더</span>
             </div>
-            <div className="flex items-center gap-1">
-              <button onClick={() => setIsSearchOpen(true)} className="p-1.5 rounded hover:bg-white/8 text-slate-400 hover:text-slate-200" aria-label="검색">
-                <Search className="w-4 h-4" />
+            {/* Tabs */}
+            <nav className="flex flex-1 overflow-x-auto [&::-webkit-scrollbar]:hidden" role="tablist">
+              {TABS.map((tab) => {
+                const Icon = IconMap[tab.icon];
+                const isActive = currentTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    role="tab"
+                    id={`tab-${tab.id}`}
+                    aria-selected={isActive}
+                    onClick={() => setCurrentTab(tab.id)}
+                    className={`flex items-center gap-1 px-3 h-10 text-[11px] font-medium whitespace-nowrap border-b-2 ${
+                      isActive ? 'border-indigo-500 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    <Icon className="w-3 h-3" />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </nav>
+            {/* Right: date + actions */}
+            <div className="flex items-center gap-1 pl-2" style={{ borderLeft: '1px solid rgba(255,255,255,0.08)' }}>
+              <div className="hidden md:flex items-center gap-0.5 text-[11px] text-slate-500 mr-1">
+                <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-1 hover:text-slate-300"><ChevronLeft className="w-3 h-3" /></button>
+                <span>{displayDate} {['일','월','화','수','목','금','토'][currentDate.getDay()]}</span>
+                <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-1 hover:text-slate-300"><ChevronRight className="w-3 h-3" /></button>
+                {!isSameDay(currentDate, new Date()) && (
+                  <button onClick={() => setCurrentDate(new Date())} className="text-indigo-400 text-[10px] px-1 hover:text-indigo-300">오늘</button>
+                )}
+              </div>
+              <button onClick={() => setIsSearchOpen(true)} className="p-1.5 text-slate-500 hover:text-slate-300" aria-label="검색">
+                <Search className="w-3.5 h-3.5" />
               </button>
-              <button onClick={() => setIsSettingOpen(true)} className="w-7 h-7 rounded bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold hover:bg-indigo-500/30" aria-label="설정">
+              <button onClick={() => setIsSettingOpen(true)} className="w-6 h-6 text-[10px] font-bold text-indigo-400 border border-indigo-500/40 hover:border-indigo-400 hover:bg-indigo-500/10" style={{ borderRadius: '3px' }} aria-label="설정">
                 {userProfile?.name?.charAt(0) || '나'}
               </button>
             </div>
           </div>
-          {/* Mobile date row */}
-          <div className="flex md:hidden items-center gap-1 pb-1 text-xs text-slate-500">
+          {/* Mobile date — below tabs */}
+          <div className="flex md:hidden items-center gap-1 pb-1 text-[11px] text-slate-500">
             <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-0.5 hover:text-slate-300"><ChevronLeft className="w-3 h-3" /></button>
             {displayDate} {['일','월','화','수','목','금','토'][currentDate.getDay()]}요일
             <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-0.5 hover:text-slate-300"><ChevronRight className="w-3 h-3" /></button>
@@ -266,30 +291,6 @@ export default function App() {
               <button onClick={() => setCurrentDate(new Date())} className="text-indigo-400 ml-1">오늘</button>
             )}
           </div>
-          {/* Tab nav */}
-          <nav className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="메인 탭">
-            {TABS.map((tab) => {
-              const Icon = IconMap[tab.icon];
-              const isActive = currentTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  role="tab"
-                  id={`tab-${tab.id}`}
-                  aria-selected={isActive}
-                  onClick={() => setCurrentTab(tab.id)}
-                  className={`flex items-center gap-1 px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
-                    isActive
-                      ? 'border-indigo-500 text-indigo-400'
-                      : 'border-transparent text-slate-500 hover:text-slate-300'
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" aria-hidden="true" />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
         </div>
       </div>
 

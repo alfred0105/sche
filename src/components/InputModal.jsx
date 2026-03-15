@@ -214,21 +214,22 @@ export default function InputModal({
             <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} aria-hidden="true" />
             <div
                 ref={modalRef}
-                className="relative glass-card bg-[#111113] w-full max-w-md rounded-lg overflow-hidden flex flex-col border border-white/20 dark:border-white/5 my-8 max-h-[90vh]"
+                className="relative bg-[#111113] w-full max-w-md overflow-hidden flex flex-col border border-white/20 dark:border-white/5 my-8 max-h-[90vh]"
+                style={{ borderRadius: '6px' }}
             >
                 <header className="glass px-3 py-3 border-b border-white/10 flex justify-between items-center z-10 shrink-0">
                     <div className="flex flex-col">
                         <h3 id="input-modal-title" className="text-lg font-bold tracking-tight text-slate-100">새로운 기록 추가</h3>
                         <p className="text-[11px] text-slate-400 font-bold">{displayDate}</p>
                     </div>
-                    <button onClick={onClose} className="p-2 bg-white/50 dark:bg-white/5 rounded-full hover:bg-white/10 transition-colors" aria-label="닫기">
+                    <button onClick={onClose} className="p-2 bg-white/5 hover:bg-white/10 transition-colors" style={{ borderRadius: '3px' }} aria-label="닫기">
                         <X className="w-5 h-5 text-slate-400" />
                     </button>
                 </header>
 
                 <div className="p-3 md:p-3 overflow-y-auto space-y-3 bg-slate-50/50 dark:bg-[#0f1115]/50 flex-1 [&::-webkit-scrollbar]:hidden">
                     {/* Mode Selector */}
-                    <div className="flex bg-slate-200/50 dark:bg-white/5 p-1 rounded-md" role="tablist" aria-label="입력 모드 선택">
+                    <div className="flex border-b border-white/10" role="tablist" aria-label="입력 모드 선택">
                         {[
                             { mode: 'expense', label: '지출', activeColor: 'text-rose-500' },
                             { mode: 'income', label: '수입', activeColor: 'text-blue-500' },
@@ -240,7 +241,7 @@ export default function InputModal({
                                 role="tab"
                                 aria-selected={inputMode === mode}
                                 onClick={() => handleModeChange(mode)}
-                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${inputMode === mode ? `bg-[#111113] shadow-none ${activeColor}` : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                                className={`flex-1 py-2 text-xs font-bold transition-all ${inputMode === mode ? `border-b-2 border-indigo-400 ${activeColor}` : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 {label}
                             </button>
@@ -258,7 +259,7 @@ export default function InputModal({
                             value={formTitle}
                             onChange={(e) => setFormTitle(e.target.value)}
                             placeholder={inputMode === 'schedule' ? '예: 전공 필수 멘토링 회의' : inputMode === 'goal' ? '달성하고자 하는 주요 과제' : '사용처 (예: 네이버 페이 - 서적)'}
-                            className={`w-full bg-[#111113] px-3 py-2.5 rounded-md text-lg font-bold tracking-tight text-slate-400 focus:ring-4 outline-none transition-all shadow-none border ${hasInteracted && !formTitle.trim() ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
+                            className={`w-full bg-[#0d0d0f] px-0 py-2 text-lg font-bold tracking-tight text-slate-400 outline-none transition-all border-b ${hasInteracted && !formTitle.trim() ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'}`}
                             aria-required="true"
                             aria-invalid={hasInteracted && !formTitle.trim()}
                         />
@@ -275,7 +276,7 @@ export default function InputModal({
                                 type="date"
                                 value={formDate}
                                 onChange={(e) => setFormDate(e.target.value)}
-                                className={`w-full bg-[#111113] px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none border ${hasInteracted && !formDate ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500'}`}
+                                className={`w-full bg-[#0d0d0f] px-0 py-2 text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all border-b ${hasInteracted && !formDate ? 'border-red-500' : 'border-white/10 focus:border-indigo-500'}`}
                                 aria-required="true"
                             />
                         </div>
@@ -283,11 +284,11 @@ export default function InputModal({
                             <>
                                 <div className="flex-1">
                                     <label htmlFor="input-start-time" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">시작 시간</label>
-                                    <input id="input-start-time" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
+                                    <input id="input-start-time" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all" />
                                 </div>
                                 <div className="flex-1">
                                     <label htmlFor="input-end-time" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">종료 시간</label>
-                                    <input id="input-end-time" type="time" value={scheduleEndTime} onChange={(e) => setScheduleEndTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
+                                    <input id="input-end-time" type="time" value={scheduleEndTime} onChange={(e) => setScheduleEndTime(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all" />
                                 </div>
                             </>
                         )}
@@ -298,7 +299,7 @@ export default function InputModal({
                         <div className="space-y-3">
                             <div>
                                 <label htmlFor="input-amount" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">가치 금액 *</label>
-                                <div className={`flex items-center bg-[#111113] border rounded-md overflow-hidden transition-all shadow-none outline-none px-3 ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500 focus-within:ring-4 focus-within:ring-red-500/10' : 'border-white/10 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
+                                <div className={`flex items-center bg-[#0d0d0f] border-b overflow-hidden transition-all outline-none ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500' : 'border-white/10 focus-within:border-indigo-500'}`}>
                                     <input
                                         id="input-amount"
                                         type="text"
@@ -321,14 +322,15 @@ export default function InputModal({
                                         key={wan}
                                         type="button"
                                         onClick={() => setInputValue(prev => String((Number(prev) || 0) + wan * 10000))}
-                                        className="flex-1 min-w-0 py-2 text-xs font-bold bg-[#111113] border border-white/10 rounded-lg text-slate-400 hover:border-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                        className="flex-1 min-w-0 py-2 text-xs font-bold bg-[#111113] border border-white/10 text-slate-400 hover:border-indigo-500/50 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                                        style={{ borderRadius: '3px' }}
                                     >
                                         +{wan}만
                                     </button>
                                 ))}
                             </div>
 
-                            <div className="flex items-center gap-2.5 bg-[#09090b] p-3 rounded-md border border-white/10">
+                            <div className="flex items-center gap-2.5 border-b border-white/10 py-3">
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                     <input type="checkbox" checked={taxDeductible} onChange={(e) => setTaxDeductible(e.target.checked)} className="w-4 h-4 text-rose-500 rounded border-slate-300 focus:ring-rose-500" />
                                     <span className="text-xs font-bold text-slate-400">연말정산/증빙 포함 (영수증)</span>
@@ -349,22 +351,22 @@ export default function InputModal({
 
                     {/* Goal Type Selector */}
                     {inputMode === 'goal' && (
-                        <div className="bg-purple-50 dark:bg-purple-500/10 p-3 rounded-md border border-purple-100 dark:border-purple-500/20 space-y-2.5">
+                        <div className="border-b border-white/6 py-3 space-y-2.5">
                             <div className="flex gap-2" role="group" aria-label="목표 유형">
                                 {[{ value: 'short', label: '단기 수립' }, { value: 'mid', label: '중기 플랜' }, { value: 'long', label: '장기 비전' }].map(({ value, label }) => (
-                                    <button key={value} onClick={() => setGoalType(value)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${goalType === value ? 'bg-purple-500 text-white border-purple-500' : 'bg-[#111113] text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/30'}`}>
+                                    <button key={value} onClick={() => setGoalType(value)} className={`flex-1 py-2 text-xs font-bold border transition-colors ${goalType === value ? 'bg-purple-500 text-white border-purple-500' : 'bg-[#111113] text-purple-400 border-white/10'}`} style={{ borderRadius: '3px' }}>
                                         {label}
                                     </button>
                                 ))}
                             </div>
                             <div className="flex gap-2" role="group" aria-label="추적 방식">
-                                <button onClick={() => setGoalTrackerType('checklist')} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${goalTrackerType === 'checklist' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-[#111113] text-indigo-400 border-indigo-200 dark:border-indigo-500/30'}`}>체크리스트 기반</button>
-                                <button onClick={() => setGoalTrackerType('numeric')} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${goalTrackerType === 'numeric' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-[#111113] text-indigo-400 border-indigo-200 dark:border-indigo-500/30'}`}>수치 도달 (30+종)</button>
+                                <button onClick={() => setGoalTrackerType('checklist')} className={`flex-1 py-2 text-xs font-bold border transition-colors ${goalTrackerType === 'checklist' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-[#111113] text-indigo-400 border-white/10'}`} style={{ borderRadius: '3px' }}>체크리스트 기반</button>
+                                <button onClick={() => setGoalTrackerType('numeric')} className={`flex-1 py-2 text-xs font-bold border transition-colors ${goalTrackerType === 'numeric' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-[#111113] text-indigo-400 border-white/10'}`} style={{ borderRadius: '3px' }}>수치 도달 (30+종)</button>
                             </div>
                             {goalTrackerType === 'numeric' && (
                                 <div className="flex gap-2">
                                     <div className="flex-1">
-                                        <select value={goalTrackerUnit} onChange={(e) => setGoalTrackerUnit(e.target.value)} className="w-full p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-500/30 outline-none text-xs font-bold text-slate-200 bg-[#111113]" aria-label="단위 선택">
+                                        <select value={goalTrackerUnit} onChange={(e) => setGoalTrackerUnit(e.target.value)} className="w-full p-2.5 border border-white/10 outline-none text-xs font-bold text-slate-200 bg-[#111113]" style={{ borderRadius: '3px' }} aria-label="단위 선택">
                                             {TRACKER_UNITS.map((g) => (
                                                 <optgroup key={g.category} label={g.category}>
                                                     {g.options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -373,7 +375,7 @@ export default function InputModal({
                                         </select>
                                     </div>
                                     <div className="flex-1">
-                                        <input type="number" value={goalTargetValue} onChange={(e) => setGoalTargetValue(e.target.value)} placeholder="목표 수치" className="w-full text-center p-2.5 rounded-lg border border-indigo-200 dark:border-indigo-500/30 outline-none text-xs font-bold text-indigo-400 bg-[#111113]" aria-label="목표 수치" />
+                                        <input type="number" value={goalTargetValue} onChange={(e) => setGoalTargetValue(e.target.value)} placeholder="목표 수치" className="w-full text-center bg-[#0d0d0f] border-b border-white/10 px-0 py-2 outline-none text-xs font-bold text-indigo-400 font-mono tabular-nums" aria-label="목표 수치" />
                                     </div>
                                 </div>
                             )}
@@ -395,7 +397,8 @@ export default function InputModal({
                                                 role="radio"
                                                 aria-checked={isSelected}
                                                 onClick={() => setActiveCategoryId(cat.id)}
-                                                className={`flex flex-col items-center justify-center p-3 rounded-md border transition-all ${isSelected ? (inputMode === 'expense' ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400' : inputMode === 'income' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'border-indigo-500 bg-indigo-500/10 text-indigo-400') : 'bg-[#111113] border-white/10 text-slate-500 hover:bg-white/10'} shadow-none`}
+                                                className={`flex flex-col items-center justify-center p-3 border transition-all ${isSelected ? (inputMode === 'expense' ? 'border-rose-500 bg-rose-500/20 text-rose-400' : inputMode === 'income' ? 'border-blue-500 bg-blue-500/20 text-blue-400' : 'border-indigo-500 bg-indigo-500/10 text-indigo-400') : 'bg-[#111113] border-white/10 text-slate-500 hover:bg-white/10'}`}
+                                                style={{ borderRadius: '3px' }}
                                             >
                                                 <CatIconNode className="w-5 h-5 mb-1" aria-hidden="true" />
                                                 <span className="text-[10px] font-bold truncate w-full text-center">{cat.label}</span>
@@ -408,7 +411,7 @@ export default function InputModal({
                             {inputMode !== 'schedule' && (
                                 <div>
                                     <label htmlFor="input-account" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">출금/수금 계좌 선택</label>
-                                    <select id="input-account" value={formAccount} onChange={(e) => setFormAccount(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-rose-500 outline-none transition-colors">
+                                    <select id="input-account" value={formAccount} onChange={(e) => setFormAccount(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-400 focus:border-rose-500 outline-none transition-colors">
                                         {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                     </select>
                                 </div>
@@ -420,11 +423,11 @@ export default function InputModal({
                         <div className="flex gap-3">
                             <div className="flex-1">
                                 <label htmlFor="input-location" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">장소 (선택)</label>
-                                <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none" />
+                                <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all" />
                             </div>
                             <div className="w-1/3">
                                 <label htmlFor="input-priority" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">중요도</label>
-                                <select id="input-priority" value={schedulePriority} onChange={(e) => setSchedulePriority(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none">
+                                <select id="input-priority" value={schedulePriority} onChange={(e) => setSchedulePriority(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all">
                                     <option value="Low">낮음</option>
                                     <option value="Medium">보통</option>
                                     <option value="High">높음 (중요!)</option>
@@ -435,12 +438,12 @@ export default function InputModal({
 
                     <div>
                         <label htmlFor="input-memo" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">추가 상세 기록 (선택)</label>
-                        <textarea id="input-memo" value={formMemo} onChange={(e) => setFormMemo(e.target.value)} placeholder={inputMode === 'schedule' ? '회의 준비물, 참고 문헌 등을 자세히 적어두세요.' : '구체적인 지출 내역이나 영수증 메모를 적어보세요.'} rows={2} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-medium text-slate-400 resize-none focus:border-indigo-500 outline-none transition-all shadow-none" />
+                        <textarea id="input-memo" value={formMemo} onChange={(e) => setFormMemo(e.target.value)} placeholder={inputMode === 'schedule' ? '회의 준비물, 참고 문헌 등을 자세히 적어두세요.' : '구체적인 지출 내역이나 영수증 메모를 적어보세요.'} rows={2} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-medium text-slate-400 resize-none focus:border-indigo-500 outline-none transition-all" />
                     </div>
 
                     {/* Recurring */}
                     {inputMode !== 'goal' && (
-                        <div className="bg-[#111113] border border-white/10 p-3 rounded-md shadow-none flex flex-col gap-3">
+                        <div className="border-b border-white/10 py-3 flex flex-col gap-3">
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-500" />
                                 <span className="text-sm font-bold text-slate-200">정기적으로 반복되는 일정/가계부입니다 (자동 다수 생성)</span>
@@ -449,14 +452,14 @@ export default function InputModal({
                                 <div className="flex flex-col gap-3 mt-1">
                                     <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="반복 주기">
                                         {['daily', 'weekdays', 'weekends', 'weekly', 'biweekly', 'custom_weekly', 'monthly', 'custom_monthly', 'yearly'].map((t) => (
-                                            <button key={t} role="radio" aria-checked={recurringType === t} onClick={() => setRecurringType(t)} className={`flex-1 min-w-[30%] text-xs py-2 rounded-lg font-bold border transition ${recurringType === t ? 'border-indigo-500 bg-indigo-50 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'border-slate-200 text-slate-500 dark:border-white/10 dark:text-slate-400'}`}>
+                                            <button key={t} role="radio" aria-checked={recurringType === t} onClick={() => setRecurringType(t)} className={`flex-1 min-w-[30%] text-xs py-2 font-bold border transition ${recurringType === t ? 'border-indigo-500 bg-indigo-500/20 text-indigo-400' : 'border-white/10 text-slate-400'}`} style={{ borderRadius: '3px' }}>
                                                 {t === 'daily' ? '매일' : t === 'weekdays' ? '평일' : t === 'weekends' ? '주말' : t === 'weekly' ? '매주' : t === 'biweekly' ? '격주' : t === 'monthly' ? '매월' : t === 'yearly' ? '매년' : t === 'custom_weekly' ? '주간 여러개' : '월간 여러개'}
                                             </button>
                                         ))}
                                     </div>
 
                                     {(recurringType === 'custom_weekly' || recurringType === 'custom_monthly') && (
-                                        <div className="bg-[#09090b] p-3 rounded-lg border border-white/10 space-y-2 mt-2">
+                                        <div className="border-b border-white/10 py-3 space-y-2 mt-2">
                                             <span className="text-[10px] font-bold text-slate-400">조건 추가 갯수 제한은 없습니다. 자유롭게 등록하세요!</span>
                                             {customRecurringDays.map((item) => (
                                                 <div key={item.id} className="flex gap-2 items-center flex-wrap">
@@ -481,7 +484,7 @@ export default function InputModal({
                                                     </button>
                                                 </div>
                                             ))}
-                                            <button onClick={() => setCustomRecurringDays([...customRecurringDays, { id: generateId(), val: 1, time: '09:00', endTime: '10:00' }])} className="w-full text-xs font-bold bg-indigo-500 text-white py-2 rounded shadow-none hover:bg-indigo-600 active:scale-95 transition mt-2">
+                                            <button onClick={() => setCustomRecurringDays([...customRecurringDays, { id: generateId(), val: 1, time: '09:00', endTime: '10:00' }])} className="w-full text-xs font-bold bg-indigo-500 text-white py-2 hover:bg-indigo-400 active:scale-95 transition mt-2" style={{ borderRadius: '3px' }}>
                                                 + 리스트 추가
                                             </button>
                                         </div>
@@ -490,7 +493,7 @@ export default function InputModal({
                                         <input type="checkbox" checked={excludeHolidays} onChange={(e) => setExcludeHolidays(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-500" />
                                         <span className="text-xs font-bold text-slate-400">법정 공휴일은 건너뛰기</span>
                                     </label>
-                                    <div className="flex items-center gap-2 bg-[#09090b] p-2 px-3 rounded-lg border border-white/10">
+                                    <div className="flex items-center gap-2 border-b border-white/10 py-2">
                                         <span className="text-xs font-bold text-slate-400">총 생성 횟수</span>
                                         <input type="number" min="2" max="365" value={recurringCount} onChange={(e) => setRecurringCount(e.target.value)} className="w-16 bg-[#111113] border border-white/10 text-center py-1 rounded text-sm font-bold tracking-tight text-indigo-500 outline-none" aria-label="반복 횟수" />
                                         <span className="text-xs font-bold text-slate-400">회 ({recurringType === 'daily' ? '일' : recurringType === 'weekly' ? '주' : '개월'} 동안)</span>
@@ -502,7 +505,7 @@ export default function InputModal({
                 </div>
 
                 <div className="p-3 bg-[#111113] border-t border-white/10 shrink-0">
-                    <button onClick={handleConfirmSave} className={`w-full py-2.5 rounded-md font-bold tracking-tight text-white text-base shadow-none transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-400 ' : inputMode === 'income' ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 ' : inputMode === 'goal' ? 'bg-gradient-to-br from-purple-500 to-fuchsia-600 hover:from-purple-400 ' : 'bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-400 '}`}>
+                    <button onClick={handleConfirmSave} className={`w-full py-2.5 font-bold tracking-tight text-white text-base transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-rose-500 hover:bg-rose-400' : inputMode === 'income' ? 'bg-blue-500 hover:bg-blue-400' : inputMode === 'goal' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-indigo-500 hover:bg-indigo-400'}`} style={{ borderRadius: '3px' }}>
                         기록 추가 등록하기
                     </button>
                 </div>

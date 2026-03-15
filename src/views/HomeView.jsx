@@ -379,7 +379,8 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             <div className="flex justify-end">
                 <button
                     onClick={() => setShowWidgetSettings(v => !v)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold rounded-lg border transition-all ${showWidgetSettings ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-500 border-white/10 hover:text-slate-300'}`}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold border transition-all ${showWidgetSettings ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'border-white/10 text-slate-500 hover:text-slate-300 hover:bg-white/6'}`}
+                    style={{ borderRadius: '3px' }}
                     aria-expanded={showWidgetSettings}
                 >
                     <Settings className="w-3 h-3" /> 위젯 설정
@@ -388,14 +389,15 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #76 Widget settings panel */}
             {showWidgetSettings && (
-                <section className="glass-card p-3 rounded-md border border-indigo-500/20" aria-label="위젯 표시 설정">
-                    <p className="text-[10px] font-bold text-slate-500 mb-2">표시할 위젯 선택</p>
+                <section className="border border-indigo-500/20 p-3" style={{ borderRadius: '3px' }} aria-label="위젯 표시 설정">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pb-1.5 border-b border-white/8 mb-2">표시할 위젯 선택</p>
                     <div className="flex flex-wrap gap-2">
                         {WIDGET_DEFS.map(w => (
                             <button
                                 key={w.id}
                                 onClick={() => toggleWidget(w.id)}
-                                className={`px-2.5 py-1 text-[11px] font-bold rounded-lg border transition-all ${isVisible(w.id) ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-500 border-white/10'}`}
+                                className={`px-2.5 py-1 text-[11px] font-semibold border transition-all ${isVisible(w.id) ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'border-white/10 text-slate-500'}`}
+                                style={{ borderRadius: '3px' }}
                             >
                                 {isVisible(w.id) ? '✓ ' : ''}{w.label}
                             </button>
@@ -406,50 +408,49 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #84 Weekly Report Banner — Monday only */}
             {isMonday && !bannerDismissed && weeklyBannerStats && (
-                <section className="glass-card p-3 md:p-3 relative overflow-hidden border border-amber-500/20" aria-label="지난 주 성과 요약">
-                    <div className="absolute inset-0" aria-hidden="true" />
-                    <div className="relative">
-                        <div className="flex items-center justify-between mb-2">
-                            <h2 className="text-xs font-bold text-amber-400">📊 지난 주 성과 요약</h2>
-                            <button onClick={dismissBanner} className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="닫기">
-                                <X className="w-3.5 h-3.5" />
-                            </button>
+                <section className="border border-amber-500/20 p-3" aria-label="지난 주 성과 요약">
+                    <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-[11px] font-semibold text-amber-400 uppercase tracking-widest">📊 지난 주 성과 요약</h2>
+                        <button onClick={dismissBanner} className="text-slate-500 hover:text-slate-300 transition-colors" aria-label="닫기">
+                            <X className="w-3.5 h-3.5" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="p-2 text-center border-b border-white/6">
+                            <p className="text-[9px] font-semibold text-slate-500 mb-0.5">일정 완료율</p>
+                            <p className="text-base font-mono tabular-nums font-bold text-emerald-400">{weeklyBannerStats.completionPct}%</p>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                                <p className="text-[9px] font-bold text-slate-500 mb-0.5">일정 완료율</p>
-                                <p className="text-base font-bold text-emerald-400">{weeklyBannerStats.completionPct}%</p>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                                <p className="text-[9px] font-bold text-slate-500 mb-0.5">총 공부</p>
-                                <p className="text-base font-bold text-indigo-400">{weeklyBannerStats.studyHours}h {weeklyBannerStats.studyMins}m</p>
-                            </div>
-                            <div className="bg-white/5 rounded-lg p-2 text-center border border-white/10">
-                                <p className="text-[9px] font-bold text-slate-500 mb-0.5">수입 / 지출</p>
-                                <p className="text-xs font-bold">
-                                    <span className="text-blue-400">+{(weeklyBannerStats.lastWeekIncome / 10000).toFixed(0)}만</span>
-                                    <span className="text-slate-500"> / </span>
-                                    <span className="text-rose-400">-{(weeklyBannerStats.lastWeekExpense / 10000).toFixed(0)}만</span>
-                                </p>
-                            </div>
+                        <div className="p-2 text-center border-b border-white/6">
+                            <p className="text-[9px] font-semibold text-slate-500 mb-0.5">총 공부</p>
+                            <p className="text-base font-mono tabular-nums font-bold text-indigo-400">{weeklyBannerStats.studyHours}h {weeklyBannerStats.studyMins}m</p>
+                        </div>
+                        <div className="p-2 text-center border-b border-white/6">
+                            <p className="text-[9px] font-semibold text-slate-500 mb-0.5">수입 / 지출</p>
+                            <p className="text-xs font-mono tabular-nums font-bold">
+                                <span className="text-blue-400">+{(weeklyBannerStats.lastWeekIncome / 10000).toFixed(0)}만</span>
+                                <span className="text-slate-500"> / </span>
+                                <span className="text-rose-400">-{(weeklyBannerStats.lastWeekExpense / 10000).toFixed(0)}만</span>
+                            </p>
                         </div>
                     </div>
                 </section>
             )}
 
             {/* #81 Quick Entry Bar */}
-            <section className="glass-card p-2.5 rounded-md" aria-label="빠른 입력">
+            <section className="border-b border-white/6 p-2.5" aria-label="빠른 입력">
                 <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-500 shrink-0">빠른 추가</span>
+                    <span className="text-[10px] font-semibold text-slate-500 shrink-0">빠른 추가</span>
                     <button
                         onClick={() => setQuickMode(quickMode === 'expense' ? null : 'expense')}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${quickMode === 'expense' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-white/5 text-slate-400 border-white/10'}`}
+                        className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold border transition-all ${quickMode === 'expense' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/6'}`}
+                        style={{ borderRadius: '3px' }}
                     >
                         <Plus className="w-2.5 h-2.5" /> 지출
                     </button>
                     <button
                         onClick={() => setQuickMode(quickMode === 'schedule' ? null : 'schedule')}
-                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${quickMode === 'schedule' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'bg-white/5 text-slate-400 border-white/10'}`}
+                        className={`flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold border transition-all ${quickMode === 'schedule' ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30' : 'border-white/10 text-slate-400 hover:text-slate-200 hover:bg-white/6'}`}
+                        style={{ borderRadius: '3px' }}
                     >
                         <Plus className="w-2.5 h-2.5" /> 일정
                     </button>
@@ -458,36 +459,36 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                     <div className="mt-2 flex gap-1.5 items-center">
                         <input type="text" placeholder="항목명" value={quickExpense.title}
                             onChange={e => setQuickExpense(p => ({ ...p, title: e.target.value }))}
-                            className="bg-[#09090b] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-rose-500 flex-1 min-w-0" />
+                            className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none focus:border-rose-500 flex-1 min-w-0" />
                         <input type="number" placeholder="금액" value={quickExpense.amount}
                             onChange={e => setQuickExpense(p => ({ ...p, amount: e.target.value }))}
                             onKeyDown={e => e.key === 'Enter' && handleQuickExpense()}
-                            className="bg-[#09090b] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-rose-500 w-24" />
-                        <button onClick={handleQuickExpense} className="px-2.5 py-1.5 bg-rose-500 text-white text-xs font-bold rounded-lg shrink-0">추가</button>
+                            className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-mono tabular-nums font-bold text-slate-200 outline-none focus:border-rose-500 w-24" />
+                        <button onClick={handleQuickExpense} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-rose-500 hover:bg-rose-400 text-white shrink-0" style={{ borderRadius: '3px' }}>추가</button>
                     </div>
                 )}
                 {quickMode === 'schedule' && (
                     <div className="mt-2 flex gap-1.5 items-center">
                         <input type="text" placeholder="일정 제목" value={quickSchedule.title}
                             onChange={e => setQuickSchedule(p => ({ ...p, title: e.target.value }))}
-                            className="bg-[#09090b] border border-white/10 rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500 flex-1 min-w-0" />
+                            className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500 flex-1 min-w-0" />
                         <input type="time" value={quickSchedule.time}
                             onChange={e => setQuickSchedule(p => ({ ...p, time: e.target.value }))}
                             onKeyDown={e => e.key === 'Enter' && handleQuickSchedule()}
-                            className="bg-[#09090b] border border-white/10 rounded-lg px-2 py-1.5 text-xs font-bold text-slate-400 outline-none focus:border-indigo-500 [color-scheme:dark]" />
-                        <button onClick={handleQuickSchedule} className="px-2.5 py-1.5 bg-indigo-500 text-white text-xs font-bold rounded-lg shrink-0">추가</button>
+                            className="bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none focus:border-indigo-500 [color-scheme:dark]" />
+                        <button onClick={handleQuickSchedule} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-500 hover:bg-indigo-400 text-white shrink-0" style={{ borderRadius: '3px' }}>추가</button>
                     </div>
                 )}
             </section>
 
             {/* Compact Stats Strip: Weather + D-Day + Score */}
-            {isVisible('stats') && <section className="grid grid-cols-3 gap-2" aria-label="오늘의 현황">
+            {isVisible('stats') && <section className="grid grid-cols-3 border-b border-white/6" aria-label="오늘의 현황">
                 {/* Weather */}
-                <div className="glass-card p-2.5 flex flex-col items-center justify-center gap-0.5" aria-label="날씨">
+                <div className="p-2.5 flex flex-col items-center justify-center gap-0.5 border-r border-white/6" aria-label="날씨">
                     {weather ? (
                         <>
                             <span className="text-2xl">{weatherEmoji(weather.code)}</span>
-                            <span className="text-sm font-bold text-slate-100">{weather.temp}°C</span>
+                            <span className="text-sm font-mono tabular-nums font-bold text-slate-100">{weather.temp}°C</span>
                             <span className="text-[9px] text-slate-500">{weather.isSeoul ? '서울' : '현재'}</span>
                         </>
                     ) : (
@@ -499,11 +500,11 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                 </div>
 
                 {/* D-Day */}
-                <div className="glass-card p-2.5 flex flex-col items-center justify-center gap-0.5 overflow-hidden" aria-label="D-Day">
+                <div className="p-2.5 flex flex-col items-center justify-center gap-0.5 overflow-hidden border-r border-white/6" aria-label="D-Day">
                     {ddayGoal ? (
                         <>
                             <span className="text-xl">{ddayGoal.icon || '🎯'}</span>
-                            <span className="text-sm font-bold text-indigo-400">D-{differenceInDays(parseISO(ddayGoal.deadline), new Date())}</span>
+                            <span className="text-sm font-mono tabular-nums font-bold text-indigo-400">D-{differenceInDays(parseISO(ddayGoal.deadline), new Date())}</span>
                             <span className="text-[9px] text-slate-500 truncate w-full text-center">{ddayGoal.title}</span>
                         </>
                     ) : (
@@ -516,12 +517,12 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
                 {/* Productivity Score + Review streak */}
                 <div
-                    className={`glass-card p-2.5 flex flex-col items-center justify-center gap-0.5 border cursor-pointer hover:opacity-80 transition-opacity ${scoreBg}`}
+                    className={`p-2.5 flex flex-col items-center justify-center gap-0.5 cursor-pointer hover:bg-white/[0.03] transition-colors`}
                     aria-label="생산성 점수 및 회고 스트릭"
                     onClick={() => setCurrentTab('review')}
                 >
                     <Activity className="w-4 h-4 text-indigo-400" aria-hidden="true" />
-                    <span className={`text-lg font-bold tracking-tight ${scoreColor}`}>{productivityScore}</span>
+                    <span className={`text-lg font-mono tabular-nums font-bold tracking-tight ${scoreColor}`}>{productivityScore}</span>
                     <span className="text-[9px] text-slate-500">주간점수</span>
                     {reviewStreak > 0 ? (
                         <span className="text-[9px] font-bold text-orange-400">🔥{reviewStreak}일 회고</span>
@@ -532,173 +533,162 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             </section>}
 
             {/* Schedule Widget */}
-            {isVisible('schedule') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 일정">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-400/10 dark:bg-indigo-500/20 blur-3xl rounded-full" aria-hidden="true" />
-                <div className="relative">
-                    <div className="flex justify-between items-center mb-3">
-                        <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
-                            <CalendarCheck className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 오늘의 일정
-                            {todaySchedules.length > 0 && (
-                                <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">{todayCompletedCount}/{todaySchedules.length}</span>
-                            )}
-                        </h2>
-                        <button onClick={() => setCurrentTab('schedule')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5" aria-label="전체 일정 보기">
-                            전체 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-                        </button>
-                    </div>
-
-                    {todaySchedules.length === 0 ? (
-                        <p className="text-xs text-slate-500 py-2">오늘 등록된 일정이 없습니다.</p>
-                    ) : (
-                        <div className="space-y-1.5" role="list" aria-label="오늘의 일정 목록">
-                            {todaySchedules.slice(0, 4).map((sc) => (
-                                <div key={sc.id} className="flex items-center gap-2 py-1" role="listitem">
-                                    <button
-                                        className="shrink-0 active:scale-90 transition-transform"
-                                        onClick={() => toggleSchedule(sc.id)}
-                                        aria-label={sc.completed ? '일정 미완료로 변경' : '일정 완료로 변경'}
-                                    >
-                                        {sc.completed
-                                            ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
-                                            : <Circle className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />}
-                                    </button>
-                                    <div className="flex-1 min-w-0">
-                                        <p className={`text-xs font-bold truncate ${sc.completed ? 'text-slate-500 line-through' : 'text-slate-300'}`}>{sc.title}</p>
-                                        {sc.time && <p className="text-[10px] text-slate-500">{sc.time}{sc.endTime ? ` ~ ${sc.endTime}` : ''}</p>}
-                                    </div>
-                                    {sc.color && <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: sc.color }} aria-hidden="true" />}
-                                </div>
-                            ))}
-                            {todaySchedules.length > 4 && <p className="text-[10px] text-slate-500 text-center">+{todaySchedules.length - 4}개 더</p>}
-                        </div>
-                    )}
-
-                    {todaySchedules.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-white/10" aria-live="polite">
-                            <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] font-bold text-slate-500">달성률</span>
-                                <span className="text-[10px] font-bold text-indigo-400">{Math.round((todayCompletedCount / todaySchedules.length) * 100)}%</span>
-                            </div>
-                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar">
-                                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all" style={{ width: `${(todayCompletedCount / todaySchedules.length) * 100}%` }} />
-                            </div>
-                        </div>
-                    )}
+            {isVisible('schedule') && <section aria-label="오늘의 일정">
+                <div className="flex justify-between items-center py-2 border-b border-white/8">
+                    <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <CalendarCheck className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 오늘의 일정
+                        {todaySchedules.length > 0 && (
+                            <span className="text-[10px] font-semibold bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5">{todayCompletedCount}/{todaySchedules.length}</span>
+                        )}
+                    </h2>
+                    <button onClick={() => setCurrentTab('schedule')} className="text-[11px] font-semibold text-indigo-500 flex items-center gap-0.5" aria-label="전체 일정 보기">
+                        전체 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
                 </div>
+
+                {todaySchedules.length === 0 ? (
+                    <p className="text-xs text-slate-500 py-2.5">오늘 등록된 일정이 없습니다.</p>
+                ) : (
+                    <div role="list" aria-label="오늘의 일정 목록">
+                        {todaySchedules.slice(0, 4).map((sc) => (
+                            <div key={sc.id} className="flex items-center gap-2 py-2.5 border-b border-white/6 hover:bg-white/[0.03]" role="listitem">
+                                <button
+                                    className="shrink-0 active:scale-90 transition-transform"
+                                    onClick={() => toggleSchedule(sc.id)}
+                                    aria-label={sc.completed ? '일정 미완료로 변경' : '일정 완료로 변경'}
+                                >
+                                    {sc.completed
+                                        ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                                        : <Circle className="w-4 h-4 text-slate-600 hover:text-slate-400 transition-colors" />}
+                                </button>
+                                <div className="flex-1 min-w-0">
+                                    <p className={`text-xs font-bold truncate ${sc.completed ? 'text-slate-600 line-through' : 'text-slate-300'}`}>{sc.title}</p>
+                                    {sc.time && <p className="text-[10px] text-slate-500 font-mono tabular-nums">{sc.time}{sc.endTime ? ` ~ ${sc.endTime}` : ''}</p>}
+                                </div>
+                                {sc.color && <div className="w-1.5 h-1.5 shrink-0" style={{ backgroundColor: sc.color, borderRadius: '50%' }} aria-hidden="true" />}
+                            </div>
+                        ))}
+                        {todaySchedules.length > 4 && <p className="text-[10px] text-slate-500 py-1.5">+{todaySchedules.length - 4}개 더</p>}
+                    </div>
+                )}
+
+                {todaySchedules.length > 0 && (
+                    <div className="pt-2 pb-1" aria-live="polite">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="text-[10px] font-semibold text-slate-500">달성률</span>
+                            <span className="text-[10px] font-mono tabular-nums font-semibold text-indigo-400">{Math.round((todayCompletedCount / todaySchedules.length) * 100)}%</span>
+                        </div>
+                        <div className="w-full h-1 bg-white/8" role="progressbar">
+                            <div className="h-1 bg-indigo-500 transition-all" style={{ width: `${(todayCompletedCount / todaySchedules.length) * 100}%` }} />
+                        </div>
+                    </div>
+                )}
             </section>}
 
             {/* Finance Widget */}
-            {isVisible('finance') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="재정 요약">
-                <div className="absolute bottom-0 left-0 w-40 h-40 bg-rose-400/10 dark:bg-fuchsia-500/10 blur-3xl rounded-full" aria-hidden="true" />
-                <div className="relative">
-                    <div className="flex justify-between items-center mb-2.5">
-                        <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
-                            <span aria-hidden="true">💰</span> 오늘의 수입 · 지출
-                        </h2>
-                        <button onClick={() => setCurrentTab('finance')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5" aria-label="재정 상세 보기">
-                            상세 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-                        </button>
+            {isVisible('finance') && <section aria-label="재정 요약">
+                <div className="flex justify-between items-center py-2 border-b border-white/8">
+                    <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <span aria-hidden="true">💰</span> 오늘의 수입 · 지출
+                    </h2>
+                    <button onClick={() => setCurrentTab('finance')} className="text-[11px] font-semibold text-indigo-500 flex items-center gap-0.5" aria-label="재정 상세 보기">
+                        상세 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                    </button>
+                </div>
+                <div className="grid grid-cols-2 border-b border-white/6">
+                    <div className="py-3 pr-3 border-r border-white/6">
+                        <p className="text-[10px] font-semibold text-blue-400 mb-0.5">수입</p>
+                        <p className="text-base font-mono tabular-nums font-bold text-emerald-400">+₩{todayIncome.toLocaleString()}</p>
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-blue-500/10 p-3 rounded-md border border-blue-500/20">
-                            <p className="text-[10px] font-bold text-blue-400 mb-0.5">수입</p>
-                            <p className="text-base font-bold tracking-tight text-blue-400">+₩{todayIncome.toLocaleString()}</p>
-                        </div>
-                        <div className="bg-rose-500/10 p-3 rounded-md border border-rose-500/20">
-                            <p className="text-[10px] font-bold text-rose-400 mb-0.5">지출</p>
-                            <p className="text-base font-bold tracking-tight text-rose-400">-₩{todayExpense.toLocaleString()}</p>
-                        </div>
+                    <div className="py-3 pl-3">
+                        <p className="text-[10px] font-semibold text-rose-400 mb-0.5">지출</p>
+                        <p className="text-base font-mono tabular-nums font-bold text-rose-400">-₩{todayExpense.toLocaleString()}</p>
                     </div>
-                    <div className="mt-3" aria-label="자산 추이 차트" role="img">
-                        <p className="text-[10px] font-bold text-slate-500 mb-1.5">최근 {CHART_DAYS_RANGE}일 자산 추이</p>
-                        <div className="h-24 w-full rounded-md overflow-hidden bg-white/[0.02] p-1.5 border border-white/10">
-                            {transactions.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-slate-600 text-xs font-bold">아직 거래 내역이 없습니다</div>
-                            ) : (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={assetData}>
-                                    <defs>
-                                        <linearGradient id="homeGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-                                            <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <Area type="monotone" dataKey="자산" stroke="#6366f1" fill="url(#homeGrad)" strokeWidth={2} dot={false} />
-                                    <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '11px', fontWeight: 'bold', color: '#e2e8f0' }} />
-                                </AreaChart>
-                            </ResponsiveContainer>
-                            )}
-                        </div>
+                </div>
+                <div className="pt-2" aria-label="자산 추이 차트" role="img">
+                    <p className="text-[10px] font-semibold text-slate-500 mb-1.5">최근 {CHART_DAYS_RANGE}일 자산 추이</p>
+                    <div className="h-24 w-full overflow-hidden bg-white/[0.02] p-1.5 border border-white/8">
+                        {transactions.length === 0 ? (
+                            <div className="h-full flex items-center justify-center text-slate-600 text-xs font-bold">아직 거래 내역이 없습니다</div>
+                        ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={assetData}>
+                                <defs>
+                                    <linearGradient id="homeGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
+                                        <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <Area type="monotone" dataKey="자산" stroke="#6366f1" fill="url(#homeGrad)" strokeWidth={2} dot={false} />
+                                <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '11px', fontWeight: 'bold', color: '#e2e8f0' }} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                        )}
                     </div>
                 </div>
             </section>}
 
             {/* #49 Goal Mini Gauges Widget */}
             {isVisible('goal') && topGoals.length > 0 && (
-                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="진행 중 목표">
-                    <div className="absolute top-0 left-0 w-32 h-32 bg-purple-400/10 dark:bg-purple-500/20 blur-3xl rounded-full" aria-hidden="true" />
-                    <div className="relative">
-                        <div className="flex justify-between items-center mb-2.5">
-                            <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
-                                <Flag className="w-4 h-4 text-purple-500" aria-hidden="true" /> 진행 중 목표
-                            </h2>
-                            <button onClick={() => setCurrentTab('goal')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5" aria-label="목표 상세 보기">
-                                전체 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
-                            </button>
-                        </div>
-                        <div className="space-y-2.5">
-                            {topGoals.map(goal => (
-                                <div key={goal.id} className="bg-white/[0.03] p-3 rounded-md border border-white/10">
-                                    <div className="flex items-center gap-2 mb-1.5">
-                                        <span className="text-base" aria-hidden="true">{goal.icon || '🎯'}</span>
-                                        <p className="text-xs font-bold text-slate-100 flex-1 truncate">{goal.title}</p>
-                                        <span className="text-sm font-bold tracking-tight text-indigo-400 shrink-0">{goal.progress}%</span>
-                                    </div>
-                                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
-                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${goal.progress}%` }} />
-                                    </div>
-                                    {goal.deadline && (
-                                        <p className="text-[10px] text-slate-500 mt-1">
-                                            {(() => {
-                                                const d = differenceInDays(parseISO(goal.deadline), new Date());
-                                                return d < 0 ? `D+${Math.abs(d)} 초과` : d === 0 ? 'D-Day!' : `D-${d}`;
-                                            })()}
-                                        </p>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
+                <section aria-label="진행 중 목표">
+                    <div className="flex justify-between items-center py-2 border-b border-white/8">
+                        <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                            <Flag className="w-3.5 h-3.5 text-purple-500" aria-hidden="true" /> 진행 중 목표
+                        </h2>
+                        <button onClick={() => setCurrentTab('goal')} className="text-[11px] font-semibold text-indigo-500 flex items-center gap-0.5" aria-label="목표 상세 보기">
+                            전체 <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        </button>
                     </div>
+                    {topGoals.map(goal => (
+                        <div key={goal.id} className="flex items-center gap-3 py-2.5 border-b border-white/6 hover:bg-white/[0.03]">
+                            <span className="text-base shrink-0" aria-hidden="true">{goal.icon || '🎯'}</span>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1">
+                                    <p className="text-xs font-bold text-slate-200 truncate">{goal.title}</p>
+                                    <span className="text-xs font-mono tabular-nums font-bold text-indigo-400 shrink-0 ml-2">{goal.progress}%</span>
+                                </div>
+                                <div className="w-full h-1 bg-white/8" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
+                                    <div className="h-1 bg-indigo-500 transition-all" style={{ width: `${goal.progress}%` }} />
+                                </div>
+                                {goal.deadline && (
+                                    <p className="text-[10px] text-slate-500 mt-1 font-mono tabular-nums">
+                                        {(() => {
+                                            const d = differenceInDays(parseISO(goal.deadline), new Date());
+                                            return d < 0 ? `D+${Math.abs(d)} 초과` : d === 0 ? 'D-Day!' : `D-${d}`;
+                                        })()}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    ))}
                 </section>
             )}
 
             {/* #77 Today's Study Plans */}
             {todayStudyPlans.length > 0 && (
-                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 공부 계획">
-                    <div className="flex justify-between items-center mb-2.5">
-                        <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
+                <section aria-label="오늘의 공부 계획">
+                    <div className="flex justify-between items-center py-2 border-b border-white/8">
+                        <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
                             📚 오늘의 공부 계획
                         </h2>
-                        <button onClick={() => setCurrentTab('study')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5">
+                        <button onClick={() => setCurrentTab('study')} className="text-[11px] font-semibold text-indigo-500 flex items-center gap-0.5">
                             공부 탭 <ChevronRight className="w-3.5 h-3.5" />
                         </button>
                     </div>
-                    <div className="space-y-1.5">
-                        {todayStudyPlans.map(plan => (
-                            <div key={plan.id} className={`flex items-center gap-2 py-1.5 px-2 rounded-lg border ${plan.done ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-white/[0.02] border-white/5'}`}>
-                                <span className="text-[10px] font-bold text-slate-500 shrink-0">{plan.time}~{plan.endTime}</span>
-                                <p className={`text-xs font-bold flex-1 truncate ${plan.done ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{plan.subjectTitle}{plan.note ? ` — ${plan.note}` : ''}</p>
-                                {plan.done && <span className="text-[10px] text-emerald-400">✅</span>}
-                            </div>
-                        ))}
-                    </div>
+                    {todayStudyPlans.map(plan => (
+                        <div key={plan.id} className={`flex items-center gap-2 py-2.5 border-b border-white/6 hover:bg-white/[0.03] ${plan.done ? 'opacity-60' : ''}`}>
+                            <span className="text-[10px] font-mono tabular-nums font-semibold text-slate-500 shrink-0">{plan.time}~{plan.endTime}</span>
+                            <p className={`text-xs font-bold flex-1 truncate ${plan.done ? 'text-slate-600 line-through' : 'text-slate-200'}`}>{plan.subjectTitle}{plan.note ? ` — ${plan.note}` : ''}</p>
+                            {plan.done && <span className="text-[10px] text-emerald-400">✅</span>}
+                        </div>
+                    ))}
                 </section>
             )}
 
             {/* #78 Weekly schedule completion mini chart */}
             {weeklyCompletionData.some(d => d.total > 0) && (
-                <section className="glass-card p-3 md:p-3" aria-label="주간 일정 달성 현황">
-                    <h2 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">이번 주 일정 달성</h2>
+                <section aria-label="주간 일정 달성 현황">
+                    <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8 mb-3">이번 주 일정 달성</h2>
                     <div className="flex items-end gap-1.5 h-12">
                         {weeklyCompletionData.map((d, i) => {
                             const pct = d.total > 0 ? (d.completed / d.total) * 100 : 0;
@@ -720,10 +710,10 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             )}
 
             {/* #82 Quick timer */}
-            <section className="glass-card p-3 flex items-center gap-3" aria-label="빠른 타이머">
+            <section className="flex items-center gap-3 py-2.5 border-b border-white/6" aria-label="빠른 타이머">
                 <span className="text-base">⏱️</span>
-                <span className="text-xs font-bold text-slate-400 flex-1">빠른 타이머</span>
-                <span className="text-sm font-mono font-bold text-indigo-400 min-w-[3.5rem] text-right">
+                <span className="text-xs font-semibold text-slate-400 flex-1">빠른 타이머</span>
+                <span className="text-sm font-mono tabular-nums font-bold text-indigo-400 min-w-[3.5rem] text-right">
                     {formatQuickTimer(quickTimerSecs)}
                 </span>
                 <button
@@ -736,7 +726,8 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                             setQuickTimerActive(true);
                         }
                     }}
-                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${quickTimerActive ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30 hover:bg-rose-500/20' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                    className={`px-3 py-1.5 text-xs font-semibold border transition-all ${quickTimerActive ? 'text-rose-400 border-rose-500/30 hover:bg-rose-500/10' : 'bg-indigo-500 hover:bg-indigo-400 text-white border-transparent'}`}
+                    style={{ borderRadius: '3px' }}
                 >
                     {quickTimerActive ? '⏸ 종료' : '▶ 시작'}
                 </button>
@@ -749,20 +740,18 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #83 Recent Activity Feed */}
             {isVisible('activity') && activityFeed.length > 0 && (
-                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="최근 활동 피드">
-                    <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5 mb-2.5">
-                        <Activity className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 최근 활동
-                    </h2>
-                    <div className="space-y-1" role="list">
+                <section aria-label="최근 활동 피드">
+                    <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8">최근 활동</h2>
+                    <div role="list">
                         {activityFeed.map(item => (
-                            <div key={item.id} className="flex items-center gap-2 py-1 border-b border-white/5 last:border-0" role="listitem">
-                                <div className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                            <div key={item.id} className="flex items-center gap-2 py-2.5 border-b border-white/6 hover:bg-white/[0.03]" role="listitem">
+                                <div className="w-5 h-5 flex items-center justify-center shrink-0">
                                     {activityIcon(item.type)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-[11px] font-bold text-slate-300 truncate">{item.label}</p>
                                 </div>
-                                <span className="text-[10px] font-bold text-slate-500 shrink-0">{item.sub}</span>
+                                <span className="text-[10px] font-mono tabular-nums font-semibold text-slate-500 shrink-0">{item.sub}</span>
                             </div>
                         ))}
                     </div>
@@ -770,9 +759,8 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             )}
 
             {/* #79 Daily Quote */}
-            {isVisible('quote') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 격언">
-                <div className="absolute inset-0" aria-hidden="true" />
-                <p className="relative text-[11px] italic text-slate-400 text-center leading-relaxed">"{dailyQuote}"</p>
+            {isVisible('quote') && <section className="border-t border-white/6 pt-3 pb-1" aria-label="오늘의 격언">
+                <p className="text-[11px] italic text-slate-500 text-center leading-relaxed">"{dailyQuote}"</p>
             </section>}
         </div>
     );

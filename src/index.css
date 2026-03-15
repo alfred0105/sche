@@ -23,13 +23,38 @@
   }
 }
 
-/* ===== Base Components ===== */
-.glass {
-  @apply bg-[#0d0d0f] border border-white/10;
+/* ===== Linear-style Design System ===== */
+
+/* 레거시 호환 */
+.glass { @apply bg-[#0d0d0f] border-b border-white/[0.08]; }
+.glass-card { @apply bg-transparent border-b border-white/[0.08]; }
+
+/* Row — divider 기반 목록 행 */
+.ui-row {
+  @apply flex items-center gap-3 py-2.5 border-b border-white/[0.06] hover:bg-white/[0.03] cursor-default;
 }
 
-.glass-card {
-  @apply bg-[#111113] border border-white/10 rounded-md;
+/* Section header — uppercase label */
+.ui-section {
+  @apply flex items-center justify-between px-0 pt-4 pb-1.5 text-[11px] font-semibold text-slate-500 uppercase tracking-widest border-b border-white/[0.08];
+}
+
+/* Monospace numbers */
+.num {
+  @apply font-mono tabular-nums;
+}
+
+/* Badge — flat, no rounding */
+.ui-badge {
+  @apply text-[10px] font-semibold px-1.5 py-0.5 rounded-sm;
+}
+
+/* Button — minimal */
+.ui-btn {
+  @apply flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-sm border border-white/10 text-slate-400 hover:bg-white/[0.06] hover:text-slate-200;
+}
+.ui-btn-primary {
+  @apply flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm bg-indigo-500 text-white hover:bg-indigo-400;
 }
 
 /* ===== Light Mode Overrides ===== */
@@ -49,8 +74,8 @@ html:not(.dark) .glass {
 }
 
 html:not(.dark) .glass-card {
-  background: #ffffff !important;
-  border-color: #e2e8f0 !important;
+  background: transparent !important;
+  border-color: rgba(0,0,0,0.08) !important;
 }
 
 html:not(.dark) [class*="bg-\\[\\#09090b\\]"] {
