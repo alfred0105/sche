@@ -18,7 +18,6 @@ import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
 import { format, subDays, startOfMonth, endOfMonth, getDay, eachDayOfInterval, getDayOfYear, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { generateId } from '../utils/helpers';
 import { supabase } from '../supabaseClient';
@@ -590,7 +589,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     }, [currentDate, setStudies]);
 
     return (
-        <section className="flex flex-col gap-4 md:gap-4 md:p-5 pb-20" aria-label="공부 및 출석부">
+        <section className="flex flex-col gap-2.5 md:gap-2.5 md:p-3 pb-20" aria-label="공부 및 출석부">
             <ConfirmModal
                 isOpen={deleteConfirm.open}
                 onClose={() => setDeleteConfirm({ open: false, id: null })}
@@ -602,21 +601,21 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             />
 
             {/* #56 Daily quote banner */}
-            <div className="glass-card px-4 py-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5">
+            <div className="glass-card px-3 py-3 rounded-md border border-indigo-500/20 bg-indigo-500/5">
                 <p className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1">오늘의 한마디</p>
                 <p className="text-sm italic text-slate-300">"{dailyQuote}"</p>
             </div>
 
             <header className="flex items-center justify-between mb-2 px-1">
                 <h2 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
-                    <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-xl" aria-hidden="true">
+                    <div className="bg-indigo-500/10 text-indigo-400 p-2 rounded-md" aria-hidden="true">
                         <BookOpen className="w-5 h-5" />
                     </div>
                     공부 및 출석부
                 </h2>
                 <button
                     onClick={() => setIsAddMode(!isAddMode)}
-                    className="px-4 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-xl text-sm font-bold shadow-none active:scale-95 transition-transform flex items-center gap-1.5"
+                    className="px-3 py-2 bg-slate-900 dark:bg-indigo-600 text-white rounded-md text-sm font-bold shadow-none active:scale-95 transition-transform flex items-center gap-1.5"
                     aria-label={isAddMode ? '추가 취소' : '새 목표 추가'}
                 >
                     {isAddMode ? '취소' : <><Plus className="w-4 h-4 stroke-[3]" aria-hidden="true" /> 목표 추가</>}
@@ -647,14 +646,14 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
             {/* #52 Subject Pie Chart tab */}
             {activeSubTab === 'stats' && (
-                <div className="glass-card p-4 md:p-5 rounded-xl">
-                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                <div className="glass-card p-3 md:p-3 rounded-md">
+                    <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2">
                         <PieIcon className="w-4 h-4 text-indigo-400" /> 과목별 공부 시간 통계
                     </h3>
                     {pieData.length === 0 ? (
                         <p className="text-sm text-slate-500 text-center py-8">아직 기록된 공부 시간이 없습니다. 타이머를 시작해보세요!</p>
                     ) : (
-                        <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="flex flex-col md:flex-row items-center gap-3">
                             <div className="w-48 h-48 shrink-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
@@ -681,12 +680,12 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
             {/* #65 Study challenge section in stats tab */}
             {activeSubTab === 'stats' && (
-                <div className="glass-card p-4 md:p-5 rounded-xl">
-                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                <div className="glass-card p-3 md:p-3 rounded-md">
+                    <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2">
                         🏆 공부 챌린지
-                        <span className="text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded-full">현재 {globalStreak}일 연속</span>
+                        <span className="text-[10px] font-bold bg-orange-500/10 text-orange-400 border border-orange-500/20 px-1.5 py-0.5 rounded">현재 {globalStreak}일 연속</span>
                     </h3>
-                    <div className="flex gap-2 flex-wrap mb-4">
+                    <div className="flex gap-2 flex-wrap mb-2">
                         {[7, 14, 30, 100].map(days => (
                             <button
                                 key={days}
@@ -704,7 +703,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                             {challenges.slice().reverse().map(c => {
                                 const pct = Math.min(Math.round((globalStreak / c.targetDays) * 100), 100);
                                 return (
-                                    <div key={c.id} className={`p-3 rounded-xl border ${c.completed ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
+                                    <div key={c.id} className={`p-3 rounded-md border ${c.completed ? 'bg-amber-500/5 border-amber-500/20' : 'bg-white/5 border-white/10'}`}>
                                         <div className="flex items-center justify-between mb-1.5">
                                             <span className="text-xs font-bold text-slate-300">{c.targetDays}일 연속 공부 챌린지</span>
                                             {c.completed
@@ -727,8 +726,8 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
             {/* #62 Weekly study report tab */}
             {activeSubTab === 'report' && (
-                <div className="glass-card p-4 md:p-5 rounded-xl">
-                    <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                <div className="glass-card p-3 md:p-3 rounded-md">
+                    <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2">
                         <BarChart3 className="w-4 h-4 text-indigo-400" /> 과목별 총 공부 시간 (시간)
                     </h3>
                     {weeklyBarData.every(d => d.시간 === 0) ? (
@@ -750,12 +749,12 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
             {/* #57 Flashcards tab */}
             {activeSubTab === 'flashcards' && (
-                <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                <div className="glass-card p-3 md:p-3 rounded-md space-y-2.5">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2">
                             🃏 플래시카드
                             {dueFlashcards.length > 0 && (
-                                <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                                <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold px-1.5 py-0.5 rounded">
                                     오늘 {dueFlashcards.length}장
                                 </span>
                             )}
@@ -769,44 +768,42 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     </div>
 
                     {/* Add card form */}
-                    <AnimatePresence>
-                        {fcAddMode && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                    {fcAddMode && (
+                            <div className="overflow-hidden">
+                                <div className="bg-[#09090b] p-3 rounded-md border border-white/10 space-y-3">
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">앞면 (질문)</label>
-                                        <textarea value={fcFront} onChange={e => setFcFront(e.target.value)} placeholder="개념, 단어, 질문..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
+                                        <textarea value={fcFront} onChange={e => setFcFront(e.target.value)} placeholder="개념, 단어, 질문..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">뒷면 (정답)</label>
-                                        <textarea value={fcBack} onChange={e => setFcBack(e.target.value)} placeholder="정답, 설명..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
+                                        <textarea value={fcBack} onChange={e => setFcBack(e.target.value)} placeholder="정답, 설명..." rows={2} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-sm text-slate-200 outline-none focus:border-indigo-500 resize-none" />
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목 연결</label>
-                                        <select value={fcSubjectId} onChange={e => setFcSubjectId(e.target.value)} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none">
+                                        <select value={fcSubjectId} onChange={e => setFcSubjectId(e.target.value)} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none">
                                             <option value="">-- 선택 안함 --</option>
                                             {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                                         </select>
                                     </div>
-                                    <button onClick={addFlashcard} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">카드 추가하기</button>
+                                    <button onClick={addFlashcard} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-sm transition-colors">카드 추가하기</button>
                                 </div>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
 
                     {/* Review mode */}
                     {dueFlashcards.length > 0 ? (
                         <div className="space-y-3">
                             <p className="text-xs font-bold text-slate-500">복습 모드 — {Math.min(fcReviewIdx + 1, dueFlashcards.length)} / {dueFlashcards.length}</p>
                             {fcReviewIdx < dueFlashcards.length ? (
-                                <div className="bg-[#09090b] p-6 rounded-xl border border-white/10 text-center space-y-4">
+                                <div className="bg-[#09090b] p-3 rounded-md border border-white/10 text-center space-y-2.5">
                                     <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">앞면</p>
                                     <p className="text-lg font-bold text-slate-100">{dueFlashcards[fcReviewIdx].front}</p>
                                     {!fcRevealed ? (
-                                        <button onClick={() => setFcRevealed(true)} className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">보기</button>
+                                        <button onClick={() => setFcRevealed(true)} className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-sm transition-colors">보기</button>
                                     ) : (
                                         <div className="space-y-3">
-                                            <div className="bg-[#111113] p-4 rounded-xl border border-white/10">
+                                            <div className="bg-[#111113] p-3 rounded-md border border-white/10">
                                                 <p className="text-xs font-bold text-slate-500 mb-2">뒷면</p>
                                                 <p className="text-base font-bold text-emerald-400">{dueFlashcards[fcReviewIdx].back}</p>
                                             </div>
@@ -815,7 +812,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                     <button
                                                         key={emoji}
                                                         onClick={() => rateFlashcard(dueFlashcards[fcReviewIdx].id, emoji)}
-                                                        className="flex flex-col items-center gap-1 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                                                        className="flex flex-col items-center gap-1 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-md border border-white/10 transition-colors"
                                                     >
                                                         <span className="text-2xl">{emoji}</span>
                                                         <span className="text-[10px] font-bold text-slate-500">
@@ -853,7 +850,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         <div className="space-y-2 pt-2 border-t border-white/10">
                             <p className="text-xs font-bold text-slate-500">전체 카드 ({flashcards.length}장)</p>
                             {flashcards.map(card => (
-                                <div key={card.id} className="flex items-center gap-3 bg-[#09090b] p-3 rounded-xl border border-white/5">
+                                <div key={card.id} className="flex items-center gap-3 bg-[#09090b] p-3 rounded-md border border-white/5">
                                     <div className="flex-1 min-w-0">
                                         <p className="text-xs font-bold text-slate-300 truncate">{card.front}</p>
                                         <p className="text-[10px] text-slate-500 truncate">{card.back}</p>
@@ -884,12 +881,12 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     return sum + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
                 }, 0);
                 return (
-                    <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                    <div className="glass-card p-3 md:p-3 rounded-md space-y-2.5">
                         {/* 헤더 */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-sm font-bold text-slate-400">📆 공부 플래너</h3>
-                                <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                                <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded">
                                     이번 주 {Math.floor(totalPlanMins / 60)}h {totalPlanMins % 60}m 계획
                                 </span>
                             </div>
@@ -908,42 +905,40 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         </div>
 
                         {/* 추가 폼 */}
-                        <AnimatePresence>
-                            {planAddMode && (
-                                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                    <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                        {planAddMode && (
+                                <div className="overflow-hidden">
+                                    <div className="bg-[#09090b] p-3 rounded-md border border-white/10 space-y-3">
                                         <div className="grid grid-cols-2 gap-3">
                                             <div className="col-span-2">
                                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
-                                                <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500">
+                                                <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500">
                                                     <option value="">-- 과목 선택 --</option>
                                                     {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
                                                 </select>
                                             </div>
                                             <div>
                                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
-                                                <input type="date" value={planForm.date} onChange={e => setPlanForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                                <input type="date" value={planForm.date} onChange={e => setPlanForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
                                             </div>
                                             <div className="grid grid-cols-2 gap-2">
                                                 <div>
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">시작</label>
-                                                    <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                                    <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
                                                 </div>
                                                 <div>
                                                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">종료</label>
-                                                    <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                                    <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-2 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
                                                 </div>
                                             </div>
                                             <div className="col-span-2">
                                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
-                                                <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="공부 내용, 목표 페이지 등..." className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" onKeyDown={e => e.key === 'Enter' && addStudyPlan()} />
+                                                <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="공부 내용, 목표 페이지 등..." className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" onKeyDown={e => e.key === 'Enter' && addStudyPlan()} />
                                             </div>
                                         </div>
-                                        <button onClick={addStudyPlan} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">계획 저장</button>
+                                        <button onClick={addStudyPlan} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-sm transition-colors">계획 저장</button>
                                     </div>
-                                </motion.div>
+                                </div>
                             )}
-                        </AnimatePresence>
 
                         {/* 주간 날짜별 플랜 목록 */}
                         <div className="space-y-2">
@@ -973,7 +968,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                 {dayPlans.map(plan => {
                                                     const subject = studies.find(s => s.id === plan.studyId);
                                                     return (
-                                                        <div key={plan.id} className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${plan.done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#09090b] border-white/10'}`}>
+                                                        <div key={plan.id} className={`flex items-center gap-2 p-2.5 rounded-md border transition-all ${plan.done ? 'bg-white/[0.02] border-white/5 opacity-50' : 'bg-[#09090b] border-white/10'}`}>
                                                             <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 active:scale-90 transition-transform">
                                                                 {plan.done
                                                                     ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
@@ -1012,7 +1007,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
             {/* #59 Exam scores tab */}
             {activeSubTab === 'scores' && (
-                <div className="glass-card p-4 md:p-5 rounded-xl space-y-4">
+                <div className="glass-card p-3 md:p-3 rounded-md space-y-2.5">
                     <div className="flex items-center justify-between">
                         <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2">📊 시험 성적 기록</h3>
                         <button
@@ -1023,14 +1018,13 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         </button>
                     </div>
 
-                    <AnimatePresence>
-                        {scoreAddMode && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                <div className="bg-[#09090b] p-4 rounded-xl border border-white/10 space-y-3">
+                    {scoreAddMode && (
+                            <div className="overflow-hidden">
+                                <div className="bg-[#09090b] p-3 rounded-md border border-white/10 space-y-3">
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
-                                            <select value={scoreForm.subject} onChange={e => setScoreForm(p => ({ ...p, subject: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none">
+                                            <select value={scoreForm.subject} onChange={e => setScoreForm(p => ({ ...p, subject: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none">
                                                 <option value="">-- 선택 --</option>
                                                 {studies.map(s => <option key={s.id} value={s.title}>{s.title}</option>)}
                                                 <option value="기타">기타</option>
@@ -1038,26 +1032,25 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
-                                            <input type="date" value={scoreForm.date} onChange={e => setScoreForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                            <input type="date" value={scoreForm.date} onChange={e => setScoreForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">점수</label>
-                                            <input type="number" value={scoreForm.score} onChange={e => setScoreForm(p => ({ ...p, score: e.target.value }))} placeholder="예: 87" className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                            <input type="number" value={scoreForm.score} onChange={e => setScoreForm(p => ({ ...p, score: e.target.value }))} placeholder="예: 87" className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
                                         </div>
                                         <div>
                                             <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">만점</label>
-                                            <input type="number" value={scoreForm.maxScore} onChange={e => setScoreForm(p => ({ ...p, maxScore: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                            <input type="number" value={scoreForm.maxScore} onChange={e => setScoreForm(p => ({ ...p, maxScore: e.target.value }))} className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
                                         </div>
                                     </div>
                                     <div>
                                         <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
-                                        <input type="text" value={scoreForm.memo} onChange={e => setScoreForm(p => ({ ...p, memo: e.target.value }))} placeholder="간단한 메모..." className="w-full bg-[#111113] border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                        <input type="text" value={scoreForm.memo} onChange={e => setScoreForm(p => ({ ...p, memo: e.target.value }))} placeholder="간단한 메모..." className="w-full bg-[#111113] border border-white/10 rounded-md px-3 py-2 text-xs font-bold text-slate-200 outline-none focus:border-indigo-500" />
                                     </div>
-                                    <button onClick={addExamScore} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-sm transition-colors">성적 저장</button>
+                                    <button onClick={addExamScore} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-sm transition-colors">성적 저장</button>
                                 </div>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
 
                     {examScores.length === 0 ? (
                         <div className="text-center py-10 text-slate-500">
@@ -1073,7 +1066,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                     const color = pct >= 80 ? 'text-emerald-400' : pct >= 60 ? 'text-amber-400' : 'text-rose-400';
                                     const bg = pct >= 80 ? 'bg-emerald-500/10 border-emerald-500/20' : pct >= 60 ? 'bg-amber-500/10 border-amber-500/20' : 'bg-rose-500/10 border-rose-500/20';
                                     return (
-                                        <div key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border ${bg}`}>
+                                        <div key={s.id} className={`flex items-center gap-3 p-3 rounded-md border ${bg}`}>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-200">{s.subject}</p>
                                                 {s.memo && <p className="text-[10px] text-slate-500 truncate">{s.memo}</p>}
@@ -1124,19 +1117,19 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             {activeSubTab === 'tracker' && (
                 <>
                     {/* Live Leaderboard */}
-                    <div className="glass-card px-4 py-4 rounded-xl mb-2 bg-[#09090b] border border-white/10 shadow-none">
+                    <div className="glass-card px-3 py-2.5 rounded-md mb-2 bg-[#09090b] border border-white/10 shadow-none">
                         <h3 className="text-[14px] font-bold tracking-tight text-white mb-3 flex items-center gap-2">
                             <Trophy className="w-4 h-4 text-orange-500" /> 오늘의 공부 라이브 랭킹
                         </h3>
                         <div className="flex flex-col gap-1.5">
                             {leaderboard.map((user, idx) => (
-                                <div key={user.id} className={`flex items-center justify-between px-3 py-2 rounded-xl border shadow-none ${user.isMe ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-[#111113]/50 border-white/5'}`}>
+                                <div key={user.id} className={`flex items-center justify-between px-3 py-2 rounded-md border shadow-none ${user.isMe ? 'bg-indigo-500/20 border-indigo-500/40' : 'bg-[#111113]/50 border-white/5'}`}>
                                     <div className="flex items-center gap-3 w-1/2">
                                         <span className={`text-[12px] font-black w-4 text-center ${idx === 0 ? 'text-yellow-500' : idx === 1 ? 'text-slate-300' : idx === 2 ? 'text-amber-600' : 'text-slate-500'}`}>{idx + 1}</span>
                                         <span className={`text-[13px] font-bold tracking-tight truncate ${user.isMe ? 'text-indigo-400' : 'text-slate-400'}`}>{user.name}</span>
                                     </div>
                                     <div className="flex items-center gap-2 justify-end">
-                                        <span title={user.subject} className={`text-[11px] font-bold truncate max-w-[100px] border border-white/5 px-2 py-0.5 rounded-full ${user.isMe ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 bg-white/5'}`}>{user.subject}</span>
+                                        <span title={user.subject} className={`text-[11px] font-bold truncate max-w-[100px] border border-white/5 px-2 py-0.5 rounded ${user.isMe ? 'text-indigo-400 bg-indigo-500/10' : 'text-slate-500 bg-white/5'}`}>{user.subject}</span>
                                         <span className={`text-sm font-mono tracking-wider font-bold w-16 text-right ${user.isMe ? 'text-indigo-400' : 'text-slate-500'}`}>
                                             {formatTime(user.time)}
                                         </span>
@@ -1147,48 +1140,43 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                     </div>
 
                     {/* Add New Study Form */}
-                    <AnimatePresence>
-                        {isAddMode && (
-                            <motion.div
-                                initial={{ height: 0, opacity: 0 }}
-                                animate={{ height: 'auto', opacity: 1 }}
-                                exit={{ height: 0, opacity: 0 }}
+                    {isAddMode && (
+                            <div
                                 className="overflow-hidden"
                             >
-                                <div className="glass-card p-5 rounded-xl flex flex-col gap-4">
+                                <div className="glass-card p-3 rounded-md flex flex-col gap-2.5">
                                     <h3 className="text-sm font-bold tracking-tight text-slate-400">새로운 공부/습관 트래커 추가</h3>
                                     <div>
                                         <label htmlFor="study-title" className="text-xs font-bold text-slate-400 mb-1 block">목표 내용</label>
-                                        <input id="study-title" type="text" placeholder="예: 매일 알고리즘 1문제 풀기" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
+                                        <input id="study-title" type="text" placeholder="예: 매일 알고리즘 1문제 풀기" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAdd()} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-md outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
                                     </div>
                                     <div>
                                         <label htmlFor="study-target" className="text-xs font-bold text-slate-400 mb-1 block">목표 달성 출석일수 (일)</label>
-                                        <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
+                                        <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-md outline-none focus:border-indigo-500 text-sm font-bold text-slate-200" />
                                     </div>
                                     {goals.length > 0 && (
                                         <div>
                                             <label htmlFor="study-linked-goal" className="text-xs font-bold text-slate-400 mb-1 block">연결할 목표 (선택 — 타이머 종료 시 분 단위로 목표 진행도 자동 업데이트)</label>
-                                            <select id="study-linked-goal" value={newLinkedGoalId} onChange={e => setNewLinkedGoalId(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-xl outline-none focus:border-indigo-500 text-sm font-bold text-slate-300">
+                                            <select id="study-linked-goal" value={newLinkedGoalId} onChange={e => setNewLinkedGoalId(e.target.value)} className="w-full bg-[#09090b] border border-white/10 p-3 rounded-md outline-none focus:border-indigo-500 text-sm font-bold text-slate-300">
                                                 <option value="">-- 연결 안 함 --</option>
                                                 {goals.map(g => <option key={g.id} value={g.id}>{g.icon} {g.title}</option>)}
                                             </select>
                                         </div>
                                     )}
-                                    <button onClick={handleAdd} className="w-full mt-2 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold tracking-tight rounded-xl shadow-none transition-colors">트래커 생성하기</button>
+                                    <button onClick={handleAdd} className="w-full mt-2 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-bold tracking-tight rounded-md shadow-none transition-colors">트래커 생성하기</button>
                                 </div>
-                            </motion.div>
+                            </div>
                         )}
-                    </AnimatePresence>
 
                     {/* Empty State */}
                     {(!studies || studies.length === 0) ? (
-                        <div className="glass-card rounded-xl p-10 flex flex-col items-center justify-center gap-3">
+                        <div className="glass-card rounded-md p-10 flex flex-col items-center justify-center gap-3">
                             <BookOpen className="w-12 h-12 text-slate-400" aria-hidden="true" />
                             <p className="text-slate-400 font-bold text-sm">등록된 공부 목표가 없습니다.</p>
                             <button onClick={() => setIsAddMode(true)} className="text-indigo-500 text-sm font-bold hover:underline">+ 첫 번째 목표 추가하기</button>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-5">
+                        <div className="flex flex-col gap-3">
                             {studies.map((study) => {
                                 const todayStr = format(currentDate, 'yyyy-MM-dd');
                                 const isCheckedToday = study.logs.includes(todayStr);
@@ -1198,20 +1186,18 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                 const completionRate = study.totalDays > 0 ? Math.round((study.logs.length / study.totalDays) * 100) : 0;
 
                                 return (
-                                    <motion.div
+                                    <div
                                         key={study.id}
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="glass-card p-0 rounded-xl overflow-hidden relative group"
+                                        className="glass-card p-0 rounded-md overflow-hidden relative group"
                                     >
                                         {/* Top gradient bar */}
-                                        <div className={`h-1.5 w-full bg-gradient-to-r ${progress >= 100 ? 'from-emerald-400 to-emerald-500' : 'from-indigo-500 to-purple-500'}`} aria-hidden="true" />
+                                        <div className={`h-1.5 w-full  ${progress >= 100 ? 'from-emerald-400 to-emerald-500' : 'from-indigo-500 to-purple-500'}`} aria-hidden="true" />
 
-                                        <div className="p-5 md:p-4 md:p-5">
+                                        <div className="p-3 md:p-3 md:p-3">
                                             {/* Header */}
-                                            <div className="flex items-start justify-between mb-4">
+                                            <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-start gap-3">
-                                                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-none transition-all ${isCheckedToday ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400'}`} aria-hidden="true">
+                                                    <div className={`w-12 h-12 rounded-md flex items-center justify-center shrink-0 shadow-none transition-all ${isCheckedToday ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400'}`} aria-hidden="true">
                                                         <BookOpen className="w-6 h-6" />
                                                     </div>
                                                     <div>
@@ -1223,7 +1209,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                         {study.linkedGoalId && (() => {
                                                             const linkedGoal = goals.find(g => g.id === study.linkedGoalId);
                                                             return linkedGoal ? (
-                                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full mt-1">
+                                                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded mt-1">
                                                                     <Flag className="w-2.5 h-2.5" /> {linkedGoal.icon} {linkedGoal.title}
                                                                 </span>
                                                             ) : null;
@@ -1250,7 +1236,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
 
                                             {/* #53 Inline edit form */}
                                             {editStudyId === study.id && (
-                                                <div className="bg-[#09090b] border border-indigo-500/30 rounded-xl p-4 mb-4 space-y-3">
+                                                <div className="bg-[#09090b] border border-indigo-500/30 rounded-md p-3 mb-2 space-y-3">
                                                     <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider">과목 수정</p>
                                                     <input
                                                         value={editStudyForm.title}
@@ -1290,46 +1276,43 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                             )}
 
                                             {/* Stats Row */}
-                                            <div className="grid grid-cols-3 gap-3 mb-4">
-                                                <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                            <div className="grid grid-cols-3 gap-3 mb-2">
+                                                <div className="bg-white/5 rounded-md p-3 text-center border border-white/10">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">출석일</p>
                                                     <p className="text-xl font-bold tracking-tight text-slate-100">{study.logs.length}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span></p>
                                                 </div>
-                                                <div className={`rounded-xl p-3 text-center border ${streak >= 3 ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10'}`}>
+                                                <div className={`rounded-md p-3 text-center border ${streak >= 3 ? 'bg-orange-500/10 border-orange-500/20' : 'bg-white/5 border-white/10'}`}>
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">연속 출석</p>
                                                     <p className={`text-xl font-bold tracking-tight ${streak >= 3 ? 'text-orange-400' : 'text-slate-100'}`}>
                                                         {streak >= 3 && '🔥'}{streak}<span className="text-xs font-bold text-slate-400 ml-0.5">일</span>
                                                     </p>
                                                 </div>
-                                                <div className="bg-white/5 rounded-xl p-3 text-center border border-white/10">
+                                                <div className="bg-white/5 rounded-md p-3 text-center border border-white/10">
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">달성률</p>
                                                     <p className={`text-xl font-bold tracking-tight ${completionRate >= 100 ? 'text-emerald-500' : 'text-indigo-400'}`}>{completionRate}<span className="text-xs font-bold text-slate-400 ml-0.5">%</span></p>
                                                 </div>
                                             </div>
 
                                             {/* Progress Bar */}
-                                            <div className="mb-5">
+                                            <div className="mb-2">
                                                 <div className="flex justify-between text-xs font-bold mb-1.5">
                                                     <span className="text-slate-500">진행률</span>
                                                     <span className={`${progress >= 100 ? 'text-emerald-500' : 'text-indigo-500'} text-sm`}>{progress}%</span>
                                                 </div>
                                                 <div className="w-full h-3 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-                                                    <motion.div
-                                                        initial={{ width: 0 }}
-                                                        animate={{ width: `${Math.max(progress, 2)}%` }}
-                                                        transition={{ duration: 1, ease: 'easeOut' }}
+                                                    <div
+                                                        style={{ width: `${Math.max(progress, 2)}%`, minWidth: progress > 0 ? '8px' : '0' }}
                                                         className={`h-full rounded-full relative overflow-hidden ${progress >= 100 ? 'bg-gradient-to-r from-emerald-400 to-emerald-500' : 'bg-gradient-to-r from-indigo-500 to-purple-500'}`}
-                                                        style={{ minWidth: progress > 0 ? '8px' : '0' }}
                                                     >
-                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full animate-shimmer" aria-hidden="true" />
-                                                    </motion.div>
+                                                        <div className="absolute inset-0 -translate-x-full" aria-hidden="true" />
+                                                    </div>
                                                 </div>
                                             </div>
 
                                             {/* Main Content: Check-in + Heatmap */}
-                                            <div className="flex flex-col md:flex-row gap-4">
+                                            <div className="flex flex-col md:flex-row gap-2.5">
                                                 {/* Left: Today's check-in */}
-                                                <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10 flex items-center justify-between">
+                                                <div className="flex-1 bg-[#09090b] rounded-md p-3 border border-white/10 flex items-center justify-between">
                                                     <div className="flex flex-col w-full">
                                                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{format(currentDate, 'MMM dd')} 오늘의 출석</span>
                                                         <span className={`text-sm font-bold tracking-tight mt-1 ${isCheckedToday ? 'text-indigo-500' : 'text-slate-400'}`}>
@@ -1338,7 +1321,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                         {streak >= 7 && <span className="text-[11px] font-bold text-orange-500 mt-1">🔥 {streak}일 연속 출석 중!</span>}
 
                                                         {/* Timer UI */}
-                                                        <div className="mt-3 bg-[#111113] p-3 rounded-xl flex flex-col gap-3 shadow-none border border-white/10">
+                                                        <div className="mt-3 bg-[#111113] p-3 rounded-md flex flex-col gap-3 shadow-none border border-white/10">
                                                             {/* #51 Pomodoro toggle */}
                                                             <div className="flex items-center justify-between">
                                                                 <button
@@ -1349,7 +1332,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                                 </button>
                                                                 {pomodoroEnabled && (
                                                                     <div className="flex items-center gap-2">
-                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${pomodoroPhase === 'focus' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
+                                                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${pomodoroPhase === 'focus' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'}`}>
                                                                             {pomodoroPhase === 'focus' ? '집중 중' : '휴식 중'}
                                                                         </span>
                                                                         <span className="text-base font-mono font-bold text-indigo-400">
@@ -1431,7 +1414,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                                     </button>
                                                                 </div>
                                                             ) : (
-                                                                <label className="inline-flex cursor-pointer mt-2 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-2.5 rounded-xl transition-colors gap-1.5 items-center w-full justify-center">
+                                                                <label className="inline-flex cursor-pointer mt-2 text-[11px] font-bold text-indigo-400 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-2.5 rounded-md transition-colors gap-1.5 items-center w-full justify-center">
                                                                     <Camera className="w-4 h-4" /> 오늘의 공부 인증 사진 등록
                                                                     <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(e, study.id)} className="hidden" />
                                                                 </label>
@@ -1448,7 +1431,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                 </div>
 
                                                 {/* Right: Heatmap Calendar */}
-                                                <div className="flex-1 bg-[#09090b] rounded-xl p-4 border border-white/10">
+                                                <div className="flex-1 bg-[#09090b] rounded-md p-3 border border-white/10">
                                                     <AttendanceHeatmap logs={study.logs} currentDate={currentDate} />
                                                     {/* #65 Streak share button + #63 Review link */}
                                                     <div className="mt-3 flex gap-1.5">
@@ -1479,7 +1462,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                 </div>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 );
                             })}
                         </div>

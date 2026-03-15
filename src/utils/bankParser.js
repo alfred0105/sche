@@ -2,7 +2,167 @@
  * @fileoverview Korean bank CSV/TSV statement parser.
  * Supports: KB국민, 신한, 우리, 하나, 카카오뱅크, 토스뱅크, IBK기업, NH농협, and generic formats.
  * Auto-detects column layout from header row.
+ * Also supports screenshot OCR text parsing via parseOCRScreenshot().
  */
+
+// ── Bank detection ─────────────────────────────────────────────────────────────
+
+const BANK_PATTERNS = [
+    { code: 'kakao',   re: /카카오뱅크|kakaobank/i,          label: '카카오뱅크' },
+    { code: 'toss',    re: /\b토스\b|toss뱅크|tossbank/i,    label: '토스' },
+    { code: 'kb',      re: /KB국민|국민은행|kbstar|liiv/i,   label: 'KB국민은행' },
+    { code: 'shinhan', re: /신한은행|신한SOL|SOL뱅크/i,       label: '신한은행' },
+    { code: 'woori',   re: /우리은행|우리WON|위비/i,          label: '우리은행' },
+    { code: 'hana',    re: /하나은행|하나원큐/i,              label: '하나은행' },
+    { code: 'ibk',     re: /IBK기업|기업은행/i,              label: 'IBK기업은행' },
+    { code: 'nh',      re: /NH농협|농협은행|NH뱅킹/i,        label: 'NH농협' },
+    { code: 'kbank',   re: /케이뱅크|K뱅크/i,               label: '케이뱅크' },
+];
+
+/** Detect bank from raw text. Returns { code, label } or { code: 'unknown', label: '알 수 없음' } */
+export function detectBank(text) {
+    for (const b of BANK_PATTERNS) {
+        if (b.re.test(text || '')) return { code: b.code, label: b.label };
+    }
+    return { code: 'unknown', label: '알 수 없음' };
+}
+
+// ── Screenshot OCR parser ──────────────────────────────────────────────────────
+
+/**
+ * Parse OCR text extracted from a bank app screenshot.
+ * Uses line-by-line heuristic parsing (NOT CSV columns) so it works
+ * regardless of which bank app the screenshot came from.
+ *
+ * Strategy:
+ *  1. Scan each line for a Korean-date or full-date to track current date context.
+ *  2. Detect relative date words ("오늘", "어제") used by Toss-style apps.
+ *  3. Any line containing an 원-amount is treated as a transaction.
+ *  4. Memo is extracted from the same line (remainder after removing amount/date/time),
+ *     or from the adjacent line if the current line has no meaningful text.
+ *  5. Type (income/expense) is determined by +/- sign first, then keyword context.
+ *
+ * @param {string} text  Raw OCR output string
+ * @returns {Array<{date,time,rawMemo,amount,type}>}
+ */
+export function parseOCRScreenshot(text) {
+    if (!text?.trim()) return [];
+
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    const now = new Date();
+    const thisYear = now.getFullYear();
+
+    // ── Regex helpers ──
+    const AMOUNT_RE    = /([+\-＋－]?\s*[\d,]{1,})\s*원/;
+    const FULL_DATE_RE = /(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})/;
+    const KO_DATE_RE   = /(\d{1,2})월\s*(\d{1,2})일/;          // 3월 15일
+    const SHORT_DATE_RE= /(?<![:\d])(\d{1,2})[.\/](\d{1,2})(?!\d)/; // 03.15
+    const TIME_RE      = /\b(\d{2}):(\d{2})\b/;
+    const INCOME_KW    = /입금|급여|월급|수입|환급|이자|적립|환불|페이백|캐시백|장학금|용돈|이체받|송금받/;
+    const EXPENSE_KW   = /출금|지출|결제|사용|이체|납부|차감|구매/;
+    const SKIP_KW      = /잔액|잔고|balance|합계|total|summary/i;
+
+    const toISO = (y, m, d) =>
+        `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+
+    let currentDate = null;
+    const results = [];
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // ── 1. Date context ──
+        const fullMatch = line.match(FULL_DATE_RE);
+        if (fullMatch) {
+            currentDate = toISO(fullMatch[1], +fullMatch[2], +fullMatch[3]);
+        } else {
+            const koMatch = line.match(KO_DATE_RE);
+            if (koMatch) {
+                currentDate = toISO(thisYear, +koMatch[1], +koMatch[2]);
+            } else {
+                const shortMatch = line.match(SHORT_DATE_RE);
+                if (shortMatch) {
+                    currentDate = toISO(thisYear, +shortMatch[1], +shortMatch[2]);
+                }
+            }
+        }
+        // Toss relative date words
+        if (/^오늘/.test(line)) {
+            currentDate = toISO(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        } else if (/^어제/.test(line)) {
+            const y = new Date(now - 86_400_000);
+            currentDate = toISO(y.getFullYear(), y.getMonth() + 1, y.getDate());
+        }
+
+        // ── 2. Skip non-transaction lines ──
+        if (!currentDate) continue;
+        if (SKIP_KW.test(line) && !INCOME_KW.test(line) && !EXPENSE_KW.test(line)) continue;
+        if (/^잔액/.test(line)) continue;
+
+        // ── 3. Amount detection ──
+        const amountMatch = line.match(AMOUNT_RE);
+        if (!amountMatch) continue;
+
+        const rawAmtStr = amountMatch[1].replace(/[\s,＋－]/g, '').replace(/[+\-]/g, m => m);
+        const isPos = rawAmtStr.startsWith('+');
+        const isNeg = rawAmtStr.startsWith('-');
+        const amount = parseInt(rawAmtStr.replace(/[^0-9]/g, ''), 10);
+        if (!amount || amount === 0) continue;
+
+        // ── 4. Type ──
+        let type = 'expense';
+        if (isPos) {
+            type = 'income';
+        } else if (!isNeg) {
+            // No sign → check keyword context (3 lines window)
+            const ctx = [lines[i - 1] || '', line, lines[i + 1] || ''].join(' ');
+            if (INCOME_KW.test(ctx)) type = 'income';
+        }
+
+        // ── 5. Memo ──
+        let memo = line
+            .replace(/[+\-＋－]?\s*[\d,]+\s*원/g, '')
+            .replace(FULL_DATE_RE, '')
+            .replace(KO_DATE_RE, '')
+            .replace(SHORT_DATE_RE, '')
+            .replace(TIME_RE, '')
+            .replace(/출금|입금|이체됨?|잔액|지출|결제|사용/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+
+        // Fallback: look at adjacent lines for memo text
+        if (!memo || !/[가-힣a-zA-Z0-9]/.test(memo) || memo.length < 2) {
+            const prev = lines[i - 1] || '';
+            const next = lines[i + 1] || '';
+            const prevHasAmt = AMOUNT_RE.test(prev);
+            const nextHasAmt = AMOUNT_RE.test(next);
+            const prevIsDate = FULL_DATE_RE.test(prev) || KO_DATE_RE.test(prev) || SHORT_DATE_RE.test(prev);
+            const nextIsDate = FULL_DATE_RE.test(next) || KO_DATE_RE.test(next) || SHORT_DATE_RE.test(next);
+            const nextIsBalance = /^잔액/.test(next) || SKIP_KW.test(next);
+
+            if (!prevHasAmt && !prevIsDate && /[가-힣a-zA-Z]/.test(prev)) {
+                memo = prev.replace(/출금|입금|이체|잔액/g, '').trim();
+            } else if (!nextHasAmt && !nextIsDate && !nextIsBalance && /[가-힣a-zA-Z]/.test(next)) {
+                memo = next.replace(/출금|입금|이체|잔액/g, '').trim();
+            }
+        }
+
+        if (!memo || memo.length < 1) continue;
+
+        const timeMatch = line.match(TIME_RE);
+        const time = timeMatch ? `${timeMatch[1]}:${timeMatch[2]}` : '00:00';
+
+        results.push({
+            date: currentDate,
+            time,
+            rawMemo: memo.slice(0, 100),
+            amount,
+            type,
+        });
+    }
+
+    return results;
+}
 
 /** Split a CSV line handling double-quoted fields */
 function splitCSVLine(line, delimiter = ',') {

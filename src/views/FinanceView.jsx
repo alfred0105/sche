@@ -10,7 +10,6 @@ import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
 import BankImportModal from '../components/BankImportModal';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
 import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, Legend } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
@@ -38,10 +37,17 @@ function loadDebts() {
 const WEEKDAY_NAMES = ['월', '화', '수', '목', '금', '토', '일'];
 const ASSET_TYPE_LABELS = { cash: '현금', bank: '입출금', savings: '저축', investment: '투자' };
 
-export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary, goals }) {
+export default function FinanceView({ transactions, setTransactions, getCalculatedBalances, accounts, currentDate, budgets, setBudgets, expenseCategories, initialBalances, setInitialBalances, financeDiary, setFinanceDiary, goals, pendingShareData, clearPendingShare }) {
     const { Wallet, TrendingUp, TrendingDown, PieChart: PieChartIcon, Trash2, RefreshCw, CheckCircle2, ChevronDown, DollarSign, Landmark, BarChart3, Target, Heart, X, Plus, Upload, Pencil, Search, Filter, ArrowUpDown, Copy } = IconMap;
 
     const [showBankImport, setShowBankImport] = useState(false);
+
+    // Android 공유 수신 시 자동으로 BankImportModal 열기
+    useEffect(() => {
+        if (pendingShareData) {
+            setShowBankImport(true);
+        }
+    }, [pendingShareData]);
 
     const [filterType, setFilterType] = useState('daily');
     const [activeSubTab, setActiveSubTab] = useState('list');
@@ -484,12 +490,12 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     }, [expenseCategories]);
 
     return (
-        <section className="mb-8 space-y-6" aria-label="재정 관리">
+        <section className="mb-8 space-y-3" aria-label="재정 관리">
             {/* 거래 수정 모달 */}
             {editTxModal.open && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center px-4" role="dialog" aria-modal="true" aria-label="거래 수정">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditTxModal({ open: false, tx: null })} />
-                    <div className="relative bg-[#111113] border border-white/10 rounded-2xl p-5 w-full max-w-md shadow-2xl space-y-4">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center px-3" role="dialog" aria-modal="true" aria-label="거래 수정">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setEditTxModal({ open: false, tx: null })} />
+                    <div className="relative bg-[#111113] border border-white/10 rounded-md p-3 w-full max-w-md space-y-2.5">
                         <div className="flex items-center justify-between">
                             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                                 <Pencil className="w-4 h-4 text-indigo-400" /> 거래 내역 수정
@@ -500,7 +506,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </div>
 
                         {/* 수입/지출 토글 */}
-                        <div className="flex gap-2 bg-white/5 p-1 rounded-xl">
+                        <div className="flex gap-2 bg-white/5 p-1 rounded-md">
                             {['expense', 'income'].map(t => (
                                 <button key={t} onClick={() => setEditTxForm(p => ({ ...p, type: t }))}
                                     className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${editTxForm.type === t ? (t === 'expense' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white') : 'text-slate-400'}`}>
@@ -513,22 +519,22 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             <div className="col-span-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">항목명</label>
                                 <input type="text" value={editTxForm.title} onChange={e => setEditTxForm(p => ({ ...p, title: e.target.value }))}
-                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">금액 (원)</label>
                                 <input type="number" value={editTxForm.amount} onChange={e => setEditTxForm(p => ({ ...p, amount: e.target.value }))}
-                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-200 outline-none focus:border-indigo-500" />
                             </div>
                             <div>
                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
                                 <input type="date" value={editTxForm.date} onChange={e => setEditTxForm(p => ({ ...p, date: e.target.value }))}
-                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
                             </div>
                             <div className="col-span-2">
                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">분류</label>
                                 <select value={editTxForm.category} onChange={e => setEditTxForm(p => ({ ...p, category: e.target.value }))}
-                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
                                     <option value="">-- 분류 선택 --</option>
                                     {allCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                                 </select>
@@ -537,7 +543,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">계좌</label>
                                     <select value={editTxForm.account} onChange={e => setEditTxForm(p => ({ ...p, account: e.target.value }))}
-                                        className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
+                                        className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
                                         <option value="">-- 계좌 선택 --</option>
                                         {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                                     </select>
@@ -547,7 +553,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모 (선택)</label>
                                 <input type="text" value={editTxForm.memo} onChange={e => setEditTxForm(p => ({ ...p, memo: e.target.value }))}
                                     placeholder="메모를 입력하세요"
-                                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-indigo-500" />
+                                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm text-slate-300 outline-none focus:border-indigo-500" />
                             </div>
                             <label className="col-span-2 flex items-center gap-2 cursor-pointer">
                                 <input type="checkbox" checked={editTxForm.taxDeductible} onChange={e => setEditTxForm(p => ({ ...p, taxDeductible: e.target.checked }))}
@@ -558,11 +564,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                         <div className="flex gap-2 pt-1">
                             <button onClick={() => setEditTxModal({ open: false, tx: null })}
-                                className="flex-1 py-2.5 bg-white/5 text-slate-400 font-bold rounded-xl text-sm hover:bg-white/10 transition-colors">
+                                className="flex-1 py-2.5 bg-white/5 text-slate-400 font-bold rounded-md text-sm hover:bg-white/10 transition-colors">
                                 취소
                             </button>
                             <button onClick={saveEditTx}
-                                className="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm transition-colors">
+                                className="flex-[2] py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-md text-sm transition-colors">
                                 수정 완료
                             </button>
                         </div>
@@ -632,20 +638,17 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             {/* Bank import modal */}
             {showBankImport && (
                 <BankImportModal
-                    onClose={() => setShowBankImport(false)}
+                    onClose={() => { setShowBankImport(false); clearPendingShare?.(); }}
                     transactions={transactions}
                     setTransactions={setTransactions}
+                    initialData={pendingShareData}
                 />
             )}
 
             {/* #17 Anomaly detection banner */}
-            <AnimatePresence>
-                {anomalyData.isAnomaly && !anomalyDismissed && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="flex items-center justify-between gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl"
+            {anomalyData.isAnomaly && !anomalyDismissed && (
+                    <div
+                        className="flex items-center justify-between gap-3 px-3 py-3 bg-amber-500/10 border border-amber-500/30 rounded-md"
                     >
                         <span className="text-sm font-bold text-amber-400">
                             ⚠️ 오늘 지출이 평소보다 2배 이상 많습니다 (오늘: ₩{anomalyData.todayExpense.toLocaleString()} / 일평균: ₩{Math.round(anomalyData.dailyAvg).toLocaleString()})
@@ -653,17 +656,16 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         <button onClick={() => setAnomalyDismissed(true)} className="text-slate-400 hover:text-slate-200 shrink-0" aria-label="닫기">
                             <X className="w-4 h-4" />
                         </button>
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
 
             {/* Total Assets Card */}
-            <div className="glass-card p-4 md:p-5 rounded-xl relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/10 blur-3xl rounded-full" aria-hidden="true" />
-                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="glass-card p-3 md:p-3 rounded-md relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-48 h-48 blur-3xl rounded-full" aria-hidden="true" />
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-2.5">
                     <div>
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="bg-indigo-500/10 p-2.5 rounded-xl" aria-hidden="true"><Wallet className="w-5 h-5 text-indigo-400" /></div>
+                            <div className="bg-indigo-500/10 p-2.5 rounded-md" aria-hidden="true"><Wallet className="w-5 h-5 text-indigo-400" /></div>
                             <h2 className="text-xl font-bold tracking-tight text-slate-100">자산 및 재정 분석</h2>
                             <button
                                 onClick={() => setShowBankImport(true)}
@@ -678,18 +680,18 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                             {expenseChange !== 0 && (
-                                <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 ${expenseChange > 0 ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400' : 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400'}`} aria-live="polite">
+                                <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 ${expenseChange > 0 ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/10 dark:text-rose-400' : 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/10 dark:text-emerald-400'}`} aria-live="polite">
                                     {expenseChange > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
                                     전월 대비 지출 {Math.abs(expenseChange)}% {expenseChange > 0 ? '증가' : '절약'}
                                 </span>
                             )}
                             {/* #24 Financial health score badge */}
-                            <span className={`text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1 border ${healthBg} ${healthColor}`}>
+                            <span className={`text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border ${healthBg} ${healthColor}`}>
                                 <Heart className="w-3 h-3" /> 재정 점수 {financialHealthScore}점 · {healthLabel}
                             </span>
                         </div>
                     </div>
-                    <div className="w-full md:w-64 h-32 bg-slate-50/50 dark:bg-white/[0.02] rounded-xl p-2 border border-white/10" aria-label="7일간 자산 추이 차트" role="img">
+                    <div className="w-full md:w-64 h-32 bg-slate-50/50 dark:bg-white/[0.02] rounded-md p-2 border border-white/10" aria-label="7일간 자산 추이 차트" role="img">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={assetChartData}>
                                 <defs>
@@ -707,11 +709,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             </div>
 
             {/* #24 Financial Health Score Card */}
-            <div className={`glass-card p-4 md:p-5 rounded-xl border ${healthBg}`}>
+            <div className={`glass-card p-3 md:p-3 rounded-md border ${healthBg}`}>
                 <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-3">
                     <Heart className="w-4 h-4 text-rose-400" /> 재정 건강 점수
                 </h3>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2.5">
                     <div className={`w-16 h-16 rounded-full border-4 flex flex-col items-center justify-center shrink-0 ${healthBg}`}>
                         <span className={`text-xl font-bold leading-none ${healthColor}`}>{healthGrade}</span>
                         <span className={`text-[10px] font-bold ${healthColor}`}>{financialHealthScore}점</span>
@@ -721,7 +723,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             <span>저축률</span><span>예산 준수</span><span>자산 보유</span>
                         </div>
                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full transition-all duration-700 ${financialHealthScore >= 70 ? 'bg-emerald-400' : financialHealthScore >= 40 ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${financialHealthScore}%` }} />
+                            <div className={`h-full rounded-full transition-all ${financialHealthScore >= 70 ? 'bg-emerald-400' : financialHealthScore >= 40 ? 'bg-amber-400' : 'bg-rose-400'}`} style={{ width: `${financialHealthScore}%` }} />
                         </div>
                         <p className={`text-xs font-bold mt-1.5 ${healthColor}`}>{healthLabel} · {healthGrade}등급 ({financialHealthScore}/100점)</p>
                     </div>
@@ -730,11 +732,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
             {/* #19 Savings Goals */}
             {savingsGoals.length > 0 && (
-                <div className="glass-card p-4 md:p-5 rounded-xl">
-                    <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-4">
+                <div className="glass-card p-3 md:p-3 rounded-md">
+                    <h3 className="text-sm font-bold text-slate-400 flex items-center gap-2 mb-2">
                         <Target className="w-4 h-4 text-indigo-400" /> 저축 목표 진행도
                     </h3>
-                    <div className="space-y-4">
+                    <div className="space-y-2.5">
                         {savingsGoals.map(goal => {
                             const target = goal.targetAmount || 0;
                             const current = goal.currentAmount || goal.progress || 0;
@@ -751,7 +753,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                         <>
                                             <div className="h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
                                                 <div
-                                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-700"
+                                                    className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all"
                                                     style={{ width: `${Math.max(pct, 1)}%` }}
                                                 />
                                             </div>
@@ -781,7 +783,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     ].map(({ id, label, icon }) => {
                         const TabIcon = IconMap[icon];
                         return (
-                            <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
+                            <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-3 py-2 rounded-md text-xs font-bold flex items-center gap-1.5 border transition-all ${activeSubTab === id ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                                 <TabIcon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
                             </button>
                         );
@@ -797,22 +799,21 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             </div>
 
             {/* Tab Content */}
-            <AnimatePresence mode="wait">
-                <motion.div key={activeSubTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+            <div>
                     {activeSubTab === 'list' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
                             <div className="flex justify-between items-center mb-3">
                                 <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                     <DollarSign className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 거래 리스트
                                 </h3>
                                 <div className="flex gap-3 text-xs font-bold">
-                                    <span className="text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded-full" aria-label={`수입 ${totalIncome.toLocaleString()}원`}>+{totalIncome.toLocaleString()}원</span>
-                                    <span className="text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-3 py-1 rounded-full" aria-label={`지출 ${totalExpense.toLocaleString()}원`}>-{totalExpense.toLocaleString()}원</span>
+                                    <span className="text-blue-500 bg-blue-50 dark:bg-blue-500/10 px-3 py-1 rounded" aria-label={`수입 ${totalIncome.toLocaleString()}원`}>+{totalIncome.toLocaleString()}원</span>
+                                    <span className="text-rose-500 bg-rose-50 dark:bg-rose-500/10 px-3 py-1 rounded" aria-label={`지출 ${totalExpense.toLocaleString()}원`}>-{totalExpense.toLocaleString()}원</span>
                                 </div>
                             </div>
                             {/* #27 Savings rate widget */}
                             {savingsRate !== null && (
-                                <div className={`flex items-center gap-3 mb-3 p-3 rounded-xl border ${savingsRate >= 20 ? 'bg-emerald-500/5 border-emerald-500/20' : savingsRate >= 0 ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
+                                <div className={`flex items-center gap-3 mb-3 p-3 rounded-md border ${savingsRate >= 20 ? 'bg-emerald-500/5 border-emerald-500/20' : savingsRate >= 0 ? 'bg-amber-500/5 border-amber-500/20' : 'bg-rose-500/5 border-rose-500/20'}`}>
                                     <TrendingUp className={`w-4 h-4 shrink-0 ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`} />
                                     <span className="text-xs font-bold text-slate-400 flex-1">이번 달 저축률</span>
                                     <span className={`text-sm font-bold ${savingsRate >= 20 ? 'text-emerald-400' : savingsRate >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>{savingsRate}%</span>
@@ -821,7 +822,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             )}
                             {/* #31 Duplicate detection banner */}
                             {duplicateTxs.length > 0 && !dupeDismissed && (
-                                <div className="flex items-center gap-2 mb-3 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20">
+                                <div className="flex items-center gap-2 mb-3 p-3 rounded-md bg-amber-500/5 border border-amber-500/20">
                                     <span className="text-sm">⚠️</span>
                                     <span className="text-xs text-amber-400 flex-1">이번 달 중복 의심 거래 {duplicateTxs.length}건이 감지되었습니다. (같은 날짜·금액·분류)</span>
                                     <button onClick={() => setDupeDismissed(true)} className="text-slate-500 hover:text-slate-300 p-1"><X className="w-3.5 h-3.5" /></button>
@@ -829,7 +830,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             )}
                             {/* #21 Budget gauge bars */}
                             {budgetGauges.length > 0 && (
-                                <div className="mb-4 space-y-2">
+                                <div className="mb-2 space-y-2">
                                     {budgetGauges.map(({ catId, limit, spent, pct, exceeded }) => (
                                         <div key={catId}>
                                             <div className="flex items-center justify-between text-[11px] font-bold mb-1">
@@ -847,7 +848,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 </div>
                             )}
                             {/* #18 Filter + Sort + #19 Search */}
-                            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                            <div className="flex flex-col sm:flex-row gap-2 mb-2">
                                 <div className="relative flex-1">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
                                     <input
@@ -893,8 +894,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             ) : (
                                 <div className="space-y-2" role="list" aria-label="거래 목록">
                                     {filteredTxs.slice(0, txVisibleCount).map((tx) => (
-                                        <div key={tx.id} className="flex items-center gap-4 py-2.5 px-4 hover:bg-white/10 rounded-xl group transition-colors" role="listitem">
-                                            <div className={`w-10 h-10 rounded-xl ${tx.type === 'income' ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-rose-50 dark:bg-rose-500/10'} flex items-center justify-center shrink-0 shadow-none`} aria-hidden="true">
+                                        <div key={tx.id} className="flex items-center gap-2.5 py-2.5 px-3 hover:bg-white/10 rounded-md group transition-colors" role="listitem">
+                                            <div className={`w-10 h-10 rounded-md ${tx.type === 'income' ? 'bg-blue-50 dark:bg-blue-500/10' : 'bg-rose-50 dark:bg-rose-500/10'} flex items-center justify-center shrink-0 shadow-none`} aria-hidden="true">
                                                 {tx.type === 'income' ? <TrendingUp className="w-5 h-5 text-blue-500" /> : <TrendingDown className="w-5 h-5 text-rose-500" />}
                                             </div>
                                             <div className="flex-1 min-w-0">
@@ -934,7 +935,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     {filteredTxs.length > txVisibleCount && (
                                         <button
                                             onClick={() => setTxVisibleCount(c => c + 20)}
-                                            className="w-full py-2 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 rounded-xl transition-all"
+                                            className="w-full py-2 text-[11px] font-bold text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 hover:bg-indigo-500/10 border border-indigo-500/20 rounded-md transition-all"
                                         >
                                             + {filteredTxs.length - txVisibleCount}개 더 보기
                                         </button>
@@ -945,8 +946,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'category' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-2">
                                 <PieChartIcon className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 이번 달 카테고리별 지출
                             </h3>
                             {categoryData.length === 0 ? (
@@ -980,8 +981,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {/* #25 6-month comparison chart */}
                     {activeSubTab === 'monthly' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-2">
                                 <BarChart3 className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 최근 6개월 지출 비교
                             </h3>
                             {sixMonthData.every(d => d.지출 === 0) ? (
@@ -1001,7 +1002,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                             {/* #20 Spending prediction */}
                             {spendingPrediction.avg3m > 0 && (
-                                <div className="mt-5 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                                <div className="mt-2 p-3 bg-white/[0.02] border border-white/5 rounded-md">
                                     <p className="text-xs font-bold text-slate-500 mb-3">📊 이번 달 지출 예측</p>
                                     <div className="grid grid-cols-3 gap-3">
                                         <div className="text-center">
@@ -1034,8 +1035,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {/* #21 Net Worth Chart */}
                     {activeSubTab === 'networth' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-2">
                                 <TrendingUp className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 순자산 변화 (최근 6개월)
                             </h3>
                             {netWorthData.every(d => d.순자산 === 0) ? (
@@ -1058,8 +1059,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {/* #26 Spending Pattern by Weekday */}
                     {activeSubTab === 'pattern' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-2">
                                 <BarChart3 className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 소비 패턴 — 요일별 지출
                             </h3>
                             {weekdaySpendingData.every(d => d.지출 === 0) ? (
@@ -1080,16 +1081,16 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'assets' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2 mb-2">
                                 <Landmark className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 보유 자산 현황
                             </h3>
 
                             {/* #29 Portfolio donut chart */}
                             {portfolioData.length > 0 && (
-                                <div className="mb-6 p-4 bg-white/[0.02] border border-white/5 rounded-xl">
+                                <div className="mb-2 p-3 bg-white/[0.02] border border-white/5 rounded-md">
                                     <p className="text-xs font-bold text-slate-500 mb-3">자산 유형별 비율</p>
-                                    <div className="flex flex-col md:flex-row items-center gap-6">
+                                    <div className="flex flex-col md:flex-row items-center gap-3">
                                         <div className="w-44 h-44 shrink-0">
                                             <ResponsiveContainer width="100%" height="100%">
                                                 <PieChart>
@@ -1119,7 +1120,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     const bal = balances[acc.id] || 0;
                                     const pct = totalAssets > 0 ? Math.round((bal / totalAssets) * 100) : 0;
                                     return (
-                                        <div key={acc.id} className="bg-[#09090b][0.03] p-4 rounded-xl border border-white/10 group" role="listitem">
+                                        <div key={acc.id} className="bg-[#09090b][0.03] p-3 rounded-md border border-white/10 group" role="listitem">
                                             <div className="flex items-center justify-between cursor-pointer" onClick={() => setExpandedAccId(expandedAccId === acc.id ? null : acc.id)} role="button" tabIndex={0} aria-expanded={expandedAccId === acc.id} onKeyDown={(e) => e.key === 'Enter' && setExpandedAccId(expandedAccId === acc.id ? null : acc.id)}>
                                                 <div className="flex items-center gap-3">
                                                     <span className="text-[10px] font-bold tracking-tight tracking-tighter text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-100 dark:border-indigo-500/30">
@@ -1134,12 +1135,11 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                 </div>
                                             </div>
                                             <div className="h-1.5 bg-white/5 rounded-full mt-3 overflow-hidden" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700" style={{ width: `${pct}%` }} />
+                                                <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                                             </div>
-                                            <AnimatePresence>
-                                                {expandedAccId === acc.id && (
-                                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                                        <div className="mt-4 flex gap-2 flex-wrap">
+                                            {expandedAccId === acc.id && (
+                                                    <div className="overflow-hidden">
+                                                        <div className="mt-2 flex gap-2 flex-wrap">
                                                             {(acc.type === 'savings' || acc.type === 'investment') && (
                                                                 <button onClick={() => openQuickUpdate(acc.id, acc.type === 'savings' ? 'interest' : 'investment')} className="flex items-center gap-1 text-xs font-bold bg-[#111113] border border-white/10 px-3 py-2 rounded-lg hover:border-indigo-200 dark:hover:border-indigo-500/50 text-indigo-500 transition-all shadow-none">
                                                                     <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" /> {acc.type === 'savings' ? '이자 수동반영' : '평가익 반영'}
@@ -1149,9 +1149,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                                 ⚙️ 초기 금액 설정
                                                             </button>
                                                         </div>
-                                                    </motion.div>
+                                                    </div>
                                                 )}
-                                            </AnimatePresence>
                                         </div>
                                     );
                                 })}
@@ -1160,8 +1159,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     )}
 
                     {activeSubTab === 'budgets' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2.5 mb-2">
                                 <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                     <Target className="w-5 h-5 text-rose-500" aria-hidden="true" /> 카테고리별 예산 통제
                                 </h3>
@@ -1175,7 +1174,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 </div>
                             </div>
 
-                            <div className="space-y-6">
+                            <div className="space-y-3">
                                 {expenseCategories.map(cat => {
                                     const budget = budgets[cat.id] || 0;
                                     const spent = categoryData.find(d => d.name === cat.label)?.value || 0;
@@ -1190,7 +1189,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                     const dailySafeSpend = budget > 0 ? Math.floor(remainingBudget / remainingDays) : 0;
 
                                     return (
-                                        <div key={cat.id} className="relative group p-2 -mx-2 rounded-xl transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.02]">
+                                        <div key={cat.id} className="relative group p-2 -mx-2 rounded-md transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.02]">
                                             <div className="flex justify-between items-end mb-2">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-sm font-bold text-slate-200">{cat.label}</span>
@@ -1228,8 +1227,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {/* #33 Subscriptions tab */}
                     {activeSubTab === 'subscriptions' && (
-                        <div className="glass-card p-4 md:p-5 min-h-[400px]">
-                            <div className="flex items-center justify-between mb-5">
+                        <div className="glass-card p-3 md:p-3 min-h-[400px]">
+                            <div className="flex items-center justify-between mb-2">
                                 <div>
                                     <h3 className="font-bold tracking-tight text-lg text-slate-100 flex items-center gap-2">
                                         <RefreshCw className="w-5 h-5 text-indigo-500" aria-hidden="true" /> 보험 / 구독 관리
@@ -1242,22 +1241,18 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 </div>
                                 <button
                                     onClick={() => setShowAddSub(s => !s)}
-                                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl transition-all active:scale-95"
+                                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-md transition-all active:scale-95"
                                 >
                                     <Plus className="w-3.5 h-3.5" /> 추가
                                 </button>
                             </div>
 
                             {/* Add subscription form */}
-                            <AnimatePresence>
                                 {showAddSub && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden mb-5"
+                                    <div
+                                        className="overflow-hidden mb-2"
                                     >
-                                        <div className="bg-[#09090b] border border-indigo-500/30 rounded-xl p-4 space-y-2">
+                                        <div className="bg-[#09090b] border border-indigo-500/30 rounded-md p-3 space-y-2">
                                             <div className="grid grid-cols-2 gap-2">
                                                 <input
                                                     value={newSub.name}
@@ -1303,9 +1298,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                 <button onClick={handleAddSubscription} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600">저장</button>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 )}
-                            </AnimatePresence>
 
                             {subscriptions.length === 0 ? (
                                 <div className="text-center py-20 text-slate-400">
@@ -1316,7 +1310,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             ) : (
                                 <div className="space-y-2">
                                     {subscriptions.map(sub => (
-                                        <div key={sub.id} className="flex items-center gap-4 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-white/10 transition-all">
+                                        <div key={sub.id} className="flex items-center gap-2.5 px-3 py-3 bg-white/[0.02] border border-white/5 rounded-md group hover:border-white/10 transition-all">
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">{sub.category}</span>
@@ -1348,19 +1342,19 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
 
                     {/* #22 Debt Management Tab */}
                     {activeSubTab === 'debts' && (
-                        <div className="space-y-4">
+                        <div className="space-y-2.5">
                             {/* Total debt summary */}
                             {debts.length > 0 && (
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-xl p-4 text-center">
+                                    <div className="bg-rose-500/5 border border-rose-500/20 rounded-md p-3 text-center">
                                         <p className="text-xl font-bold text-rose-400">₩{debts.reduce((s, d) => s + d.principal, 0).toLocaleString()}</p>
                                         <p className="text-xs text-slate-500 mt-1 font-bold">총 부채 원금</p>
                                     </div>
-                                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 text-center">
+                                    <div className="bg-amber-500/5 border border-amber-500/20 rounded-md p-3 text-center">
                                         <p className="text-xl font-bold text-amber-400">₩{debts.reduce((s, d) => s + (d.monthlyPayment || 0), 0).toLocaleString()}</p>
                                         <p className="text-xs text-slate-500 mt-1 font-bold">월 상환 합계</p>
                                     </div>
-                                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center col-span-2 md:col-span-1">
+                                    <div className="bg-white/5 border border-white/10 rounded-md p-3 text-center col-span-2 md:col-span-1">
                                         <p className="text-xl font-bold text-slate-200">{debts.length}건</p>
                                         <p className="text-xs text-slate-500 mt-1 font-bold">부채 항목 수</p>
                                     </div>
@@ -1370,51 +1364,46 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             {/* Add debt toggle */}
                             <button
                                 onClick={() => setShowAddDebt(v => !v)}
-                                className="flex items-center gap-2 text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 px-4 py-2 rounded-xl transition-colors"
+                                className="flex items-center gap-2 text-sm font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 px-3 py-2 rounded-md transition-colors"
                             >
                                 <Plus className="w-4 h-4" /> 부채/대출 추가
                             </button>
 
-                            <AnimatePresence>
                                 {showAddDebt && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
+                                    <div
                                         className="overflow-hidden"
                                     >
-                                        <div className="bg-white/[0.02] border border-white/10 rounded-xl p-4 space-y-3">
+                                        <div className="bg-white/[0.02] border border-white/10 rounded-md p-3 space-y-3">
                                             <div className="grid grid-cols-2 gap-3">
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">항목명 *</label>
-                                                    <input value={newDebt.name} onChange={e => setNewDebt(p => ({ ...p, name: e.target.value }))} placeholder="예: 학자금 대출" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                    <input value={newDebt.name} onChange={e => setNewDebt(p => ({ ...p, name: e.target.value }))} placeholder="예: 학자금 대출" className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">원금 *</label>
-                                                    <input type="number" value={newDebt.principal} onChange={e => setNewDebt(p => ({ ...p, principal: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                    <input type="number" value={newDebt.principal} onChange={e => setNewDebt(p => ({ ...p, principal: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">연이율 (%)</label>
-                                                    <input type="number" step="0.1" value={newDebt.interestRate} onChange={e => setNewDebt(p => ({ ...p, interestRate: e.target.value }))} placeholder="0.0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                    <input type="number" step="0.1" value={newDebt.interestRate} onChange={e => setNewDebt(p => ({ ...p, interestRate: e.target.value }))} placeholder="0.0" className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">월 상환액</label>
-                                                    <input type="number" value={newDebt.monthlyPayment} onChange={e => setNewDebt(p => ({ ...p, monthlyPayment: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                    <input type="number" value={newDebt.monthlyPayment} onChange={e => setNewDebt(p => ({ ...p, monthlyPayment: e.target.value }))} placeholder="0" className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">만기일</label>
-                                                    <input type="date" value={newDebt.dueDate} onChange={e => setNewDebt(p => ({ ...p, dueDate: e.target.value }))} className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors [color-scheme:dark]" />
+                                                    <input type="date" value={newDebt.dueDate} onChange={e => setNewDebt(p => ({ ...p, dueDate: e.target.value }))} className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors [color-scheme:dark]" />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1 uppercase tracking-wider">메모</label>
-                                                    <input value={newDebt.memo} onChange={e => setNewDebt(p => ({ ...p, memo: e.target.value }))} placeholder="비고 사항" className="w-full bg-[#09090b] border border-white/10 rounded-xl px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
+                                                    <input value={newDebt.memo} onChange={e => setNewDebt(p => ({ ...p, memo: e.target.value }))} placeholder="비고 사항" className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2 text-sm font-bold outline-none focus:border-rose-500 transition-colors" />
                                                 </div>
                                             </div>
-                                            <button onClick={handleAddDebt} className="w-full bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 font-bold py-2.5 rounded-xl text-sm transition-colors">추가하기</button>
+                                            <button onClick={handleAddDebt} className="w-full bg-rose-500/10 border border-rose-500/30 hover:bg-rose-500/20 text-rose-400 font-bold py-2.5 rounded-md text-sm transition-colors">추가하기</button>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 )}
-                            </AnimatePresence>
 
                             {debts.length === 0 ? (
                                 <div className="text-center py-16 text-slate-500">
@@ -1428,7 +1417,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                         const monthlyInterest = debt.interestRate > 0 ? Math.round(debt.principal * (debt.interestRate / 100) / 12) : 0;
                                         const monthsLeft = debt.monthlyPayment > 0 ? Math.ceil(debt.principal / debt.monthlyPayment) : null;
                                         return (
-                                            <div key={debt.id} className="flex items-start gap-4 px-4 py-3 bg-white/[0.02] border border-white/5 rounded-xl group hover:border-rose-500/20 transition-all">
+                                            <div key={debt.id} className="flex items-start gap-2.5 px-3 py-3 bg-white/[0.02] border border-white/5 rounded-md group hover:border-rose-500/20 transition-all">
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <p className="text-sm font-bold text-slate-200">{debt.name}</p>
@@ -1456,11 +1445,10 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             )}
                         </div>
                     )}
-                </motion.div>
-            </AnimatePresence>
+                </div>
 
             {/* #34 Finance Diary */}
-            <div className="glass-card p-4 md:p-5 rounded-xl">
+            <div className="glass-card p-3 md:p-3 rounded-md">
                 <h3 className="font-bold tracking-tight text-base text-slate-100 flex items-center gap-2 mb-3">
                     📔 재정 일기 <span className="text-xs font-bold text-slate-500">({todayStr})</span>
                 </h3>
@@ -1468,7 +1456,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     value={diaryValue}
                     onChange={e => handleDiaryChange(e.target.value)}
                     placeholder="오늘의 소비 습관, 재정 목표, 절약 다짐을 자유롭게 기록해보세요..."
-                    className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-3 text-sm text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none min-h-[100px] placeholder-slate-600 font-medium"
+                    className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-3 text-sm text-slate-300 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all resize-none min-h-[100px] placeholder-slate-600 font-medium"
                     rows={4}
                 />
                 {diaryValue && (

@@ -26,8 +26,8 @@ import ShortcutsModal from './components/ShortcutsModal';
 import InputModal from './components/InputModal';
 import ReviewView from './views/ReviewView';
 import SearchModal from './components/SearchModal';
+import QuickExpenseSheet from './components/QuickExpenseSheet';
 import { Toaster, toast } from 'react-hot-toast';
-import { motion } from 'framer-motion';
 import LoginView from './views/LoginView';
 import { supabase } from './supabaseClient';
 import { TABS } from './constants';
@@ -71,10 +71,44 @@ export default function App() {
 
   const [currentTab, setCurrentTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isQuickOpen, setIsQuickOpen] = useState(false);
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [rolloverPrompted, setRolloverPrompted] = useState(false);
+
+  // Web Share Target — Android에서 은행앱 공유 시 자동 처리
+  const [pendingShareData, setPendingShareData] = useState(null); // { type:'image'|'text', blob?:Blob, text?:string }
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const shareType = params.get('share');
+    if (!shareType || (shareType !== 'image' && shareType !== 'text')) return;
+
+    // URL 파라미터 즉시 제거 (히스토리 오염 방지)
+    window.history.replaceState({}, '', '/');
+
+    (async () => {
+      try {
+        const cache = await caches.open('share-target-v1');
+        const response = await cache.match('/share-pending');
+        if (!response) return;
+
+        if (shareType === 'image') {
+          const blob = await response.blob();
+          await cache.delete('/share-pending');
+          setPendingShareData({ type: 'image', blob });
+        } else {
+          const { text } = await response.json();
+          await cache.delete('/share-pending');
+          setPendingShareData({ type: 'text', text });
+        }
+        setCurrentTab('finance'); // 재정 탭으로 자동 이동
+      } catch (err) {
+        console.error('Share target read error:', err);
+      }
+    })();
+  }, []);
 
   // Cmd+K → search, ? → shortcuts, 1-6 → tab navigation, N → new entry
   useEffect(() => {
@@ -171,7 +205,7 @@ export default function App() {
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#09090b]" role="status" aria-label="로딩 중">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500" aria-hidden="true" />
+        <div className="rounded-full h-8 w-8 border-b-2 border-indigo-500" aria-hidden="true" />
         <span className="sr-only">로딩 중...</span>
       </div>
     );
@@ -187,114 +221,81 @@ export default function App() {
         position="top-right"
         toastOptions={{
           style: {
-            background: 'var(--toast-bg, rgba(255, 255, 255, 0.9))',
-            color: 'var(--toast-text, #1e293b)',
-            backdropFilter: 'blur(10px)',
-            borderRadius: '1rem',
-            padding: '12px 20px',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-            border: '1px solid rgba(255, 255, 255, 0.2)',
+            background: 'var(--toast-bg, #111113)',
+            color: 'var(--toast-text, #e2e8f0)',
+            borderRadius: '6px',
+            padding: '10px 16px',
+            border: '1px solid rgba(255,255,255,0.08)',
+            fontSize: '13px',
           },
         }}
       />
 
-      {/* Ambient Animated Effect */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-indigo-400/10 dark:bg-indigo-600/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-rose-400/10 dark:bg-fuchsia-600/10 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen" />
-      </div>
-
-      <div className="relative z-10 max-w-5xl mx-auto flex flex-col gap-2 md:gap-5 px-3 md:px-5 pt-2 md:pt-6 mb-4">
-        <header className="flex justify-between items-center glass p-2.5 md:p-4 rounded-xl mt-1 md:mt-2">
-          <h1 className="text-base md:text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-            <div className="w-6 h-6 md:w-7 md:h-7 bg-slate-900 dark:bg-indigo-500 rounded-lg flex items-center justify-center -rotate-6 shadow-none" aria-hidden="true">
-              <LayoutDashboard className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
+      {/* Top bar */}
+      <div className="sticky top-0 z-30 bg-[#09090b] border-b border-white/8">
+        <div className="max-w-5xl mx-auto px-3 md:px-5">
+          {/* Header row */}
+          <div className="flex items-center justify-between h-11">
+            <div className="flex items-center gap-2">
+              <LayoutDashboard className="w-4 h-4 text-indigo-400" aria-hidden="true" />
+              <span className="text-sm font-bold text-white">올라운더</span>
+              <span className="hidden md:flex items-center gap-1 text-xs text-slate-500">
+                <ChevronLeft className="w-3 h-3 cursor-pointer hover:text-slate-300" onClick={() => setCurrentDate(addDays(currentDate, -1))} />
+                {displayDate} {['일','월','화','수','목','금','토'][currentDate.getDay()]}
+                <ChevronRight className="w-3 h-3 cursor-pointer hover:text-slate-300" onClick={() => setCurrentDate(addDays(currentDate, 1))} />
+                {!isSameDay(currentDate, new Date()) && (
+                  <button onClick={() => setCurrentDate(new Date())} className="text-indigo-400 hover:text-indigo-300 ml-1">오늘</button>
+                )}
+              </span>
             </div>
-            올라운더
-          </h1>
-          <div className="flex items-center gap-1.5">
-            <button
-              className="w-8 h-8 md:w-10 md:h-10 bg-white/5 border border-white/10 rounded-full flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
-              onClick={() => setIsSearchOpen(true)}
-              aria-label="검색 열기"
-            >
-              <Search className="w-3.5 h-3.5 md:w-4 md:h-4 text-slate-400" />
-              <span className="hidden md:inline text-[9px] text-slate-400 font-bold ml-1 border border-white/10 px-1.5 rounded-md">⌘K</span>
-            </button>
-            <button
-              className="w-8 h-8 md:w-10 md:h-10 bg-indigo-500/10 border-2 border-white dark:border-[#1a1c23] rounded-full shadow-none flex items-center justify-center font-bold tracking-tight text-indigo-400 text-xs md:text-sm cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => setIsSettingOpen(true)}
-              aria-label="설정 열기"
-            >
-              {userProfile?.name?.charAt(0) || '나'}
-            </button>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setIsSearchOpen(true)} className="p-1.5 rounded hover:bg-white/8 text-slate-400 hover:text-slate-200" aria-label="검색">
+                <Search className="w-4 h-4" />
+              </button>
+              <button onClick={() => setIsSettingOpen(true)} className="w-7 h-7 rounded bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 text-xs font-bold hover:bg-indigo-500/30" aria-label="설정">
+                {userProfile?.name?.charAt(0) || '나'}
+              </button>
+            </div>
           </div>
-        </header>
-
-        <div className="flex items-center justify-between px-0.5">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm md:text-lg font-bold tracking-tight text-slate-100 flex items-center gap-1">
-              <button
-                onClick={() => setCurrentDate(addDays(currentDate, -1))}
-                className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
-                aria-label="어제"
-              >
-                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
-              </button>
-              {displayDate} {['일', '월', '화', '수', '목', '금', '토'][currentDate.getDay()]}요일
-              <button
-                onClick={() => setCurrentDate(addDays(currentDate, 1))}
-                className="hover:bg-slate-200 dark:hover:bg-slate-800 p-0.5 rounded transition-colors"
-                aria-label="내일"
-              >
-                <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-slate-400" />
-              </button>
-              {!isSameDay(currentDate, new Date()) && (
+          {/* Mobile date row */}
+          <div className="flex md:hidden items-center gap-1 pb-1 text-xs text-slate-500">
+            <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-0.5 hover:text-slate-300"><ChevronLeft className="w-3 h-3" /></button>
+            {displayDate} {['일','월','화','수','목','금','토'][currentDate.getDay()]}요일
+            <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-0.5 hover:text-slate-300"><ChevronRight className="w-3 h-3" /></button>
+            {!isSameDay(currentDate, new Date()) && (
+              <button onClick={() => setCurrentDate(new Date())} className="text-indigo-400 ml-1">오늘</button>
+            )}
+          </div>
+          {/* Tab nav */}
+          <nav className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="메인 탭">
+            {TABS.map((tab) => {
+              const Icon = IconMap[tab.icon];
+              const isActive = currentTab === tab.id;
+              return (
                 <button
-                  onClick={() => setCurrentDate(new Date())}
-                  className="ml-1 text-[10px] tracking-tight bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded border border-indigo-500/30 active:scale-95"
+                  key={tab.id}
+                  role="tab"
+                  id={`tab-${tab.id}`}
+                  aria-selected={isActive}
+                  onClick={() => setCurrentTab(tab.id)}
+                  className={`flex items-center gap-1 px-3 py-2 text-xs font-medium whitespace-nowrap border-b-2 transition-colors ${
+                    isActive
+                      ? 'border-indigo-500 text-indigo-400'
+                      : 'border-transparent text-slate-500 hover:text-slate-300'
+                  }`}
                 >
-                  오늘
+                  <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                  {tab.label}
                 </button>
-              )}
-            </span>
-            <span className="text-[10px] font-bold text-slate-500 ml-6 md:ml-8">
-              {currentDate.getHours() < 12 ? '☀️ 좋은 아침이에요' : currentDate.getHours() < 18 ? '🌤️ 좋은 오후에요' : '🌙 좋은 저녁이에요'}, {userProfile?.name || '사용자'}님!
-            </span>
-          </div>
+              );
+            })}
+          </nav>
         </div>
-
-        <nav className="flex overflow-x-auto gap-1.5 md:gap-2 pb-1 [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="메인 탭 내비게이션">
-          {TABS.map((tab) => {
-            const Icon = IconMap[tab.icon];
-            const isActive = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                id={`tab-${tab.id}`}
-                aria-selected={isActive}
-                aria-controls={`panel-${tab.id}`}
-                onClick={() => setCurrentTab(tab.id)}
-                className={`flex items-center gap-1 md:gap-1.5 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full whitespace-nowrap text-xs md:text-sm font-bold transition-all shrink-0 ${isActive ? 'bg-slate-800 dark:bg-indigo-500 text-white' : 'bg-white/60 dark:bg-white/5 text-slate-400 hover:bg-white dark:hover:bg-white/10 border border-slate-200/50 dark:border-white/5 backdrop-blur-md'}`}
-              >
-                <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} aria-hidden="true" />
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
       </div>
 
       {/* Main Content Area */}
-      <main className="relative z-10 max-w-5xl mx-auto px-4 md:px-5" id={`panel-${currentTab}`} role="tabpanel" aria-labelledby={`tab-${currentTab}`}>
-        <motion.div
-          key={currentTab}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -15 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-        >
+      <main className="max-w-5xl mx-auto px-3 md:px-5 py-3" id={`panel-${currentTab}`} role="tabpanel" aria-labelledby={`tab-${currentTab}`}>
+        <div>
           {currentTab === 'home' && <HomeView schedules={schedules} setSchedules={setSchedules} transactions={transactions} setTransactions={setTransactions} totalAssets={totalAssets} setCurrentTab={setCurrentTab} currentDate={currentDate} goals={goals} studies={studies} studyTimes={studyTimes} budgets={budgets} reviews={reviews} />}
           {currentTab === 'schedule' && <ScheduleView schedules={schedules} setSchedules={setSchedules} currentDate={currentDate} setCurrentDate={setCurrentDate} />}
           {currentTab === 'finance' &&
@@ -312,23 +313,37 @@ export default function App() {
               financeDiary={financeDiary}
               setFinanceDiary={setFinanceDiary}
               goals={goals}
+              pendingShareData={pendingShareData}
+              clearPendingShare={() => setPendingShareData(null)}
             />
           }
           {currentTab === 'goal' && <GoalView goals={goals} setGoals={setGoals} studyTimes={studyTimes} studies={studies} />}
           {currentTab === 'study' && <StudyView studies={studies} setStudies={setStudies} currentDate={currentDate} studyTimes={studyTimes} setStudyTimes={setStudyTimes} authPhotos={authPhotos} setAuthPhotos={setAuthPhotos} session={session} userProfile={userProfile} goals={goals} setGoals={setGoals} setSchedules={setSchedules} />}
           {currentTab === 'review' && <ReviewView reviews={reviews} setReviews={setReviews} currentDate={currentDate} transactions={transactions} schedules={schedules} studies={studies} studyTimes={studyTimes} goals={goals} userProfile={userProfile} />}
-        </motion.div>
+        </div>
       </main>
 
-      {/* Floating Action Button */}
-      {!isModalOpen && (
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="fixed bottom-6 right-6 md:bottom-10 md:right-10 w-14 h-14 md:w-16 md:h-16 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-none dark:shadow-none transition-all active:scale-95 z-40 border border-slate-700 dark:border-indigo-500"
-          aria-label="새 기록 추가"
-        >
-          <Plus className="w-6 h-6 md:w-8 md:h-8" aria-hidden="true" />
-        </button>
+      {/* Floating Action Buttons */}
+      {!isModalOpen && !isQuickOpen && (
+        <div className="fixed bottom-6 right-4 md:bottom-10 md:right-10 z-40 flex flex-col items-end gap-2">
+          {/* 상세 입력 (작은 버튼) */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1c23] border border-white/10 text-slate-400 rounded text-xs font-medium hover:bg-white/8"
+            aria-label="상세 입력"
+          >
+            <Plus className="w-3 h-3" />
+            상세
+          </button>
+          <button
+            onClick={() => setIsQuickOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm font-bold"
+            aria-label="빠른 지출 입력"
+          >
+            <Plus className="w-4 h-4" />
+            지출
+          </button>
+        </div>
       )}
 
       {/* Input Modal */}
@@ -345,6 +360,17 @@ export default function App() {
         setSchedules={setSchedules}
         setGoals={setGoals}
         goals={goals}
+      />
+
+      {/* Quick Expense Sheet */}
+      <QuickExpenseSheet
+        isOpen={isQuickOpen}
+        onClose={() => setIsQuickOpen(false)}
+        onOpenDetail={() => { setIsQuickOpen(false); setIsModalOpen(true); }}
+        setTransactions={setTransactions}
+        accounts={accounts}
+        expenseCategories={expenseCategories}
+        incomeCategories={incomeCategories}
       />
 
       {/* Settings Modal */}

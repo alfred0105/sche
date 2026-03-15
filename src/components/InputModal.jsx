@@ -206,17 +206,17 @@ export default function InputModal({
 
     return (
         <div
-            className="fixed inset-0 z-[100] flex items-center justify-center px-4 fade-in"
+            className="fixed inset-0 z-[100] flex items-center justify-center px-3 fade-in"
             role="dialog"
             aria-modal="true"
             aria-labelledby="input-modal-title"
         >
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+            <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} aria-hidden="true" />
             <div
                 ref={modalRef}
-                className="relative glass-card bg-[#111113] w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col border border-white/20 dark:border-white/5 my-8 max-h-[90vh]"
+                className="relative glass-card bg-[#111113] w-full max-w-md rounded-lg overflow-hidden flex flex-col border border-white/20 dark:border-white/5 my-8 max-h-[90vh]"
             >
-                <header className="glass px-5 py-5 border-b border-white/10 flex justify-between items-center z-10 shrink-0">
+                <header className="glass px-3 py-3 border-b border-white/10 flex justify-between items-center z-10 shrink-0">
                     <div className="flex flex-col">
                         <h3 id="input-modal-title" className="text-lg font-bold tracking-tight text-slate-100">새로운 기록 추가</h3>
                         <p className="text-[11px] text-slate-400 font-bold">{displayDate}</p>
@@ -226,9 +226,9 @@ export default function InputModal({
                     </button>
                 </header>
 
-                <div className="p-4 md:p-5 overflow-y-auto space-y-5 bg-slate-50/50 dark:bg-[#0f1115]/50 flex-1 [&::-webkit-scrollbar]:hidden">
+                <div className="p-3 md:p-3 overflow-y-auto space-y-3 bg-slate-50/50 dark:bg-[#0f1115]/50 flex-1 [&::-webkit-scrollbar]:hidden">
                     {/* Mode Selector */}
-                    <div className="flex bg-slate-200/50 dark:bg-white/5 p-1 rounded-xl" role="tablist" aria-label="입력 모드 선택">
+                    <div className="flex bg-slate-200/50 dark:bg-white/5 p-1 rounded-md" role="tablist" aria-label="입력 모드 선택">
                         {[
                             { mode: 'expense', label: '지출', activeColor: 'text-rose-500' },
                             { mode: 'income', label: '수입', activeColor: 'text-blue-500' },
@@ -258,7 +258,7 @@ export default function InputModal({
                             value={formTitle}
                             onChange={(e) => setFormTitle(e.target.value)}
                             placeholder={inputMode === 'schedule' ? '예: 전공 필수 멘토링 회의' : inputMode === 'goal' ? '달성하고자 하는 주요 과제' : '사용처 (예: 네이버 페이 - 서적)'}
-                            className={`w-full bg-[#111113] px-4 py-2.5 rounded-xl text-lg font-bold tracking-tight text-slate-400 focus:ring-4 outline-none transition-all shadow-none border ${hasInteracted && !formTitle.trim() ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
+                            className={`w-full bg-[#111113] px-3 py-2.5 rounded-md text-lg font-bold tracking-tight text-slate-400 focus:ring-4 outline-none transition-all shadow-none border ${hasInteracted && !formTitle.trim() ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
                             aria-required="true"
                             aria-invalid={hasInteracted && !formTitle.trim()}
                         />
@@ -275,7 +275,7 @@ export default function InputModal({
                                 type="date"
                                 value={formDate}
                                 onChange={(e) => setFormDate(e.target.value)}
-                                className={`w-full bg-[#111113] px-4 py-2.5 rounded-xl text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none border ${hasInteracted && !formDate ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500'}`}
+                                className={`w-full bg-[#111113] px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none border ${hasInteracted && !formDate ? 'border-red-500 focus:ring-red-500/10' : 'border-white/10 focus:border-indigo-500'}`}
                                 aria-required="true"
                             />
                         </div>
@@ -283,11 +283,11 @@ export default function InputModal({
                             <>
                                 <div className="flex-1">
                                     <label htmlFor="input-start-time" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">시작 시간</label>
-                                    <input id="input-start-time" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
+                                    <input id="input-start-time" type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
                                 </div>
                                 <div className="flex-1">
                                     <label htmlFor="input-end-time" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">종료 시간</label>
-                                    <input id="input-end-time" type="time" value={scheduleEndTime} onChange={(e) => setScheduleEndTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
+                                    <input id="input-end-time" type="time" value={scheduleEndTime} onChange={(e) => setScheduleEndTime(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold tracking-tight text-indigo-600 outline-none transition-all shadow-none" />
                                 </div>
                             </>
                         )}
@@ -298,7 +298,7 @@ export default function InputModal({
                         <div className="space-y-3">
                             <div>
                                 <label htmlFor="input-amount" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">가치 금액 *</label>
-                                <div className={`flex items-center bg-[#111113] border rounded-xl overflow-hidden transition-all shadow-none outline-none px-4 ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500 focus-within:ring-4 focus-within:ring-red-500/10' : 'border-white/10 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
+                                <div className={`flex items-center bg-[#111113] border rounded-md overflow-hidden transition-all shadow-none outline-none px-3 ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500 focus-within:ring-4 focus-within:ring-red-500/10' : 'border-white/10 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10'}`}>
                                     <input
                                         id="input-amount"
                                         type="text"
@@ -328,7 +328,7 @@ export default function InputModal({
                                 ))}
                             </div>
 
-                            <div className="flex items-center gap-4 bg-[#09090b] p-3 rounded-xl border border-white/10">
+                            <div className="flex items-center gap-2.5 bg-[#09090b] p-3 rounded-md border border-white/10">
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                     <input type="checkbox" checked={taxDeductible} onChange={(e) => setTaxDeductible(e.target.checked)} className="w-4 h-4 text-rose-500 rounded border-slate-300 focus:ring-rose-500" />
                                     <span className="text-xs font-bold text-slate-400">연말정산/증빙 포함 (영수증)</span>
@@ -349,7 +349,7 @@ export default function InputModal({
 
                     {/* Goal Type Selector */}
                     {inputMode === 'goal' && (
-                        <div className="bg-purple-50 dark:bg-purple-500/10 p-4 rounded-xl border border-purple-100 dark:border-purple-500/20 space-y-4">
+                        <div className="bg-purple-50 dark:bg-purple-500/10 p-3 rounded-md border border-purple-100 dark:border-purple-500/20 space-y-2.5">
                             <div className="flex gap-2" role="group" aria-label="목표 유형">
                                 {[{ value: 'short', label: '단기 수립' }, { value: 'mid', label: '중기 플랜' }, { value: 'long', label: '장기 비전' }].map(({ value, label }) => (
                                     <button key={value} onClick={() => setGoalType(value)} className={`flex-1 py-2 rounded-lg text-xs font-bold border transition-colors ${goalType === value ? 'bg-purple-500 text-white border-purple-500' : 'bg-[#111113] text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/30'}`}>
@@ -395,7 +395,7 @@ export default function InputModal({
                                                 role="radio"
                                                 aria-checked={isSelected}
                                                 onClick={() => setActiveCategoryId(cat.id)}
-                                                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${isSelected ? (inputMode === 'expense' ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400' : inputMode === 'income' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'border-indigo-500 bg-indigo-500/10 text-indigo-400') : 'bg-[#111113] border-white/10 text-slate-500 hover:bg-white/10'} shadow-none`}
+                                                className={`flex flex-col items-center justify-center p-3 rounded-md border transition-all ${isSelected ? (inputMode === 'expense' ? 'border-rose-500 bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400' : inputMode === 'income' ? 'border-blue-500 bg-blue-50 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400' : 'border-indigo-500 bg-indigo-500/10 text-indigo-400') : 'bg-[#111113] border-white/10 text-slate-500 hover:bg-white/10'} shadow-none`}
                                             >
                                                 <CatIconNode className="w-5 h-5 mb-1" aria-hidden="true" />
                                                 <span className="text-[10px] font-bold truncate w-full text-center">{cat.label}</span>
@@ -408,7 +408,7 @@ export default function InputModal({
                             {inputMode !== 'schedule' && (
                                 <div>
                                     <label htmlFor="input-account" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">출금/수금 계좌 선택</label>
-                                    <select id="input-account" value={formAccount} onChange={(e) => setFormAccount(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 focus:border-rose-500 outline-none transition-colors">
+                                    <select id="input-account" value={formAccount} onChange={(e) => setFormAccount(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-rose-500 outline-none transition-colors">
                                         {accounts.map((acc) => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                     </select>
                                 </div>
@@ -420,11 +420,11 @@ export default function InputModal({
                         <div className="flex gap-3">
                             <div className="flex-1">
                                 <label htmlFor="input-location" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">장소 (선택)</label>
-                                <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-[#111113] border border-white/10 px-4 py-2.5 rounded-xl text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none" />
+                                <input id="input-location" type="text" value={formLocation} onChange={(e) => setFormLocation(e.target.value)} placeholder="예: 미래관 301호" className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none" />
                             </div>
                             <div className="w-1/3">
                                 <label htmlFor="input-priority" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">중요도</label>
-                                <select id="input-priority" value={schedulePriority} onChange={(e) => setSchedulePriority(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-xl text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none">
+                                <select id="input-priority" value={schedulePriority} onChange={(e) => setSchedulePriority(e.target.value)} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none transition-all shadow-none">
                                     <option value="Low">낮음</option>
                                     <option value="Medium">보통</option>
                                     <option value="High">높음 (중요!)</option>
@@ -435,12 +435,12 @@ export default function InputModal({
 
                     <div>
                         <label htmlFor="input-memo" className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">추가 상세 기록 (선택)</label>
-                        <textarea id="input-memo" value={formMemo} onChange={(e) => setFormMemo(e.target.value)} placeholder={inputMode === 'schedule' ? '회의 준비물, 참고 문헌 등을 자세히 적어두세요.' : '구체적인 지출 내역이나 영수증 메모를 적어보세요.'} rows={2} className="w-full bg-[#111113] border border-white/10 px-4 py-2.5 rounded-xl text-sm font-medium text-slate-400 resize-none focus:border-indigo-500 outline-none transition-all shadow-none" />
+                        <textarea id="input-memo" value={formMemo} onChange={(e) => setFormMemo(e.target.value)} placeholder={inputMode === 'schedule' ? '회의 준비물, 참고 문헌 등을 자세히 적어두세요.' : '구체적인 지출 내역이나 영수증 메모를 적어보세요.'} rows={2} className="w-full bg-[#111113] border border-white/10 px-3 py-2.5 rounded-md text-sm font-medium text-slate-400 resize-none focus:border-indigo-500 outline-none transition-all shadow-none" />
                     </div>
 
                     {/* Recurring */}
                     {inputMode !== 'goal' && (
-                        <div className="bg-[#111113] border border-white/10 p-4 rounded-xl shadow-none flex flex-col gap-3">
+                        <div className="bg-[#111113] border border-white/10 p-3 rounded-md shadow-none flex flex-col gap-3">
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-500" />
                                 <span className="text-sm font-bold text-slate-200">정기적으로 반복되는 일정/가계부입니다 (자동 다수 생성)</span>
@@ -501,8 +501,8 @@ export default function InputModal({
                     )}
                 </div>
 
-                <div className="p-4 bg-[#111113] border-t border-white/10 shrink-0">
-                    <button onClick={handleConfirmSave} className={`w-full py-4 rounded-xl font-bold tracking-tight text-white text-base shadow-none transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-400 ' : inputMode === 'income' ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 ' : inputMode === 'goal' ? 'bg-gradient-to-br from-purple-500 to-fuchsia-600 hover:from-purple-400 ' : 'bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-400 '}`}>
+                <div className="p-3 bg-[#111113] border-t border-white/10 shrink-0">
+                    <button onClick={handleConfirmSave} className={`w-full py-2.5 rounded-md font-bold tracking-tight text-white text-base shadow-none transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-400 ' : inputMode === 'income' ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-400 ' : inputMode === 'goal' ? 'bg-gradient-to-br from-purple-500 to-fuchsia-600 hover:from-purple-400 ' : 'bg-gradient-to-br from-indigo-500 to-indigo-600 hover:from-indigo-400 '}`}>
                         기록 추가 등록하기
                     </button>
                 </div>

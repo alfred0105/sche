@@ -13,6 +13,10 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
+            // injectManifest: allows custom sw.js with Web Share Target handler
+            strategies: 'injectManifest',
+            srcDir: 'src',
+            filename: 'sw.js',
             manifest: {
                 name: '올라운더',
                 short_name: '올라운더',
@@ -25,6 +29,20 @@ export default defineConfig({
                 icons: [
                     { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' },
                 ],
+                // Web Share Target — Android에서 "공유" 버튼으로 올라운더에 바로 전달
+                share_target: {
+                    action: '/share-target',
+                    method: 'POST',
+                    enctype: 'multipart/form-data',
+                    params: {
+                        title: 'title',
+                        text: 'text',
+                        files: [{ name: 'image', accept: ['image/*'] }],
+                    },
+                },
+            },
+            injectManifest: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],

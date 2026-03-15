@@ -5,10 +5,9 @@
  */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { IconMap } from './IconMap';
-import { parseBankCSV } from '../utils/bankParser';
+import { parseBankCSV, parseOCRScreenshot, detectBank } from '../utils/bankParser';
 import { classify, isDuplicate, saveLearnedPattern, EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/transactionClassifier';
 import { generateId } from '../utils/helpers';
 
@@ -34,11 +33,9 @@ function ProgressBar({ value, label }) {
                 <span>{Math.round(value)}%</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <motion.div
+                <div
                     className="bg-blue-500 h-2 rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${value}%` }}
-                    transition={{ duration: 0.3 }}
+                    style={{ width: `${value}%` }}
                 />
             </div>
         </div>
@@ -48,14 +45,14 @@ function ProgressBar({ value, label }) {
 function StepIndicator({ current }) {
     const steps = ['입력', '검토', '미분류', '완료'];
     return (
-        <div className="flex items-center gap-1 mb-4">
+        <div className="flex items-center gap-1 mb-2">
             {steps.map((label, i) => {
                 const step = i + 1;
                 const active = step === current;
                 const done = step < current;
                 return (
                     <React.Fragment key={step}>
-                        <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium transition-colors
+                        <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded font-medium transition-colors
                             ${active ? 'bg-blue-500 text-white' : done ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'}`}>
                             {done ? '✓' : step}
                             <span className="hidden sm:inline">{label}</span>
@@ -69,8 +66,8 @@ function StepIndicator({ current }) {
 }
 
 // ── Main Modal ────────────────────────────────────────────────────────────────
-export default function BankImportModal({ onClose, transactions, setTransactions }) {
-    const { X, Upload, Camera, ImageIcon, CheckCircle2, Trash2, ChevronDown } = IconMap;
+export default function BankImportModal({ onClose, transactions, setTransactions, initialData }) {
+    const { X, Upload, Camera, ImageIcon, CheckCircle2, Trash2, ChevronDown, Monitor } = IconMap;
 
     const [step, setStep] = useState(STEP_INPUT);
     const [mode, setMode] = useState('image'); // 'image' | 'text'
@@ -82,6 +79,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
     const [ocrRunning, setOcrRunning] = useState(false);
     const [ocrText, setOcrText] = useState('');
     const [csvText, setCsvText] = useState('');
+    const [detectedBank, setDetectedBank] = useState(null); // { code, label }
     const fileInputRef = useRef(null);
 
     // Step 2: Review rows
@@ -90,6 +88,59 @@ export default function BankImportModal({ onClose, transactions, setTransactions
 
     // Step 3: Unknown
     const [unknownRows, setUnknownRows] = useState([]);
+
+    // ── initialData (Web Share Target에서 수신된 이미지/텍스트) ──────────────
+    useEffect(() => {
+        if (!initialData) return;
+        if (initialData.type === 'image' && initialData.blob) {
+            const url = URL.createObjectURL(initialData.blob);
+            setImagePreview(url);
+            setMode('image');
+            const file = new File([initialData.blob], 'shared.png', { type: initialData.blob.type || 'image/png' });
+            toast('📲 공유된 이미지로 OCR을 시작합니다...', { duration: 2000 });
+            runOCR(file);
+        } else if (initialData.type === 'text' && initialData.text) {
+            setMode('text');
+            setCsvText(initialData.text);
+            toast('📲 공유된 텍스트가 입력됐습니다. 파싱을 시작하세요.', { duration: 3000 });
+        }
+    }, [initialData]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Screen capture (getDisplayMedia) ────────────────────────────────────
+    const handleScreenCapture = useCallback(async () => {
+        if (!navigator.mediaDevices?.getDisplayMedia) {
+            toast.error('이 브라우저는 화면 캡처를 지원하지 않습니다.');
+            return;
+        }
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: { cursor: 'never', displaySurface: 'window' },
+                audio: false,
+            });
+            // Draw one frame to canvas
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            await new Promise((res) => { video.onloadedmetadata = res; });
+            await video.play();
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            stream.getTracks().forEach((t) => t.stop());
+
+            canvas.toBlob((blob) => {
+                if (!blob) { toast.error('캡처 실패. 다시 시도해주세요.'); return; }
+                const file = new File([blob], 'screen-capture.png', { type: 'image/png' });
+                const url = URL.createObjectURL(blob);
+                setImagePreview(url);
+                runOCR(file);
+            }, 'image/png');
+        } catch (err) {
+            if (err.name !== 'NotAllowedError') {
+                toast.error('화면 캡처 오류: ' + (err?.message || '알 수 없는 오류'));
+            }
+        }
+    }, [runOCR]);
 
     // ── Clipboard paste (Ctrl+V) ────────────────────────────────────────────
     useEffect(() => {
@@ -136,12 +187,16 @@ export default function BankImportModal({ onClose, transactions, setTransactions
             });
             const { data } = await worker.recognize(file);
             await worker.terminate();
-            setOcrText(data.text || '');
+            const extractedText = data.text || '';
+            setOcrText(extractedText);
             setOcrProgress(100);
-            if (!data.text?.trim()) {
+            if (!extractedText.trim()) {
                 toast.error('텍스트를 인식하지 못했습니다. 이미지를 확인해주세요.');
             } else {
-                toast.success('OCR 완료! 텍스트를 확인하고 다음 단계로 진행하세요.');
+                const bank = detectBank(extractedText);
+                setDetectedBank(bank);
+                const bankMsg = bank.code !== 'unknown' ? ` (${bank.label} 감지됨)` : '';
+                toast.success(`OCR 완료${bankMsg}! 텍스트를 확인하고 다음 단계로 진행하세요.`);
             }
         } catch (err) {
             toast.error('OCR 오류: ' + (err?.message || '알 수 없는 오류'));
@@ -160,10 +215,15 @@ export default function BankImportModal({ onClose, transactions, setTransactions
     }, [handleImageFile]);
 
     // ── Parse & Classify ─────────────────────────────────────────────────────
-    const parseAndClassify = useCallback((text) => {
-        const parsed = parseBankCSV(text);
+    const parseAndClassify = useCallback((text, isOCR = false) => {
+        // OCR 스크린샷 → 라인 기반 파서 / CSV/텍스트 → 컬럼 기반 파서
+        const parsed = isOCR ? parseOCRScreenshot(text) : parseBankCSV(text);
         if (!parsed.length) {
-            toast.error('거래 내역을 파싱할 수 없습니다. 텍스트를 확인해주세요.');
+            if (isOCR) {
+                toast.error('거래 내역을 인식하지 못했습니다. 스크린샷에 금액(원)과 날짜가 포함되어 있는지 확인해주세요.');
+            } else {
+                toast.error('거래 내역을 파싱할 수 없습니다. 텍스트를 확인해주세요.');
+            }
             return;
         }
         const enriched = parsed.map((tx) => {
@@ -192,7 +252,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
             toast.error('내용이 없습니다.');
             return;
         }
-        parseAndClassify(text);
+        parseAndClassify(text, mode === 'image');
     }, [mode, ocrText, csvText, parseAndClassify]);
 
     // ── Review step helpers ─────────────────────────────────────────────────
@@ -267,15 +327,12 @@ export default function BankImportModal({ onClose, transactions, setTransactions
     const unknownCount = rows.filter(r => r.selected && !r.category).length;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-3">
+            <div
+                className="bg-white dark:bg-gray-900 rounded-md w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden"
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700 flex-shrink-0">
+                <div className="flex items-center justify-between px-3 py-2.5 border-b dark:border-gray-700 flex-shrink-0">
                     <div>
                         <h2 className="text-lg font-bold dark:text-white">거래내역 가져오기</h2>
                         <p className="text-xs text-gray-400 mt-0.5">스크린샷·CSV 자동 분류 • 중복 감지</p>
@@ -286,18 +343,18 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                 </div>
 
                 {/* Step indicator */}
-                <div className="px-5 pt-4 flex-shrink-0">
+                <div className="px-3 pt-4 flex-shrink-0">
                     <StepIndicator current={step} />
                 </div>
 
                 {/* Body */}
-                <div className="flex-1 overflow-y-auto px-5 pb-5">
+                <div className="flex-1 overflow-y-auto px-3 pb-5">
 
                     {/* ── Step 1: Input ── */}
                     {step === STEP_INPUT && (
-                        <div className="space-y-4">
+                        <div className="space-y-2.5">
                             {/* Mode toggle */}
-                            <div className="flex rounded-xl overflow-hidden border dark:border-gray-700 text-sm">
+                            <div className="flex rounded-md overflow-hidden border dark:border-gray-700 text-sm">
                                 {[['image', '📷 스크린샷'], ['text', '📋 CSV/텍스트']].map(([m, label]) => (
                                     <button key={m} onClick={() => setMode(m)}
                                         className={`flex-1 py-2 font-medium transition-colors
@@ -315,7 +372,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                                         onDragLeave={() => setDragOver(false)}
                                         onDrop={onDrop}
                                         onClick={() => !ocrRunning && fileInputRef.current?.click()}
-                                        className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors
+                                        className={`border-2 border-dashed rounded-md p-3 text-center cursor-pointer transition-colors
                                             ${dragOver ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-gray-600 hover:border-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                                     >
                                         {imagePreview ? (
@@ -331,9 +388,39 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                                             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
                                     </div>
 
+                                    {/* Screen capture button */}
+                                    {!ocrRunning && (
+                                        <button
+                                            type="button"
+                                            onClick={handleScreenCapture}
+                                            className="w-full flex items-center justify-center gap-2 py-2.5 border border-dashed border-indigo-400 dark:border-indigo-600 rounded-md text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                                        >
+                                            <Monitor size={16} />
+                                            화면 직접 캡처 (은행앱 화면 선택)
+                                        </button>
+                                    )}
+                                    <p className="text-center text-xs text-gray-400">
+                                        📱 모바일: 스크린샷 업로드 &nbsp;|&nbsp; 💻 PC: 화면 직접 캡처 추천
+                                    </p>
+
                                     {/* OCR Progress */}
                                     {(ocrRunning || ocrProgress > 0) && (
                                         <ProgressBar value={ocrProgress} label={ocrRunning ? 'OCR 처리 중...' : 'OCR 완료'} />
+                                    )}
+
+                                    {/* Detected bank badge */}
+                                    {detectedBank && ocrText && (
+                                        <div className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium
+                                            ${detectedBank.code !== 'unknown'
+                                                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700'
+                                                : 'bg-gray-50 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700'}`}>
+                                            <span>{detectedBank.code !== 'unknown' ? '🏦' : '❓'}</span>
+                                            <span>
+                                                {detectedBank.code !== 'unknown'
+                                                    ? `${detectedBank.label} 감지됨 — 스크린샷 파서 적용`
+                                                    : '은행을 인식하지 못했습니다 — 범용 파서 적용'}
+                                            </span>
+                                        </div>
                                     )}
 
                                     {/* OCR text preview (editable) */}
@@ -370,7 +457,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                             <button
                                 onClick={handleProceedFromInput}
                                 disabled={ocrRunning || (mode === 'image' ? !ocrText.trim() : !csvText.trim())}
-                                className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-xl font-medium transition-colors"
+                                className="w-full py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-md font-medium transition-colors"
                             >
                                 파싱 및 분류 시작 →
                             </button>
@@ -382,19 +469,19 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                         <div className="space-y-3">
                             {/* Summary bar */}
                             <div className="flex flex-wrap gap-2 text-xs">
-                                <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded-full">
+                                <span className="bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-1 rounded">
                                     총 {rows.length}건
                                 </span>
-                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-1 rounded">
                                     선택 {selectedCount}건
                                 </span>
                                 {dupCount > 0 && (
-                                    <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-2 py-1 rounded-full">
+                                    <span className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-2 py-1 rounded">
                                         중복 {dupCount}건
                                     </span>
                                 )}
                                 {unknownCount > 0 && (
-                                    <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2 py-1 rounded-full">
+                                    <span className="bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2 py-1 rounded">
                                         미분류 {unknownCount}건
                                     </span>
                                 )}
@@ -410,7 +497,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                             <div className="space-y-2">
                                 {rows.map((row) => (
                                     <div key={row.id}
-                                        className={`border dark:border-gray-700 rounded-xl p-3 text-sm transition-colors
+                                        className={`border dark:border-gray-700 rounded-md p-3 text-sm transition-colors
                                             ${!row.selected ? 'opacity-50' : ''}
                                             ${row.dupInfo?.isDuplicate ? 'border-yellow-300 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/10' : 'bg-white dark:bg-gray-800'}`}
                                     >
@@ -426,10 +513,10 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                                                     <span className="font-semibold dark:text-white">{formatAmount(row.amount)}</span>
                                                     <span className="text-gray-400 text-xs">{row.date}</span>
                                                     {row.dupInfo?.isDuplicate && (
-                                                        <span className="text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-1.5 py-0.5 rounded-full">🔄 중복</span>
+                                                        <span className="text-xs bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200 px-1.5 py-0.5 rounded">🔄 중복</span>
                                                     )}
                                                     {row.confidence === 'learned' && (
-                                                        <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">★ 학습됨</span>
+                                                        <span className="text-xs bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded">★ 학습됨</span>
                                                     )}
                                                 </div>
                                                 <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5 truncate">{row.rawMemo}</p>
@@ -461,11 +548,11 @@ export default function BankImportModal({ onClose, transactions, setTransactions
 
                             <div className="flex gap-2 pt-2">
                                 <button onClick={() => setStep(STEP_INPUT)}
-                                    className="flex-1 py-2.5 border dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    className="flex-1 py-2.5 border dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
                                     ← 다시
                                 </button>
                                 <button onClick={handleProceedToUnknown} disabled={selectedCount === 0}
-                                    className="flex-2 flex-grow-[2] py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-xl text-sm font-medium">
+                                    className="flex-2 flex-grow-[2] py-2.5 bg-blue-500 hover:bg-blue-600 disabled:opacity-40 text-white rounded-md text-sm font-medium">
                                     {unknownCount > 0 ? `미분류 설정 (${unknownCount}건) →` : `${selectedCount}건 가져오기 →`}
                                 </button>
                             </div>
@@ -480,7 +567,7 @@ export default function BankImportModal({ onClose, transactions, setTransactions
                             </p>
                             <div className="space-y-3">
                                 {unknownRows.map((row) => (
-                                    <div key={row.id} className="border dark:border-gray-700 rounded-xl p-3 bg-white dark:bg-gray-800 space-y-2">
+                                    <div key={row.id} className="border dark:border-gray-700 rounded-md p-3 bg-white dark:bg-gray-800 space-y-2">
                                         <div className="flex items-center gap-2">
                                             <span className={`text-xs px-1.5 py-0.5 rounded font-medium
                                                 ${row.type === 'income' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
@@ -529,11 +616,11 @@ export default function BankImportModal({ onClose, transactions, setTransactions
 
                             <div className="flex gap-2 pt-2">
                                 <button onClick={() => setStep(STEP_REVIEW)}
-                                    className="flex-1 py-2.5 border dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+                                    className="flex-1 py-2.5 border dark:border-gray-600 rounded-md text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
                                     ← 검토
                                 </button>
                                 <button onClick={handleImportWithUnknown}
-                                    className="flex-[2] py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-medium">
+                                    className="flex-[2] py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm font-medium">
                                     가져오기 완료
                                 </button>
                             </div>
@@ -542,20 +629,20 @@ export default function BankImportModal({ onClose, transactions, setTransactions
 
                     {/* ── Step 4: Done ── */}
                     {step === STEP_DONE && (
-                        <div className="text-center py-10 space-y-4">
+                        <div className="text-center py-10 space-y-2.5">
                             <CheckCircle2 size={56} className="mx-auto text-green-500" />
                             <div>
                                 <p className="text-xl font-bold dark:text-white">가져오기 완료!</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">거래 내역이 재정 탭에 추가되었습니다.</p>
                             </div>
                             <button onClick={onClose}
-                                className="px-8 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium">
+                                className="px-8 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-md font-medium">
                                 닫기
                             </button>
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 }

@@ -4,7 +4,6 @@
  */
 import React from 'react';
 import PropTypes from 'prop-types';
-import { motion } from 'framer-motion';
 import { IconMap } from './IconMap';
 import { differenceInDays, parseISO } from 'date-fns';
 
@@ -16,9 +15,8 @@ function GoalCard({ goal, onClick }) {
     const dDay = goal.deadline ? differenceInDays(parseISO(goal.deadline), new Date()) : null;
 
     return (
-        <motion.div
+        <div
             onClick={() => onClick(goal.id)}
-            whileHover={{ y: -4, scale: 1.01 }}
             className={`group cursor-pointer bg-[#111113] rounded-xl overflow-hidden shadow-none hover:shadow-none border border-slate-200/60 dark:border-white/5 transition-all flex flex-col relative ${goal.progress === 100 ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-[#0f1115]' : ''}`}
             role="button"
             tabIndex={0}
@@ -54,17 +52,16 @@ function GoalCard({ goal, onClick }) {
                         <span className={goal.progress === 100 ? 'text-emerald-500' : 'text-slate-200'}>{goal.progress}%</span>
                     </div>
                     <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
-                        <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${goal.progress}%` }}
+                        <div
+                            style={{ width: `${goal.progress}%` }}
                             className={`h-full bg-gradient-to-r ${goal.progress === 100 ? 'from-emerald-400 to-emerald-500' : `${cFrom} ${cTo}`} rounded-full relative overflow-hidden`}
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-shimmer" aria-hidden="true" />
-                        </motion.div>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full" aria-hidden="true" />
+                        </div>
                     </div>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 }
 

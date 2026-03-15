@@ -60,21 +60,21 @@ export default function ConfirmModal({
 
     return (
         <div
-            className="fixed inset-0 z-[300] flex items-center justify-center px-4 fade-in"
+            className="fixed inset-0 z-[300] flex items-center justify-center px-3 fade-in"
             role="dialog"
             aria-modal="true"
             aria-labelledby="confirm-modal-title"
             aria-describedby="confirm-modal-desc"
         >
             <div
-                className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+                className="absolute inset-0 bg-slate-900/60"
                 onClick={onClose}
                 aria-hidden="true"
             />
             <div
                 ref={modalRef}
                 tabIndex={-1}
-                className="relative bg-[#111113] w-full max-w-sm rounded-xl shadow-2xl p-4 md:p-5 space-y-4 border border-white/10"
+                className="relative bg-[#111113] w-full max-w-sm rounded-md p-3 md:p-3 space-y-2.5 border border-white/10"
             >
                 <div className="flex justify-between items-center">
                     <h3 id="confirm-modal-title" className="text-lg font-bold tracking-tight text-slate-100">
@@ -99,20 +99,20 @@ export default function ConfirmModal({
                         onChange={(e) => setInputValue(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
                         placeholder={inputPlaceholder}
-                        className="w-full bg-[#09090b] border border-white/10 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none"
+                        className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-400 focus:border-indigo-500 outline-none"
                         aria-label={inputPlaceholder}
                     />
                 )}
                 <div className="flex gap-3 pt-2">
                     <button
                         onClick={onClose}
-                        className="flex-1 py-2.5 bg-white/5 text-slate-400 font-bold text-sm rounded-xl hover:bg-white/10 transition-colors"
+                        className="flex-1 py-2.5 bg-white/5 text-slate-400 font-bold text-sm rounded-md hover:bg-white/10 transition-colors"
                     >
                         {cancelText}
                     </button>
                     <button
                         onClick={handleConfirm}
-                        className={`flex-1 py-2.5 text-white font-bold text-sm rounded-xl shadow-none transition-all active:scale-95 ${variantColors}`}
+                        className={`flex-1 py-2.5 text-white font-bold text-sm rounded-md shadow-none transition-all active:scale-95 ${variantColors}`}
                     >
                         {confirmText}
                     </button>

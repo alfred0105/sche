@@ -374,7 +374,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
     };
 
     return (
-        <div className="flex flex-col gap-3 md:gap-5">
+        <div className="flex flex-col gap-3 md:gap-3">
             {/* #76 Widget settings button */}
             <div className="flex justify-end">
                 <button
@@ -388,7 +388,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #76 Widget settings panel */}
             {showWidgetSettings && (
-                <section className="glass-card p-3 rounded-xl border border-indigo-500/20" aria-label="위젯 표시 설정">
+                <section className="glass-card p-3 rounded-md border border-indigo-500/20" aria-label="위젯 표시 설정">
                     <p className="text-[10px] font-bold text-slate-500 mb-2">표시할 위젯 선택</p>
                     <div className="flex flex-wrap gap-2">
                         {WIDGET_DEFS.map(w => (
@@ -406,8 +406,8 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #84 Weekly Report Banner — Monday only */}
             {isMonday && !bannerDismissed && weeklyBannerStats && (
-                <section className="glass-card p-3 md:p-5 relative overflow-hidden border border-amber-500/20" aria-label="지난 주 성과 요약">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-indigo-500/5" aria-hidden="true" />
+                <section className="glass-card p-3 md:p-3 relative overflow-hidden border border-amber-500/20" aria-label="지난 주 성과 요약">
+                    <div className="absolute inset-0" aria-hidden="true" />
                     <div className="relative">
                         <div className="flex items-center justify-between mb-2">
                             <h2 className="text-xs font-bold text-amber-400">📊 지난 주 성과 요약</h2>
@@ -438,7 +438,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             )}
 
             {/* #81 Quick Entry Bar */}
-            <section className="glass-card p-2.5 rounded-xl" aria-label="빠른 입력">
+            <section className="glass-card p-2.5 rounded-md" aria-label="빠른 입력">
                 <div className="flex items-center gap-1.5">
                     <span className="text-[10px] font-bold text-slate-500 shrink-0">빠른 추가</span>
                     <button
@@ -532,14 +532,14 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             </section>}
 
             {/* Schedule Widget */}
-            {isVisible('schedule') && <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="오늘의 일정">
+            {isVisible('schedule') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 일정">
                 <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-400/10 dark:bg-indigo-500/20 blur-3xl rounded-full" aria-hidden="true" />
                 <div className="relative">
                     <div className="flex justify-between items-center mb-3">
                         <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
                             <CalendarCheck className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 오늘의 일정
                             {todaySchedules.length > 0 && (
-                                <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded-full">{todayCompletedCount}/{todaySchedules.length}</span>
+                                <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 px-1.5 py-0.5 rounded">{todayCompletedCount}/{todaySchedules.length}</span>
                             )}
                         </h2>
                         <button onClick={() => setCurrentTab('schedule')} className="text-[11px] font-bold text-indigo-500 flex items-center gap-0.5" aria-label="전체 일정 보기">
@@ -580,7 +580,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                                 <span className="text-[10px] font-bold text-indigo-400">{Math.round((todayCompletedCount / todaySchedules.length) * 100)}%</span>
                             </div>
                             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar">
-                                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-700" style={{ width: `${(todayCompletedCount / todaySchedules.length) * 100}%` }} />
+                                <div className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all" style={{ width: `${(todayCompletedCount / todaySchedules.length) * 100}%` }} />
                             </div>
                         </div>
                     )}
@@ -588,7 +588,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             </section>}
 
             {/* Finance Widget */}
-            {isVisible('finance') && <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="재정 요약">
+            {isVisible('finance') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="재정 요약">
                 <div className="absolute bottom-0 left-0 w-40 h-40 bg-rose-400/10 dark:bg-fuchsia-500/10 blur-3xl rounded-full" aria-hidden="true" />
                 <div className="relative">
                     <div className="flex justify-between items-center mb-2.5">
@@ -600,18 +600,18 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                         </button>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20">
+                        <div className="bg-blue-500/10 p-3 rounded-md border border-blue-500/20">
                             <p className="text-[10px] font-bold text-blue-400 mb-0.5">수입</p>
                             <p className="text-base font-bold tracking-tight text-blue-400">+₩{todayIncome.toLocaleString()}</p>
                         </div>
-                        <div className="bg-rose-500/10 p-3 rounded-xl border border-rose-500/20">
+                        <div className="bg-rose-500/10 p-3 rounded-md border border-rose-500/20">
                             <p className="text-[10px] font-bold text-rose-400 mb-0.5">지출</p>
                             <p className="text-base font-bold tracking-tight text-rose-400">-₩{todayExpense.toLocaleString()}</p>
                         </div>
                     </div>
                     <div className="mt-3" aria-label="자산 추이 차트" role="img">
                         <p className="text-[10px] font-bold text-slate-500 mb-1.5">최근 {CHART_DAYS_RANGE}일 자산 추이</p>
-                        <div className="h-24 w-full rounded-xl overflow-hidden bg-white/[0.02] p-1.5 border border-white/10">
+                        <div className="h-24 w-full rounded-md overflow-hidden bg-white/[0.02] p-1.5 border border-white/10">
                             {transactions.length === 0 ? (
                                 <div className="h-full flex items-center justify-center text-slate-600 text-xs font-bold">아직 거래 내역이 없습니다</div>
                             ) : (
@@ -635,7 +635,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #49 Goal Mini Gauges Widget */}
             {isVisible('goal') && topGoals.length > 0 && (
-                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="진행 중 목표">
+                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="진행 중 목표">
                     <div className="absolute top-0 left-0 w-32 h-32 bg-purple-400/10 dark:bg-purple-500/20 blur-3xl rounded-full" aria-hidden="true" />
                     <div className="relative">
                         <div className="flex justify-between items-center mb-2.5">
@@ -648,14 +648,14 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                         </div>
                         <div className="space-y-2.5">
                             {topGoals.map(goal => (
-                                <div key={goal.id} className="bg-white/[0.03] p-3 rounded-xl border border-white/10">
+                                <div key={goal.id} className="bg-white/[0.03] p-3 rounded-md border border-white/10">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <span className="text-base" aria-hidden="true">{goal.icon || '🎯'}</span>
                                         <p className="text-xs font-bold text-slate-100 flex-1 truncate">{goal.title}</p>
                                         <span className="text-sm font-bold tracking-tight text-indigo-400 shrink-0">{goal.progress}%</span>
                                     </div>
                                     <div className="h-1.5 bg-white/5 rounded-full overflow-hidden" role="progressbar" aria-valuenow={goal.progress} aria-valuemin={0} aria-valuemax={100}>
-                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-700" style={{ width: `${goal.progress}%` }} />
+                                        <div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all" style={{ width: `${goal.progress}%` }} />
                                     </div>
                                     {goal.deadline && (
                                         <p className="text-[10px] text-slate-500 mt-1">
@@ -674,7 +674,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #77 Today's Study Plans */}
             {todayStudyPlans.length > 0 && (
-                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="오늘의 공부 계획">
+                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 공부 계획">
                     <div className="flex justify-between items-center mb-2.5">
                         <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5">
                             📚 오늘의 공부 계획
@@ -697,7 +697,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #78 Weekly schedule completion mini chart */}
             {weeklyCompletionData.some(d => d.total > 0) && (
-                <section className="glass-card p-3 md:p-4" aria-label="주간 일정 달성 현황">
+                <section className="glass-card p-3 md:p-3" aria-label="주간 일정 달성 현황">
                     <h2 className="text-xs font-bold text-slate-400 mb-3 uppercase tracking-wider">이번 주 일정 달성</h2>
                     <div className="flex items-end gap-1.5 h-12">
                         {weeklyCompletionData.map((d, i) => {
@@ -749,7 +749,7 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
 
             {/* #83 Recent Activity Feed */}
             {isVisible('activity') && activityFeed.length > 0 && (
-                <section className="glass-card p-3 md:p-5 relative overflow-hidden" aria-label="최근 활동 피드">
+                <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="최근 활동 피드">
                     <h2 className="text-sm font-bold tracking-tight text-slate-100 flex items-center gap-1.5 mb-2.5">
                         <Activity className="w-4 h-4 text-indigo-500" aria-hidden="true" /> 최근 활동
                     </h2>
@@ -770,8 +770,8 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
             )}
 
             {/* #79 Daily Quote */}
-            {isVisible('quote') && <section className="glass-card p-3 md:p-4 relative overflow-hidden" aria-label="오늘의 격언">
-                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-purple-500/5" aria-hidden="true" />
+            {isVisible('quote') && <section className="glass-card p-3 md:p-3 relative overflow-hidden" aria-label="오늘의 격언">
+                <div className="absolute inset-0" aria-hidden="true" />
                 <p className="relative text-[11px] italic text-slate-400 text-center leading-relaxed">"{dailyQuote}"</p>
             </section>}
         </div>

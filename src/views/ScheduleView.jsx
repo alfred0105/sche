@@ -9,7 +9,6 @@ import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
 import { isSameDay, isSameWeek, isSameMonth, parseISO, format, addDays, addWeeks, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, getDay, startOfWeek, subWeeks } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { timeToMinutes, generateId } from '../utils/helpers';
 import { DEFAULT_SCHEDULE_CATEGORIES } from '../constants';
@@ -409,7 +408,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
     }, [currentDate, setSchedules]);
 
     return (
-        <div className="glass-card p-4 md:p-5 min-h-[600px] mb-8 flex flex-col relative overflow-hidden">
+        <div className="glass-card p-3 md:p-3 min-h-[600px] mb-8 flex flex-col relative overflow-hidden">
             <ConfirmModal
                 isOpen={confirmState.open}
                 onClose={() => setConfirmState({ open: false, id: null, isGroup: false })}
@@ -422,32 +421,32 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
 
             {/* #5 Edit scope modal for recurring schedules */}
             {editScopeModal.open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="반복 일정 수정 범위 선택">
-                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditScopeModal({ open: false, form: null })} />
-                    <div className="relative bg-[#111113] border border-white/10 rounded-2xl p-5 w-full max-w-xs shadow-2xl">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3" role="dialog" aria-modal="true" aria-label="반복 일정 수정 범위 선택">
+                    <div className="absolute inset-0 bg-black/60" onClick={() => setEditScopeModal({ open: false, form: null })} />
+                    <div className="relative bg-[#111113] border border-white/10 rounded-md p-3 w-full max-w-xs ">
                         <div className="flex items-center gap-2 mb-1">
                             <span className="text-lg">🔄</span>
                             <h3 className="text-sm font-bold text-slate-100">반복 일정 수정</h3>
                         </div>
-                        <p className="text-xs text-slate-400 mb-4">어느 범위까지 수정할까요?</p>
+                        <p className="text-xs text-slate-400 mb-2">어느 범위까지 수정할까요?</p>
                         <div className="flex flex-col gap-2">
                             <button
                                 onClick={() => handleEditScopeConfirm('this')}
-                                className="w-full px-4 py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-xl hover:bg-indigo-500/20 transition-all text-left"
+                                className="w-full px-3 py-2.5 text-xs font-bold text-indigo-400 bg-indigo-500/10 border border-indigo-500/30 rounded-md hover:bg-indigo-500/20 transition-all text-left"
                             >
                                 ✏️ 이 일정만 수정
                                 <span className="block text-[10px] text-slate-500 font-normal mt-0.5">이 날짜의 일정만 변경됩니다</span>
                             </button>
                             <button
                                 onClick={() => handleEditScopeConfirm('all')}
-                                className="w-full px-4 py-2.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-xl hover:bg-amber-500/20 transition-all text-left"
+                                className="w-full px-3 py-2.5 text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-md hover:bg-amber-500/20 transition-all text-left"
                             >
                                 🔄 모든 반복 일정 수정
                                 <span className="block text-[10px] text-slate-500 font-normal mt-0.5">같은 그룹의 모든 일정에 적용됩니다</span>
                             </button>
                             <button
                                 onClick={() => setEditScopeModal({ open: false, form: null })}
-                                className="w-full px-4 py-2 text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors"
+                                className="w-full px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-300 transition-colors"
                             >
                                 취소
                             </button>
@@ -456,7 +455,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                 </div>
             )}
 
-            <header className="mb-6 border-b border-white/10 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+            <header className="mb-2 border-b border-white/10 pb-4 flex flex-col md:flex-row md:items-center justify-between gap-2.5 relative z-10">
                 <h2 className="text-xl md:text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-400">
                     <Calendar className="w-7 h-7 text-indigo-500" aria-hidden="true" /> 종합 스케줄러
                 </h2>
@@ -494,7 +493,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                             📋 템플릿 불러오기
                         </button>
                         {showTemplateDropdown && (
-                            <div className="absolute top-full right-0 mt-1 w-64 bg-[#111113] border border-white/10 rounded-xl shadow-xl z-50 overflow-hidden">
+                            <div className="absolute top-full right-0 mt-1 w-64 bg-[#111113] border border-white/10 rounded-md z-50 overflow-hidden">
                                 <div className="p-3 border-b border-white/10 flex items-center justify-between">
                                     <span className="text-xs font-bold text-slate-400">저장된 템플릿</span>
                                     <button onClick={() => setShowTemplateDropdown(false)} className="text-slate-500 hover:text-slate-300">
@@ -502,7 +501,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                     </button>
                                 </div>
                                 {templates.length === 0 ? (
-                                    <p className="text-xs text-slate-500 p-4 text-center">저장된 템플릿이 없습니다.<br />일정 카드에서 "템플릿으로 저장"을 클릭하세요.</p>
+                                    <p className="text-xs text-slate-500 p-3 text-center">저장된 템플릿이 없습니다.<br />일정 카드에서 "템플릿으로 저장"을 클릭하세요.</p>
                                 ) : (
                                     <div className="max-h-64 overflow-y-auto">
                                         {templates.map(tpl => (
@@ -535,34 +534,28 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
             </header>
 
             {/* #12 Focus Mode overlay */}
-            <AnimatePresence>
-                {focusMode && (
-                    <motion.div
-                        key="focus-overlay"
-                        initial={{ opacity: 0, scale: 0.97 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.97 }}
-                        transition={{ duration: 0.3 }}
+            {focusMode && (
+                    <div
                         className="flex-1 flex flex-col items-center justify-center py-12"
                     >
                         {focusSchedule ? (
-                            <div className="w-full max-w-lg bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-8 text-center shadow-xl">
+                            <div className="w-full max-w-lg bg-indigo-500/10 border border-indigo-500/30 rounded-md p-8 text-center ">
                                 <p className="text-xs font-bold text-indigo-400 mb-3 tracking-widest uppercase">현재 집중 중</p>
                                 <h3 className="text-2xl md:text-3xl font-bold text-slate-100 mb-3">{focusSchedule.title}</h3>
-                                <p className="text-lg font-bold text-indigo-400 mb-6">{focusSchedule.time} {focusSchedule.endTime ? `~ ${focusSchedule.endTime}` : ''}</p>
+                                <p className="text-lg font-bold text-indigo-400 mb-2">{focusSchedule.time} {focusSchedule.endTime ? `~ ${focusSchedule.endTime}` : ''}</p>
                                 {focusSchedule.location && (
-                                    <p className="text-sm text-slate-500 mb-4">📍 {focusSchedule.location}</p>
+                                    <p className="text-sm text-slate-500 mb-2">📍 {focusSchedule.location}</p>
                                 )}
                                 <button
                                     onClick={(e) => { toggleSchedule(e, focusSchedule.id); setFocusMode(false); }}
-                                    className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-xl text-base transition-all active:scale-95 shadow-lg shadow-indigo-500/30"
+                                    className="px-8 py-3 bg-indigo-500 hover:bg-indigo-600 text-white font-bold rounded-md text-base transition-all active:scale-95 shadow-indigo-500/30"
                                 >
                                     ✅ 완료
                                 </button>
                             </div>
                         ) : (
-                            <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-2xl p-8 text-center">
-                                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+                            <div className="w-full max-w-lg bg-white/5 border border-white/10 rounded-md p-8 text-center">
+                                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-2" />
                                 <h3 className="text-xl font-bold text-slate-300 mb-2">오늘 할 일정이 없습니다!</h3>
                                 <p className="text-sm text-slate-500">모든 일정을 완료했거나 오늘 일정이 없어요.</p>
                             </div>
@@ -573,18 +566,11 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         >
                             <X className="w-4 h-4" /> 집중 모드 종료
                         </button>
-                    </motion.div>
+                    </div>
                 )}
-            </AnimatePresence>
 
             {!focusMode && (
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key="list"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.3 }}
+                    <div
                         className="flex-1 flex flex-col"
                     >
                         {/* #4 Search bar */}
@@ -622,14 +608,14 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                             </button>
                         </div>
 
-                        <div className="flex gap-2 mb-6 flex-wrap" role="tablist" aria-label="기간 필터">
+                        <div className="flex gap-2 mb-2 flex-wrap" role="tablist" aria-label="기간 필터">
                             {['daily', 'weekly', 'monthly', 'monthly-cal'].map((type) => (
                                 <button
                                     key={type}
                                     role="tab"
                                     aria-selected={filterType === type}
                                     onClick={() => setFilterType(type)}
-                                    className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filterType === type ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
+                                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-colors border ${filterType === type ? 'bg-[#111113] border-white/10 text-indigo-400 shadow-none' : 'bg-transparent border-transparent text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'}`}
                                 >
                                     {type === 'daily' ? '일간' : type === 'weekly' ? '주간' : type === 'monthly' ? '월간' : '월간 캘린더'}
                                 </button>
@@ -659,7 +645,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
 
                         {/* #8 Monthly Calendar View */}
                         {filterType === 'monthly-cal' ? (
-                            <div className="flex flex-col gap-4">
+                            <div className="flex flex-col gap-2.5">
                                 <div className="text-sm font-bold text-slate-400 mb-2">{format(currentDate, 'yyyy년 M월')} 캘린더</div>
                                 <div className="grid grid-cols-7 gap-1">
                                     {['일', '월', '화', '수', '목', '금', '토'].map(d => (
@@ -680,7 +666,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                     if (setCurrentDate) setCurrentDate(day);
                                                     setFilterType('daily');
                                                 }}
-                                                className={`min-h-[52px] p-1.5 rounded-xl border text-left transition-all hover:border-indigo-500/50 ${isSelected ? 'bg-indigo-500/20 border-indigo-500/50' : isToday ? 'bg-white/5 border-indigo-400/30' : 'bg-white/[0.02] border-white/5'}`}
+                                                className={`min-h-[52px] p-1.5 rounded-md border text-left transition-all hover:border-indigo-500/50 ${isSelected ? 'bg-indigo-500/20 border-indigo-500/50' : isToday ? 'bg-white/5 border-indigo-400/30' : 'bg-white/[0.02] border-white/5'}`}
                                             >
                                                 <span className={`text-[11px] font-bold block mb-1 ${isToday ? 'text-indigo-400' : 'text-slate-400'}`}>
                                                     {day.getDate()}
@@ -715,7 +701,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                         const dayNames = ['월', '화', '수', '목', '금', '토', '일'];
                                         const dayIdx = day.getDay() === 0 ? 6 : day.getDay() - 1;
                                         return (
-                                            <div key={ds} className={`flex flex-col gap-1.5 min-h-[120px] p-2 rounded-xl border ${isToday ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-white/[0.02] border-white/5'}`}>
+                                            <div key={ds} className={`flex flex-col gap-1.5 min-h-[120px] p-2 rounded-md border ${isToday ? 'bg-indigo-500/10 border-indigo-500/30' : 'bg-white/[0.02] border-white/5'}`}>
                                                 <div className="text-center mb-1">
                                                     <p className={`text-[10px] font-bold ${isToday ? 'text-indigo-400' : 'text-slate-500'}`}>{dayNames[dayIdx]}</p>
                                                     <p className={`text-sm font-bold ${isToday ? 'text-indigo-300' : 'text-slate-400'}`}>{day.getDate()}</p>
@@ -740,7 +726,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                         ) : (
                             <>
                                 {totalCount > 0 && (
-                                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-xl p-4 sm:p-5 mb-6 text-white shadow-none flex flex-col md:flex-row md:items-center justify-between gap-4" role="status" aria-label="달성률">
+                                    <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-md p-3 sm:p-3 mb-2 text-white shadow-none flex flex-col md:flex-row md:items-center justify-between gap-2.5" role="status" aria-label="달성률">
                                         <div>
                                             <h3 className="text-sm font-semibold text-indigo-100 flex items-center gap-1.5 mb-1">
                                                 <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
@@ -759,8 +745,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                 )}
 
                                 {filteredSchedules.length === 0 ? (
-                                    <div className="text-center py-24 text-slate-400 bg-slate-50/50 dark:bg-[#0f1115]/50 rounded-xl border border-white/10 shadow-none">
-                                        <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-200 dark:text-white/5" aria-hidden="true" />
+                                    <div className="text-center py-24 text-slate-400 bg-slate-50/50 dark:bg-[#0f1115]/50 rounded-md border border-white/10 shadow-none">
+                                        <Calendar className="w-12 h-12 mx-auto mb-2 text-slate-200 dark:text-white/5" aria-hidden="true" />
                                         <p className="font-bold">조건에 맞는 일정이 없습니다.</p>
                                     </div>
                                 ) : viewMode === 'timeline' && filterType === 'daily' ? (
@@ -789,7 +775,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                     onPointerMove={handleTimelinePointerMove}
                                                     onPointerUp={handleTimelinePointerUp}
                                                     onPointerCancel={() => { timelineDragRef.current = null; setTimelineDragPos(null); }}
-                                                    className={`absolute left-2 right-4 rounded-xl p-2 md:p-3 overflow-hidden border shadow-none transition-[top] hover:z-10 bg-indigo-50/90 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 ${schedule.completed ? 'opacity-60 grayscale' : ''} ${isDragging ? 'cursor-grabbing z-20 ring-2 ring-indigo-400 shadow-lg shadow-indigo-500/20' : 'cursor-grab hover:scale-[1.01]'}`}
+                                                    className={`absolute left-2 right-4 rounded-md p-2 md:p-3 overflow-hidden border shadow-none transition-[top] hover:z-10 bg-indigo-50/90 dark:bg-indigo-500/10 border-indigo-200 dark:border-indigo-500/30 ${schedule.completed ? 'opacity-60 grayscale' : ''} ${isDragging ? 'cursor-grabbing z-20 ring-2 ring-indigo-400  shadow-indigo-500/20' : 'cursor-grab hover:scale-[1.01]'}`}
                                                     style={{ top: `${displayTop}px`, height: `${durationMins}px`, borderLeftColor: schedule.color || undefined, borderLeftWidth: schedule.color ? '3px' : undefined, touchAction: 'none' }}
                                                 >
                                                     <div className={`flex ${isShort ? 'flex-row items-center gap-2' : 'flex-col'} w-full h-full`}>
@@ -821,13 +807,13 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                     </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-4 md:p-5 w-full">
+                                    <div className="flex flex-col gap-2.5 md:p-3 w-full">
                                         {Object.entries(groupedSchedules).map(([dateStr, schedulesForDate]) => (
                                             <div key={dateStr} className="w-full">
-                                                <div className="text-sm font-bold tracking-tight text-slate-500 mb-3 bg-[#09090b] inline-block px-3 py-1 rounded-full border border-white/10">
+                                                <div className="text-sm font-bold tracking-tight text-slate-500 mb-3 bg-[#09090b] inline-block px-3 py-1 rounded border border-white/10">
                                                     {format(parseISO(dateStr), 'yyyy. MM. dd')}일 일정
                                                 </div>
-                                                <div className="relative border-l-[3px] border-slate-100 dark:border-[#1a1c23] ml-4 space-y-6 flex-1 pr-2">
+                                                <div className="relative border-l-[3px] border-slate-100 dark:border-[#1a1c23] ml-4 space-y-3 flex-1 pr-2">
                                                     {schedulesForDate.map((schedule) => {
                                                         const durationBadge = getDurationBadge(schedule.time, schedule.endTime);
                                                         const isOverdue = !schedule.completed && schedule.date < format(new Date(), 'yyyy-MM-dd');
@@ -906,7 +892,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                     <div className="flex flex-col gap-1 ml-4 justify-center items-center h-full shrink-0 relative z-20">
                                                                         <button
                                                                             onClick={(e) => toggleSchedule(e, schedule.id)}
-                                                                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-emerald-500/10 text-emerald-500 border-emerald-200 dark:border-emerald-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-emerald-300 hover:text-emerald-500 dark:hover:border-emerald-500/50 dark:hover:text-emerald-400'}`}
+                                                                            className={`w-10 h-10 rounded-md flex items-center justify-center transition-all shadow-none border active:scale-95 ${schedule.completed ? 'bg-emerald-500/10 text-emerald-500 border-emerald-200 dark:border-emerald-500/30 ' : 'bg-[#111113] text-slate-400 border-white/10 hover:border-emerald-300 hover:text-emerald-500 dark:hover:border-emerald-500/50 dark:hover:text-emerald-400'}`}
                                                                             aria-label={schedule.completed ? '일정 완료 취소' : '일정 완료 처리'}
                                                                         >
                                                                             <Check className="w-5 h-5 stroke-[3]" aria-hidden="true" />
@@ -925,16 +911,12 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                     </div>
                                                                 </div>
 
-                                                                <AnimatePresence>
-                                                                    {expandedId === schedule.id && (
-                                                                        <motion.div
-                                                                            initial={{ height: 0, opacity: 0 }}
-                                                                            animate={{ height: 'auto', opacity: 1 }}
-                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                {expandedId === schedule.id && (
+                                                                        <div
                                                                             className="overflow-hidden"
                                                                         >
                                                                             {editId === schedule.id && editForm ? (
-                                                                                <div className="bg-[#09090b] p-4 rounded-xl border border-indigo-500/30 mt-3 relative">
+                                                                                <div className="bg-[#09090b] p-3 rounded-md border border-indigo-500/30 mt-3 relative">
                                                                                     <input value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="w-full bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 mb-2 focus:border-indigo-500 outline-none" placeholder="일정 제목" />
                                                                                     <div className="flex gap-2 mb-2">
                                                                                         <input type="time" value={editForm.time} onChange={e => setEditForm({ ...editForm, time: e.target.value })} className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none w-full" />
@@ -998,10 +980,10 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                     </div>
                                                                                 </div>
                                                                             ) : (
-                                                                                <div className="text-sm text-slate-400 bg-[#09090b] p-4 rounded-xl border border-slate-200/60 dark:border-white/5 leading-relaxed shadow-none mt-3 mb-2 relative">
+                                                                                <div className="text-sm text-slate-400 bg-[#09090b] p-3 rounded-md border border-slate-200/60 dark:border-white/5 leading-relaxed shadow-none mt-3 mb-2 relative">
                                                                                     <div className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl" style={{ background: schedule.color ? `linear-gradient(to bottom, ${schedule.color}, ${schedule.color}88)` : 'linear-gradient(to bottom, #6366f1, #818cf8)' }} aria-hidden="true" />
                                                                                     <p className="pl-2">{schedule.memo || '작성된 상세 메모가 없습니다.'}</p>
-                                                                                    <div className="mt-4 flex gap-2 pl-2 relative z-10 flex-wrap">
+                                                                                    <div className="mt-2 flex gap-2 pl-2 relative z-10 flex-wrap">
                                                                                         <button
                                                                                             onClick={(e) => { e.stopPropagation(); setEditForm({ ...schedule }); setEditId(schedule.id); }}
                                                                                             className="text-[11px] font-bold flex items-center gap-1 text-slate-400 bg-[#111113] px-3 py-1.5 rounded-lg border border-white/10 hover:border-indigo-500/50 hover:bg-indigo-500/10 hover:text-indigo-400 shadow-none transition-all"
@@ -1031,9 +1013,8 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                                                     </div>
                                                                                 </div>
                                                                             )}
-                                                                        </motion.div>
+                                                                        </div>
                                                                     )}
-                                                                </AnimatePresence>
                                                             </div>
                                                         );
                                                     })}
@@ -1047,7 +1028,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
 
                         {/* #14 Completion Heatmap */}
                         <div className="mt-8 pt-6 border-t border-white/10">
-                            <h3 className="text-sm font-bold text-slate-400 mb-4 flex items-center gap-2">
+                            <h3 className="text-sm font-bold text-slate-400 mb-2 flex items-center gap-2">
                                 <CheckCircle2 className="w-4 h-4 text-indigo-400" /> 일정 완료율 히트맵 (최근 10주)
                             </h3>
                             <div className="overflow-x-auto">
@@ -1085,8 +1066,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                 </div>
                             </div>
                         </div>
-                    </motion.div>
-                </AnimatePresence>
+                    </div>
             )}
         </div>
     );

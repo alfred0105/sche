@@ -10,7 +10,7 @@ import {
     Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity,
     Camera, Trophy, Image as ImageIcon, Users,
     Download, Upload, HardDrive, Keyboard, MessageCircle, MapPin,
-    Pencil, Filter, Tag, ArrowUpDown, Copy, Bookmark, Zap, Bell
+    Pencil, Filter, Tag, ArrowUpDown, Copy, Bookmark, Zap, Bell, Monitor
 } from 'lucide-react';
 
 export const IconMap = {
@@ -21,5 +21,5 @@ export const IconMap = {
     Wallet, X, Search, ClipboardList, Clock, Timer, Play, Pause, Square, Activity,
     Camera, Trophy, ImageIcon, Users,
     Download, Upload, HardDrive, Keyboard, MessageCircle, MapPin,
-    Pencil, Filter, Tag, ArrowUpDown, Copy, Bookmark, Zap, Bell
+    Pencil, Filter, Tag, ArrowUpDown, Copy, Bookmark, Zap, Bell, Monitor
 };

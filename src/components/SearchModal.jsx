@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { IconMap } from './IconMap';
-import { motion, AnimatePresence } from 'framer-motion';
 import { format, parseISO } from 'date-fns';
 
 export default function SearchModal({
@@ -72,15 +71,12 @@ export default function SearchModal({
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] px-4">
-            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={onClose} />
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: -20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: -20 }}
-                className="relative bg-[#111113] w-full max-w-2xl rounded-xl shadow-2xl overflow-hidden border border-white/10"
+        <div className="fixed inset-0 z-[200] flex items-start justify-center pt-[10vh] px-3">
+            <div className="absolute inset-0 bg-slate-900/60" onClick={onClose} />
+            <div
+                className="relative bg-[#111113] w-full max-w-2xl rounded-md overflow-hidden border border-white/10"
             >
-                <div className="flex items-center p-4 border-b border-white/10 bg-slate-50/50 dark:bg-[#0f1115]/50">
+                <div className="flex items-center p-3 border-b border-white/10 bg-slate-50/50 dark:bg-[#0f1115]/50">
                     <Search className="w-6 h-6 text-slate-400 ml-2" />
                     <input
                         ref={inputRef}
@@ -88,7 +84,7 @@ export default function SearchModal({
                         value={query}
                         onChange={(e) => setQuery(e.target.value)}
                         placeholder="일정, 재정, 목표, 메모 등을 검색하세요..."
-                        className="flex-1 bg-transparent border-none outline-none px-4 text-lg font-bold text-slate-400 placeholder-slate-400"
+                        className="flex-1 bg-transparent border-none outline-none px-3 text-lg font-bold text-slate-400 placeholder-slate-400"
                     />
                     <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
                         <X className="w-5 h-5 text-slate-400" />
@@ -107,7 +103,7 @@ export default function SearchModal({
                                 <button
                                     key={`${item._model}-${item.id}`}
                                     onClick={() => handleItemClick(item)}
-                                    className="flex items-start text-left gap-4 p-3 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors group border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20"
+                                    className="flex items-start text-left gap-2.5 p-3 rounded-md hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-colors group border border-transparent hover:border-indigo-100 dark:hover:border-indigo-500/20"
                                 >
                                     <div className={`mt-1 flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center 
                                         ${item._model === 'finance' ? (item.type === 'income' ? 'bg-blue-100 text-blue-500 dark:bg-blue-500/20' : 'bg-rose-100 text-rose-500 dark:bg-rose-500/20') :
@@ -149,7 +145,7 @@ export default function SearchModal({
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 }
