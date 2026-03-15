@@ -1408,10 +1408,10 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                                         {/* Photo Auth UI */}
                                                         <div className="mt-2 text-left w-full">
                                                             {authPhotos[study.id] ? (
-                                                                <div className="relative inline-block mt-2 group border border-indigo-500/30 rounded-lg p-1 bg-[#111113]">
+                                                                <div className="relative inline-block mt-2 group border border-indigo-500/30 p-1 bg-[#111113]">
                                                                     <div className="flex flex-col gap-1 items-center justify-center relative">
                                                                         <img src={authPhotos[study.id]} alt="인증" className="w-full max-w-[120px] max-h-[120px] object-cover rounded shadow-none opacity-90" />
-                                                                        <span className="absolute bottom-0 bg-black/70 w-full text-center text-[9px] py-1 text-white font-bold tracking-tight rounded-b">오늘 인증 완료 🎉</span>
+                                                                        <span className="absolute bottom-0 bg-black/70 w-full text-center text-[9px] py-1 text-white font-bold tracking-tight">오늘 인증 완료 🎉</span>
                                                                     </div>
                                                                     <button
                                                                         onClick={() => setAuthPhotos(prev => { const n = { ...prev }; delete n[study.id]; return n; })}

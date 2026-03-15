@@ -500,7 +500,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             <h3 className="text-base font-bold text-slate-100 flex items-center gap-2">
                                 <Pencil className="w-4 h-4 text-indigo-400" /> 거래 내역 수정
                             </h3>
-                            <button onClick={() => setEditTxModal({ open: false, tx: null })} className="text-slate-500 hover:text-slate-300 p-1.5 rounded-lg transition-colors">
+                            <button onClick={() => setEditTxModal({ open: false, tx: null })} className="text-slate-500 hover:text-slate-300 p-1.5 transition-colors">
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
@@ -509,7 +509,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         <div className="flex gap-2 bg-white/5 p-1 rounded-md">
                             {['expense', 'income'].map(t => (
                                 <button key={t} onClick={() => setEditTxForm(p => ({ ...p, type: t }))}
-                                    className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all ${editTxForm.type === t ? (t === 'expense' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white') : 'text-slate-400'}`}>
+                                    className={`flex-1 py-1.5 text-xs font-bold transition-all ${editTxForm.type === t ? (t === 'expense' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white') : 'text-slate-400'}`}>
                                     {t === 'expense' ? '지출' : '수입'}
                                 </button>
                             ))}
@@ -1246,21 +1246,21 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                     value={newSub.name}
                                                     onChange={e => setNewSub(s => ({ ...s, name: e.target.value }))}
                                                     placeholder="이름 (예: 넷플릭스)"
-                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                    className="bg-[#111113] border-b border-white/10 px-3 py-2 text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
                                                 />
                                                 <input
                                                     type="number"
                                                     value={newSub.amount}
                                                     onChange={e => setNewSub(s => ({ ...s, amount: e.target.value }))}
                                                     placeholder="금액 (원)"
-                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                    className="bg-[#111113] border-b border-white/10 px-3 py-2 text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
                                                 />
                                             </div>
                                             <div className="grid grid-cols-3 gap-2">
                                                 <select
                                                     value={newSub.cycle}
                                                     onChange={e => setNewSub(s => ({ ...s, cycle: e.target.value }))}
-                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                    className="bg-[#111113] border-b border-white/10 px-3 py-2 text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
                                                 >
                                                     <option value="monthly">매월</option>
                                                     <option value="yearly">매년</option>
@@ -1269,12 +1269,12 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                     type="date"
                                                     value={newSub.nextDate}
                                                     onChange={e => setNewSub(s => ({ ...s, nextDate: e.target.value }))}
-                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                    className="bg-[#111113] border-b border-white/10 px-3 py-2 text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
                                                 />
                                                 <select
                                                     value={newSub.category}
                                                     onChange={e => setNewSub(s => ({ ...s, category: e.target.value }))}
-                                                    className="bg-[#111113] border border-white/10 px-3 py-2 rounded-lg text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
+                                                    className="bg-[#111113] border-b border-white/10 px-3 py-2 text-sm font-bold text-slate-200 focus:border-indigo-500 outline-none"
                                                 >
                                                     <option value="구독">구독</option>
                                                     <option value="보험">보험</option>
@@ -1282,8 +1282,8 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                 </select>
                                             </div>
                                             <div className="flex justify-end gap-2">
-                                                <button onClick={() => setShowAddSub(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 bg-[#111113] border border-white/10 rounded-lg hover:bg-white/10">취소</button>
-                                                <button onClick={handleAddSubscription} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 rounded-lg hover:bg-indigo-600">저장</button>
+                                                <button onClick={() => setShowAddSub(false)} className="px-3 py-1.5 text-xs font-bold text-slate-400 bg-[#111113] border border-white/10 hover:bg-white/10">취소</button>
+                                                <button onClick={handleAddSubscription} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-600">저장</button>
                                             </div>
                                         </div>
                                     </div>
@@ -1421,7 +1421,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                 </div>
                                                 <button
                                                     onClick={() => handleDeleteDebt(debt.id)}
-                                                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all p-1.5 rounded-lg shrink-0"
+                                                    className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-rose-400 transition-all p-1.5 shrink-0"
                                                     aria-label={`${debt.name} 삭제`}
                                                 >
                                                     <Trash2 className="w-4 h-4" />

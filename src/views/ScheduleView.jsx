@@ -719,7 +719,7 @@ export default function ScheduleView({ schedules, setSchedules, currentDate, set
                                                     <button
                                                         key={schedule.id}
                                                         onClick={(e) => toggleSchedule(e, schedule.id)}
-                                                        className={`w-full text-left px-1.5 py-1 rounded-lg text-[9px] font-bold transition-all border ${schedule.completed ? 'opacity-50 line-through bg-white/5 border-white/5 text-slate-500' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300 hover:bg-indigo-500/20'}`}
+                                                        className={`w-full text-left px-1.5 py-1 text-[9px] font-bold transition-all border-l-2 ${schedule.completed ? 'opacity-50 line-through bg-white/5 border-white/5 text-slate-500' : 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/20'}`}
                                                         style={schedule.color ? { borderLeftColor: schedule.color, borderLeftWidth: '2px' } : {}}
                                                         title={`${schedule.title} — ${schedule.time}${schedule.endTime ? ` ~ ${schedule.endTime}` : ''}`}
                                                     >
