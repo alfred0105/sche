@@ -137,6 +137,114 @@ function MotmotGrid({ studies, studyPlans, timerState, currentDate }) {
     );
 }
 
+// Motmot-style single-day vertical timeline
+function MotmotDayGrid({ studies, studySessions, studyPlans, timerState, timerStartRef, selectedDate }) {
+    const HOUR_HEIGHT = 52;
+    const START_HOUR = 6;
+    const END_HOUR = 23;
+    const TOTAL_HOURS = END_HOUR - START_HOUR;
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
+
+    const studyColorMap = useMemo(() => {
+        const m = {};
+        studies.forEach((s, i) => { m[s.id] = s.color || STUDY_PALETTE[i % STUDY_PALETTE.length]; });
+        return m;
+    }, [studies]);
+
+    const sessionBlocks = useMemo(() => {
+        const blocks = [];
+        studySessions.filter(s => s.date === selectedDateStr).forEach(s => {
+            blocks.push({ id: s.id, studyId: s.studyId, startHour: s.startHour, startMin: s.startMin, endHour: s.endHour, endMin: s.endMin, type: 'session' });
+        });
+        studyPlans.filter(p => p.date === selectedDateStr).forEach(p => {
+            const [sh, sm] = (p.time || '09:00').split(':').map(Number);
+            const [eh, em] = (p.endTime || '10:00').split(':').map(Number);
+            blocks.push({ id: p.id, studyId: p.studyId, startHour: sh, startMin: sm, endHour: eh, endMin: em, type: p.done ? 'done' : 'plan' });
+        });
+        return blocks;
+    }, [studySessions, studyPlans, selectedDateStr]);
+
+    const now = new Date();
+    const isToday = selectedDateStr === format(now, 'yyyy-MM-dd');
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const currentTopPx = isToday ? ((currentHour - START_HOUR) * 60 + currentMin) / 60 * HOUR_HEIGHT : null;
+
+    const liveBlock = useMemo(() => {
+        if (!timerState.isRunning || !timerState.activeId || !isToday) return null;
+        const startTime = timerStartRef.current || now;
+        return {
+            studyId: timerState.activeId,
+            startHour: startTime.getHours(),
+            startMin: startTime.getMinutes(),
+            endHour: currentHour,
+            endMin: currentMin,
+            type: 'live',
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [timerState.isRunning, timerState.activeId, isToday, currentHour, currentMin]);
+
+    const allBlocks = liveBlock ? [...sessionBlocks, liveBlock] : sessionBlocks;
+
+    const blockTopPx = (h, m) => Math.max(0, (h - START_HOUR) * HOUR_HEIGHT + (m / 60) * HOUR_HEIGHT);
+    const blockHeightPx = (sh, sm, eh, em) => Math.max(16, ((eh - sh) * 60 + (em - sm)) / 60 * HOUR_HEIGHT);
+
+    return (
+        <div className="relative overflow-y-auto" style={{ height: 480 }}>
+            <div className="relative" style={{ height: TOTAL_HOURS * HOUR_HEIGHT + 24, paddingLeft: 36 }}>
+                {Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR).map(h => (
+                    <div key={h} style={{ position: 'absolute', top: (h - START_HOUR) * HOUR_HEIGHT, left: 0, right: 0 }}>
+                        <span style={{ position: 'absolute', left: 0, width: 32, top: -6 }} className="text-[9px] font-mono text-slate-600 text-right pr-1.5">{h}</span>
+                        <div style={{ marginLeft: 36, height: 1, backgroundColor: 'rgba(255,255,255,0.04)' }} />
+                    </div>
+                ))}
+
+                {allBlocks.map((block, i) => {
+                    const top = blockTopPx(block.startHour, block.startMin);
+                    const height = blockHeightPx(block.startHour, block.startMin, block.endHour, block.endMin);
+                    const color = studyColorMap[block.studyId] || '#6366f1';
+                    const study = studies.find(s => s.id === block.studyId);
+                    const isLive = block.type === 'live';
+                    const isPlan = block.type === 'plan';
+                    return (
+                        <div
+                            key={block.id || i}
+                            style={{
+                                position: 'absolute',
+                                top,
+                                height,
+                                left: 40,
+                                right: 8,
+                                backgroundColor: isLive ? color + 'cc' : isPlan ? 'rgba(255,255,255,0.05)' : color + '90',
+                                borderLeft: `3px solid ${color}`,
+                                borderRadius: '2px',
+                                border: isPlan ? `1px dashed ${color}60` : undefined,
+                                borderLeftWidth: 3,
+                                borderLeftColor: color,
+                                borderLeftStyle: 'solid',
+                                outline: isLive ? `1px solid ${color}` : undefined,
+                                zIndex: isLive ? 3 : isPlan ? 1 : 2,
+                            }}
+                            className="flex items-start px-1.5 overflow-hidden"
+                        >
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-white leading-tight truncate">{study?.title || '공부'}</p>
+                                {height > 28 && <p className="text-[9px] text-white/60">{block.startHour}:{String(block.startMin).padStart(2,'0')}~{block.endHour}:{String(block.endMin).padStart(2,'0')}{isLive ? ' 🔴' : ''}</p>}
+                            </div>
+                        </div>
+                    );
+                })}
+
+                {currentTopPx !== null && (
+                    <div style={{ position: 'absolute', top: currentTopPx, left: 36, right: 0, height: 1, backgroundColor: '#ef4444', zIndex: 10 }}>
+                        <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#ef4444', position: 'absolute', left: -3, top: -2.5 }} />
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
 // Mini heatmap calendar component
 function AttendanceHeatmap({ logs, currentDate }) {
     const monthStart = startOfMonth(currentDate);
@@ -218,7 +326,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const [newColor, setNewColor] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('전체');
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
-    const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores' | 'planner'
+    const [activeSubTab, setActiveSubTab] = useState('planner'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores' | 'planner'
 
     // 공부 플래너 state
     const [studyPlans, setStudyPlans] = useState(() => {
@@ -227,6 +335,13 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const [planAddMode, setPlanAddMode] = useState(false);
     const [planForm, setPlanForm] = useState({ studyId: '', date: format(new Date(), 'yyyy-MM-dd'), time: '09:00', endTime: '10:00', note: '' });
     const [planWeekOffset, setPlanWeekOffset] = useState(0);
+    const [plannerDayOffset, setPlannerDayOffset] = useState(0);
+
+    // 공부 세션 기록 state
+    const [studySessions, setStudySessions] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('studySessions') || '[]'); } catch { return []; }
+    });
+    const timerStartRef = useRef(null);
 
     // #57 Flashcards state
     const [flashcards, setFlashcards] = useState(() => {
@@ -364,15 +479,53 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const sessionSecsRef = useRef(0);
     const restAlertShownRef = useRef(false);
 
+    // Init timerStartRef from sessionStorage on mount
+    useEffect(() => {
+        const stored = sessionStorage.getItem('timerStartedAt');
+        if (stored) timerStartRef.current = new Date(stored);
+    }, []);
+
+    const recordSession = useCallback((studyId, startTime, endTime) => {
+        if (!studyId || !startTime || !endTime) return;
+        const durationSecs = Math.round((endTime - startTime) / 1000);
+        if (durationSecs < 60) return;
+        const session = {
+            id: generateId(),
+            studyId,
+            date: format(startTime, 'yyyy-MM-dd'),
+            startHour: startTime.getHours(),
+            startMin: startTime.getMinutes(),
+            endHour: endTime.getHours(),
+            endMin: endTime.getMinutes(),
+            durationSecs,
+        };
+        setStudySessions(prev => {
+            const updated = [...prev, session];
+            try { localStorage.setItem('studySessions', JSON.stringify(updated)); } catch {}
+            return updated;
+        });
+    }, []);
+
     const toggleTimer = useCallback((studyId) => {
         setTimerState(prev => {
+            const isStarting = prev.activeId !== studyId || !prev.isRunning;
+            if (isStarting) {
+                timerStartRef.current = new Date();
+                try { sessionStorage.setItem('timerStartedAt', new Date().toISOString()); } catch {}
+            } else {
+                const storedStart = sessionStorage.getItem('timerStartedAt');
+                const startTime = timerStartRef.current || (storedStart ? new Date(storedStart) : null);
+                if (startTime) recordSession(studyId, startTime, new Date());
+                timerStartRef.current = null;
+                try { sessionStorage.removeItem('timerStartedAt'); } catch {}
+            }
             const next = prev.activeId === studyId
                 ? { activeId: studyId, isRunning: !prev.isRunning }
                 : { activeId: studyId, isRunning: true };
-            try { sessionStorage.setItem('timerState', JSON.stringify(next)); } catch { }
+            try { sessionStorage.setItem('timerState', JSON.stringify(next)); } catch {}
             return next;
         });
-    }, []);
+    }, [recordSession]);
 
     useEffect(() => {
         if (timerRef.current) window.clearInterval(timerRef.current);
@@ -725,8 +878,8 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             {/* Sub-tabs */}
             <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
                 {[
-                    { id: 'tracker', label: '트래커', icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
                     { id: 'planner', label: '플래너', icon: <span className="text-xs">📆</span> },
+                    { id: 'tracker', label: '과목', icon: <BookOpen className="w-3.5 h-3.5" /> },
                     { id: 'stats', label: '통계', icon: <PieIcon className="w-3.5 h-3.5" /> },
                     { id: 'report', label: '리포트', icon: <BarChart3 className="w-3.5 h-3.5" /> },
                     { id: 'flashcards', label: '플래시카드', icon: <span className="text-xs">🃏</span> },
@@ -969,151 +1122,128 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                 </div>
             )}
 
-            {/* 공부 플래너 탭 — Motmot style */}
+            {/* 공부 플래너 탭 — Motmot Day View */}
             {activeSubTab === 'planner' && (() => {
-                const weekStart = startOfWeek(addDays(currentDate, planWeekOffset * 7), { weekStartsOn: 1 });
-                const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-                const weekPlans = studyPlans.filter(p => {
-                    const d = parseISO(p.date);
-                    return d >= weekStart && d < addDays(weekStart, 7);
-                });
-                const totalPlanMins = weekPlans.reduce((sum, p) => {
-                    const [sh, sm] = (p.time || '00:00').split(':').map(Number);
-                    const [eh, em] = (p.endTime || '00:00').split(':').map(Number);
-                    return sum + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
-                }, 0);
+                const plannerDate = addDays(currentDate, plannerDayOffset);
+                const plannerDateStr = format(plannerDate, 'yyyy-MM-dd');
+                const dayOfWeekKr = ['일', '월', '화', '수', '목', '금', '토'][plannerDate.getDay()];
+                const dayTotals = studies.map(s => {
+                    const sessionTotal = studySessions.filter(ss => ss.date === plannerDateStr && ss.studyId === s.id).reduce((sum, ss) => sum + ss.durationSecs, 0);
+                    return { study: s, secs: sessionTotal };
+                }).filter(d => d.secs > 0);
+
                 return (
-                    <div className="pt-3 space-y-2.5">
-                        {/* 헤더 */}
-                        <div className="flex items-center justify-between border-b border-white/8 pt-4 pb-1.5">
-                            <div className="flex items-center gap-2">
-                                <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">📆 공부 플래너</h3>
-                                {totalPlanMins > 0 && (
-                                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5">
-                                        이번 주 {Math.floor(totalPlanMins / 60)}h {totalPlanMins % 60}m
-                                    </span>
+                    <div className="space-y-3 pt-2">
+                        {/* Date navigation */}
+                        <div className="flex items-center justify-between py-2 border-b border-white/6">
+                            <button onClick={() => setPlannerDayOffset(p => p - 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>← 전날</button>
+                            <div className="text-center">
+                                <p className="text-xs font-bold text-slate-200">{plannerDate.getMonth() + 1}월 {plannerDate.getDate()}일 ({dayOfWeekKr})</p>
+                                {plannerDayOffset !== 0 && (
+                                    <button onClick={() => setPlannerDayOffset(0)} className="text-[10px] text-indigo-400 hover:text-indigo-300">오늘로</button>
                                 )}
                             </div>
-                            <button onClick={() => setPlanAddMode(p => !p)} className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold hover:bg-indigo-500/20 transition-colors" style={{ borderRadius: '3px' }}>
-                                {planAddMode ? '취소' : '+ 추가'}
-                            </button>
+                            <button onClick={() => setPlannerDayOffset(p => p + 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>다음 →</button>
                         </div>
 
-                        {/* Motmot 시간 그리드 */}
-                        <MotmotGrid
-                            studies={studies}
-                            studyPlans={studyPlans.filter(p => {
-                                const d = parseISO(p.date);
-                                return d >= weekStart && d < addDays(weekStart, 7);
-                            })}
-                            timerState={timerState}
-                            currentDate={addDays(currentDate, planWeekOffset * 7)}
-                        />
-
-                        {/* 주 이동 */}
-                        <div className="flex items-center justify-between text-xs font-bold text-slate-400">
-                            <button onClick={() => setPlanWeekOffset(p => p - 1)} className="px-2 py-1 border border-white/10 hover:bg-white/10 transition-colors text-xs font-bold text-slate-400" style={{ borderRadius: '3px' }}>← 이전 주</button>
-                            <span className="text-slate-300">
-                                {format(weekStart, 'M/d')} ~ {format(addDays(weekStart, 6), 'M/d')}
-                            </span>
-                            <button onClick={() => setPlanWeekOffset(p => p + 1)} className="px-2 py-1 border border-white/10 hover:bg-white/10 transition-colors text-xs font-bold text-slate-400" style={{ borderRadius: '3px' }}>다음 주 →</button>
+                        {/* Add plan button */}
+                        <div className="flex items-center justify-between">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">시간 계획</p>
+                            <button onClick={() => setPlanAddMode(p => !p)} className="px-2.5 py-1 text-[10px] font-bold border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10" style={{ borderRadius: '3px' }}>{planAddMode ? '취소' : '+ 계획 추가'}</button>
                         </div>
 
-                        {/* 추가 폼 */}
+                        {/* Plan add form */}
                         {planAddMode && (
-                                <div className="overflow-hidden">
-                                    <div className="border-b border-white/6 py-3 space-y-3">
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <div className="col-span-2">
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
-                                                <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none">
-                                                    <option value="">-- 과목 선택 --</option>
-                                                    {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                                </select>
-                                            </div>
-                                            <div>
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">날짜</label>
-                                                <input type="date" value={planForm.date} onChange={e => setPlanForm(p => ({ ...p, date: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-2">
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">시작</label>
-                                                    <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
-                                                </div>
-                                                <div>
-                                                    <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">종료</label>
-                                                    <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
-                                                </div>
-                                            </div>
-                                            <div className="col-span-2">
-                                                <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
-                                                <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="공부 내용, 목표 페이지 등..." className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none" onKeyDown={e => e.key === 'Enter' && addStudyPlan()} />
-                                            </div>
-                                        </div>
-                                        <button onClick={addStudyPlan} className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-sm transition-colors" style={{ borderRadius: '3px' }}>계획 저장</button>
+                            <div className="border-b border-white/6 py-3 space-y-2.5">
+                                <div className="grid grid-cols-2 gap-2.5">
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
+                                        <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none">
+                                            <option value="">-- 과목 선택 --</option>
+                                            {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">시작</label>
+                                        <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">종료</label>
+                                        <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
+                                        <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="메모..." className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none" onKeyDown={e => {
+                                            if (e.key === 'Enter') {
+                                                setPlanForm(p => ({ ...p, date: plannerDateStr }));
+                                                addStudyPlan();
+                                            }
+                                        }} />
                                     </div>
                                 </div>
-                            )}
+                                <button onClick={() => { setPlanForm(p => ({ ...p, date: plannerDateStr })); addStudyPlan(); }} className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs" style={{ borderRadius: '3px' }}>저장</button>
+                            </div>
+                        )}
 
-                        {/* 주간 날짜별 플랜 목록 */}
-                        <div className="space-y-2">
-                            {weekDays.map((day, idx) => {
-                                const ds = format(day, 'yyyy-MM-dd');
-                                const dayPlans = studyPlans.filter(p => p.date === ds).sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-                                const isToday = isSameDay(day, new Date());
-                                return (
-                                    <div key={ds}>
-                                        <div className={`flex items-center gap-2 px-1 mb-1`}>
-                                            <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isToday ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>{DAY_LABELS_KR[idx]}</span>
-                                            <span className={`text-[10px] font-bold ${isToday ? 'text-indigo-400' : 'text-slate-600'}`}>{format(day, 'M/d')}</span>
-                                            {dayPlans.length > 0 && (
-                                                <span className="text-[9px] font-bold text-slate-600">
-                                                    {dayPlans.reduce((sum, p) => {
-                                                        const [sh, sm] = (p.time || '00:00').split(':').map(Number);
-                                                        const [eh, em] = (p.endTime || '00:00').split(':').map(Number);
-                                                        return sum + Math.max(0, (eh * 60 + em) - (sh * 60 + sm));
-                                                    }, 0)}분
-                                                </span>
-                                            )}
-                                        </div>
-                                        {dayPlans.length === 0 ? (
-                                            <div className="ml-7 text-[10px] text-slate-700 py-1">계획 없음</div>
-                                        ) : (
-                                            <div className="ml-7 space-y-1.5">
-                                                {dayPlans.map(plan => {
-                                                    const subject = studies.find(s => s.id === plan.studyId);
-                                                    return (
-                                                        <div key={plan.id} className={`flex items-center gap-2 py-2.5 border-b border-white/6 transition-all ${plan.done ? 'opacity-50' : 'hover:bg-white/[0.03]'}`}>
-                                                            <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 active:scale-90 transition-transform">
-                                                                {plan.done
-                                                                    ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
-                                                                    : <Target className="w-4 h-4 text-slate-600" />}
-                                                            </button>
-                                                            <div className="flex-1 min-w-0">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className={`text-xs font-bold truncate ${plan.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{subject?.title || plan.subjectTitle}</span>
-                                                                    <span className="text-[10px] text-slate-500 shrink-0">{plan.time}{plan.endTime ? ` ~ ${plan.endTime}` : ''}</span>
-                                                                </div>
-                                                                {plan.note && <p className="text-[10px] text-slate-500 truncate mt-0.5">{plan.note}</p>}
-                                                            </div>
-                                                            <button onClick={() => deletePlan(plan.id)} className="text-slate-700 hover:text-rose-500 transition-colors shrink-0">
-                                                                <X className="w-3.5 h-3.5" />
-                                                            </button>
-                                                        </div>
-                                                    );
-                                                })}
+                        {/* Motmot Day Grid */}
+                        <MotmotDayGrid
+                            studies={studies}
+                            studySessions={studySessions}
+                            studyPlans={studyPlans.filter(p => p.date === plannerDateStr)}
+                            timerState={timerState}
+                            timerStartRef={timerStartRef}
+                            selectedDate={plannerDate}
+                        />
+
+                        {/* Today's summary */}
+                        {dayTotals.length > 0 && (
+                            <div className="pt-3 border-t border-white/6">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">공부 요약</p>
+                                <div className="space-y-2">
+                                    {dayTotals.map(({ study, secs }) => {
+                                        const h = Math.floor(secs / 3600);
+                                        const m = Math.floor((secs % 3600) / 60);
+                                        const color = study.color || '#6366f1';
+                                        return (
+                                            <div key={study.id} className="flex items-center gap-2">
+                                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                                <span className="text-xs font-bold text-slate-300 flex-1 truncate">{study.title}</span>
+                                                {study.category && <span className="text-[9px] text-slate-600 border border-white/8 px-1" style={{ borderRadius: '2px' }}>{study.category}</span>}
+                                                <span className="text-xs font-mono font-bold text-indigo-400">{h > 0 ? `${h}h ` : ''}{m}m</span>
                                             </div>
-                                        )}
+                                        );
+                                    })}
+                                    <div className="flex items-center gap-2 pt-1 border-t border-white/6">
+                                        <span className="text-[10px] text-slate-500 flex-1 font-semibold uppercase">합계</span>
+                                        <span className="text-xs font-mono font-bold text-white">
+                                            {(() => { const total = dayTotals.reduce((s, d) => s + d.secs, 0); const h = Math.floor(total/3600); const m = Math.floor((total%3600)/60); return `${h > 0 ? h+'h ' : ''}${m}m`; })()}
+                                        </span>
                                     </div>
-                                );
-                            })}
-                        </div>
+                                </div>
+                            </div>
+                        )}
 
-                        {weekPlans.length === 0 && !planAddMode && (
-                            <div className="text-center py-8 text-slate-600">
-                                <p className="text-3xl mb-2">📆</p>
-                                <p className="text-sm font-bold">이번 주 공부 계획이 없습니다.</p>
-                                <p className="text-xs mt-1">+ 추가 버튼으로 계획을 세워보세요!</p>
+                        {/* Plans list for the day */}
+                        {studyPlans.filter(p => p.date === plannerDateStr).length > 0 && (
+                            <div className="pt-2 border-t border-white/6">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">계획 목록</p>
+                                {studyPlans.filter(p => p.date === plannerDateStr).sort((a,b) => (a.time||'').localeCompare(b.time||'')).map(plan => {
+                                    const study = studies.find(s => s.id === plan.studyId);
+                                    const color = study?.color || '#6366f1';
+                                    return (
+                                        <div key={plan.id} className={`flex items-center gap-2 py-2 border-b border-white/6 ${plan.done ? 'opacity-50' : ''}`}>
+                                            <div className="w-1.5 h-8 shrink-0" style={{ backgroundColor: color, borderRadius: '1px' }} />
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-xs font-bold truncate ${plan.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{study?.title || plan.subjectTitle}</p>
+                                                <p className="text-[10px] text-slate-500 font-mono">{plan.time}~{plan.endTime}{plan.note ? ` · ${plan.note}` : ''}</p>
+                                            </div>
+                                            <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 text-slate-600 hover:text-indigo-400">
+                                                {plan.done ? <CheckCircle2 className="w-4 h-4 text-indigo-500" /> : <Target className="w-4 h-4" />}
+                                            </button>
+                                            <button onClick={() => deletePlan(plan.id)} className="shrink-0 text-slate-600 hover:text-rose-500"><X className="w-3.5 h-3.5" /></button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -1331,6 +1461,36 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
+                            {/* Quick timer subject chips */}
+                            <div className="py-2.5 border-b border-white/6">
+                                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-2">빠른 시작</p>
+                                <div className="flex flex-wrap gap-1.5">
+                                    {studies.map((s, i) => {
+                                        const color = s.color || STUDY_PALETTE[i % STUDY_PALETTE.length];
+                                        const isActive = timerState.activeId === s.id && timerState.isRunning;
+                                        const secs = studyTimes[s.id] || 0;
+                                        return (
+                                            <button
+                                                key={s.id}
+                                                onClick={() => toggleTimer(s.id)}
+                                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold border transition-all"
+                                                style={{
+                                                    borderRadius: '3px',
+                                                    borderColor: isActive ? color : 'rgba(255,255,255,0.1)',
+                                                    backgroundColor: isActive ? color + '25' : 'transparent',
+                                                    color: isActive ? color : '#94a3b8',
+                                                }}
+                                            >
+                                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                                {s.title}
+                                                {s.category && <span style={{ color: color + 'aa', fontSize: 9 }}>{s.category}</span>}
+                                                {isActive && <span className="font-mono text-[9px]">{String(Math.floor(secs/3600)).padStart(1,'0')}:{String(Math.floor((secs%3600)/60)).padStart(2,'0')}</span>}
+                                                {isActive ? ' ⏸' : ' ▶'}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
                             {studies.filter(s => categoryFilter === '전체' || s.category === categoryFilter).map((study) => {
                                 const todayStr = format(currentDate, 'yyyy-MM-dd');
                                 const isCheckedToday = study.logs.includes(todayStr);

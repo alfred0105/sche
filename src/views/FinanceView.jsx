@@ -762,35 +762,59 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 </div>
             )}
 
-            {/* Sub-tabs & Filter */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/6">
-                <div className="flex gap-0 flex-wrap overflow-x-auto" role="tablist" aria-label="재정 하위 탭">
+            {/* Period Filter — dedicated row above sub-tabs */}
+            <div className="flex items-center gap-3 py-2.5 border-b border-white/6">
+                <div className="flex gap-1 p-1 bg-white/[0.04] border border-white/8" style={{ borderRadius: '4px' }} role="radiogroup" aria-label="기간 필터">
                     {[
-                        { id: 'list', label: '거래 내역', icon: 'Wallet' },
-                        { id: 'category', label: '카테고리별', icon: 'PieChart' },
-                        { id: 'monthly', label: '월별 비교', icon: 'BarChart3' },
-                        { id: 'networth', label: '순자산', icon: 'TrendingUp' },
-                        { id: 'pattern', label: '소비 패턴', icon: 'BarChart3' },
-                        { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
-                        { id: 'budgets', label: '예산 통제', icon: 'Target' },
-                        { id: 'subscriptions', label: '구독', icon: 'RefreshCw' },
-                        { id: 'debts', label: '부채', icon: 'TrendingDown' },
-                    ].map(({ id, label, icon }) => {
-                        const TabIcon = IconMap[icon];
-                        return (
-                            <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap ${activeSubTab === id ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
-                                <TabIcon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
-                            </button>
-                        );
-                    })}
-                </div>
-                <div className="flex gap-0 shrink-0" role="radiogroup" aria-label="기간 필터">
-                    {[{ id: 'daily', label: '일간' }, { id: 'weekly', label: '주간' }, { id: 'monthly', label: '월간' }, { id: 'all', label: '전체' }].map(({ id, label }) => (
-                        <button key={id} role="radio" aria-checked={filterType === id} onClick={() => setFilterType(id)} className={`px-3 py-2 text-[11px] font-semibold border-b-2 transition-all ${filterType === id ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                        { id: 'all', label: '전체' },
+                        { id: 'daily', label: '일' },
+                        { id: 'weekly', label: '주' },
+                        { id: 'monthly', label: '월' },
+                    ].map(({ id, label }) => (
+                        <button
+                            key={id}
+                            role="radio"
+                            aria-checked={filterType === id}
+                            onClick={() => setFilterType(id)}
+                            className={`px-3 py-1 text-[11px] font-bold transition-all`}
+                            style={{
+                                borderRadius: '3px',
+                                backgroundColor: filterType === id ? '#6366f1' : 'transparent',
+                                color: filterType === id ? '#ffffff' : '#64748b',
+                            }}
+                        >
                             {label}
                         </button>
                     ))}
                 </div>
+                <span className="text-[11px] font-semibold text-slate-400">
+                    {filterType === 'daily' && `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${currentDate.getDate()}일${(() => { const today = new Date(); return currentDate.getDate() === today.getDate() && currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear() ? ' (오늘)' : ''; })()}`}
+                    {filterType === 'weekly' && '이번 주'}
+                    {filterType === 'monthly' && `${currentDate.getMonth() + 1}월`}
+                    {filterType === 'all' && '전체 기간'}
+                </span>
+            </div>
+
+            {/* Sub-tabs */}
+            <div className="flex gap-0 flex-wrap overflow-x-auto border-b border-white/6" role="tablist" aria-label="재정 하위 탭">
+                {[
+                    { id: 'list', label: '거래 내역', icon: 'Wallet' },
+                    { id: 'category', label: '카테고리별', icon: 'PieChart' },
+                    { id: 'monthly', label: '월별 비교', icon: 'BarChart3' },
+                    { id: 'networth', label: '순자산', icon: 'TrendingUp' },
+                    { id: 'pattern', label: '소비 패턴', icon: 'BarChart3' },
+                    { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
+                    { id: 'budgets', label: '예산 통제', icon: 'Target' },
+                    { id: 'subscriptions', label: '구독', icon: 'RefreshCw' },
+                    { id: 'debts', label: '부채', icon: 'TrendingDown' },
+                ].map(({ id, label, icon }) => {
+                    const TabIcon = IconMap[icon];
+                    return (
+                        <button key={id} role="tab" aria-selected={activeSubTab === id} onClick={() => setActiveSubTab(id)} className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 transition-all whitespace-nowrap ${activeSubTab === id ? 'border-indigo-400 text-indigo-400' : 'border-transparent text-slate-500 hover:text-slate-300'}`}>
+                            <TabIcon className="w-3.5 h-3.5" aria-hidden="true" /> {label}
+                        </button>
+                    );
+                })}
             </div>
 
             {/* Tab Content */}
