@@ -878,10 +878,8 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
             {/* Sub-tabs */}
             <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden" role="tablist">
                 {[
-                    { id: 'planner', label: '플래너', icon: <span className="text-xs">📆</span> },
-                    { id: 'tracker', label: '과목', icon: <BookOpen className="w-3.5 h-3.5" /> },
+                    { id: 'planner', label: '오늘', icon: <span className="text-xs">📆</span> },
                     { id: 'stats', label: '통계', icon: <PieIcon className="w-3.5 h-3.5" /> },
-                    { id: 'report', label: '리포트', icon: <BarChart3 className="w-3.5 h-3.5" /> },
                     { id: 'flashcards', label: '플래시카드', icon: <span className="text-xs">🃏</span> },
                     { id: 'scores', label: '성적', icon: <span className="text-xs">📊</span> },
                 ].map(tab => (
@@ -975,11 +973,31 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                             })}
                         </div>
                     )}
+                    {/* Weekly bar chart (formerly report tab) */}
+                    <div className="pt-3">
+                        <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8 flex items-center gap-2 mb-3">
+                            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" /> 과목별 총 공부 시간
+                        </h3>
+                        {weeklyBarData.every(d => d.시간 === 0) ? (
+                            <p className="text-sm text-slate-500 text-center py-8">아직 기록된 공부 시간이 없습니다.</p>
+                        ) : (
+                            <div className="h-48 w-full">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={weeklyBarData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+                                        <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b', fontWeight: 'bold' }} />
+                                        <YAxis tick={{ fontSize: 10, fill: '#64748b' }} />
+                                        <Tooltip formatter={(v) => `${v}시간`} contentStyle={{ border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#e2e8f0' }} />
+                                        <Bar dataKey="시간" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
 
-            {/* #62 Weekly study report tab */}
-            {activeSubTab === 'report' && (
+            {/* #62 Weekly study report tab — REMOVED (merged into stats) */}
+            {false && (
                 <div className="pt-3">
                     <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8 flex items-center gap-2 mb-3">
                         <BarChart3 className="w-3.5 h-3.5 text-indigo-400" /> 과목별 총 공부 시간 (시간)
@@ -1122,133 +1140,226 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                 </div>
             )}
 
-            {/* 공부 플래너 탭 — Motmot Day View */}
+            {/* 오늘 탭 — 과목 관리 + 플래너 통합 뷰 */}
             {activeSubTab === 'planner' && (() => {
-                const plannerDate = addDays(currentDate, plannerDayOffset);
-                const plannerDateStr = format(plannerDate, 'yyyy-MM-dd');
-                const dayOfWeekKr = ['일', '월', '화', '수', '목', '금', '토'][plannerDate.getDay()];
-                const dayTotals = studies.map(s => {
-                    const sessionTotal = studySessions.filter(ss => ss.date === plannerDateStr && ss.studyId === s.id).reduce((sum, ss) => sum + ss.durationSecs, 0);
-                    return { study: s, secs: sessionTotal };
-                }).filter(d => d.secs > 0);
+    const plannerDate = addDays(currentDate, plannerDayOffset);
+    const plannerDateStr = format(plannerDate, 'yyyy-MM-dd');
+    const dayOfWeekKr = ['일', '월', '화', '수', '목', '금', '토'][plannerDate.getDay()];
+    const dayTotals = studies.map(s => {
+        const sessionTotal = studySessions.filter(ss => ss.date === plannerDateStr && ss.studyId === s.id).reduce((sum, ss) => sum + ss.durationSecs, 0);
+        return { study: s, secs: sessionTotal };
+    }).filter(d => d.secs > 0);
 
-                return (
-                    <div className="space-y-3 pt-2">
-                        {/* Date navigation */}
-                        <div className="flex items-center justify-between py-2 border-b border-white/6">
-                            <button onClick={() => setPlannerDayOffset(p => p - 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>← 전날</button>
-                            <div className="text-center">
-                                <p className="text-xs font-bold text-slate-200">{plannerDate.getMonth() + 1}월 {plannerDate.getDate()}일 ({dayOfWeekKr})</p>
-                                {plannerDayOffset !== 0 && (
-                                    <button onClick={() => setPlannerDayOffset(0)} className="text-[10px] text-indigo-400 hover:text-indigo-300">오늘로</button>
+    return (
+        <div>
+            {/* ===== SECTION 1: 과목 ===== */}
+            <div className="pb-2 border-b-2 border-white/6">
+                <div className="flex items-center justify-between py-2.5 border-b border-white/6">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <BookOpen className="w-3.5 h-3.5 text-indigo-400" /> 과목
+                        <span className="text-[10px] font-bold text-slate-600 normal-case tracking-normal">{studies.length}개</span>
+                    </p>
+                    <button onClick={() => setIsAddMode(p => !p)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-sm border border-white/10 text-slate-400 hover:bg-white/[0.06]">
+                        {isAddMode ? '취소' : <><Plus className="w-3.5 h-3.5" />과목 추가</>}
+                    </button>
+                </div>
+
+                {/* Add study form */}
+                {isAddMode && (
+                    <div className="py-3 border-b border-white/6 space-y-2.5">
+                        <input type="text" placeholder="과목명 (예: 수학, 영어...)" value={newTitle} onChange={e => setNewTitle(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} className="w-full bg-transparent border-b border-white/10 py-2 text-sm font-bold text-slate-200 outline-none placeholder:text-slate-600" autoFocus />
+                        <div className="flex items-center gap-3">
+                            <input type="text" placeholder="카테고리 (수능, 자격증...)" value={newCategory} onChange={e => setNewCategory(e.target.value)} className="flex-1 bg-transparent border-b border-white/10 py-1.5 text-xs font-bold text-slate-300 outline-none placeholder:text-slate-600" />
+                            <input type="number" min="1" value={newTarget} onChange={e => setNewTarget(e.target.value)} className="w-16 bg-transparent border-b border-white/10 py-1.5 text-xs font-bold text-slate-300 outline-none font-mono text-right" placeholder="일수" />
+                            <div className="flex gap-1 shrink-0">
+                                {STUDY_PALETTE.map(c => (
+                                    <button key={c} onClick={() => setNewColor(c)} style={{ width: 14, height: 14, backgroundColor: c, borderRadius: '2px', outline: newColor === c ? '2px solid white' : undefined, outlineOffset: '1px' }} />
+                                ))}
+                            </div>
+                        </div>
+                        <button onClick={handleAdd} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm bg-indigo-500 text-white hover:bg-indigo-400 w-full justify-center">생성</button>
+                    </div>
+                )}
+
+                {/* Category filter */}
+                {(() => {
+                    const cats = ['전체', ...new Set(studies.map(s => s.category).filter(Boolean))];
+                    if (cats.length <= 1) return null;
+                    return (
+                        <div className="flex gap-1.5 flex-wrap py-2 border-b border-white/6">
+                            {cats.map(c => (
+                                <button key={c} onClick={() => setCategoryFilter(c)}
+                                    className={`px-2 py-0.5 text-[10px] font-bold border transition-all ${categoryFilter === c ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-400' : 'border-white/10 text-slate-500 hover:text-slate-300'}`}
+                                    style={{ borderRadius: '3px' }}>
+                                    {c}
+                                </button>
+                            ))}
+                        </div>
+                    );
+                })()}
+
+                {/* Subject rows */}
+                {studies.length === 0 ? (
+                    <div className="text-center py-6 text-slate-600">
+                        <p className="text-xs font-bold">과목이 없습니다.</p>
+                        <button onClick={() => setIsAddMode(true)} className="text-indigo-400 text-xs mt-1 hover:underline">+ 과목 추가로 시작하기</button>
+                    </div>
+                ) : (
+                    studies.filter(s => categoryFilter === '전체' || s.category === categoryFilter).map((study, idx) => {
+                        const color = study.color || STUDY_PALETTE[idx % STUDY_PALETTE.length];
+                        const isActive = timerState.activeId === study.id && timerState.isRunning;
+                        const secs = studyTimes[study.id] || 0;
+                        const todayDateStr = format(currentDate, 'yyyy-MM-dd');
+                        const isCheckedToday = study.logs.includes(todayDateStr);
+                        const streak = getStreak(study.logs, currentDate);
+                        return (
+                            <div key={study.id}>
+                                <div className="flex items-center gap-2.5 py-2.5 border-b border-white/6 group hover:bg-white/[0.02]">
+                                    <div className="w-[3px] h-9 shrink-0" style={{ backgroundColor: color, borderRadius: '1px' }} />
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                            <span className="text-sm font-bold text-slate-200">{study.title}</span>
+                                            {study.category && <span className="text-[9px] font-semibold text-slate-600 border border-white/[0.06] px-1" style={{ borderRadius: '2px' }}>{study.category}</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2 mt-0.5">
+                                            {streak > 0 && <span className="text-[9px] font-bold text-orange-400">{streak >= 3 ? '🔥' : ''}연속 {streak}일</span>}
+                                            <span className="text-[9px] text-slate-600">출석 {study.logs.length}일</span>
+                                            {secs > 0 && <span className="text-[9px] font-mono tabular-nums text-indigo-400">{Math.floor(secs/3600)}h {Math.floor((secs%3600)/60)}m</span>}
+                                        </div>
+                                    </div>
+                                    <button onClick={() => toggleTimer(study.id)}
+                                        className="shrink-0 flex items-center gap-1 px-2 py-1.5 text-[10px] font-bold border transition-all whitespace-nowrap"
+                                        style={{ borderRadius: '3px', borderColor: isActive ? color : 'rgba(255,255,255,0.1)', backgroundColor: isActive ? color + '20' : 'transparent', color: isActive ? color : '#64748b' }}>
+                                        {isActive ? <>⏸ <span className="font-mono">{String(Math.floor(secs/3600)).padStart(1,'0')}:{String(Math.floor((secs%3600)/60)).padStart(2,'0')}:{String(secs%60).padStart(2,'0')}</span></> : '▶ 시작'}
+                                    </button>
+                                    <button onClick={() => handleCheckIn(study)} className="shrink-0 w-8 h-8 flex items-center justify-center" style={{ color: isCheckedToday ? color : '#475569' }} aria-label={isCheckedToday ? '출석 취소' : '출석 체크'}>
+                                        <CheckCircle2 className="w-5 h-5" />
+                                    </button>
+                                    <button onClick={() => { setEditStudyId(editStudyId === study.id ? null : study.id); setEditStudyForm({ title: study.title, totalDays: study.totalDays || 30, linkedGoalId: study.linkedGoalId || '' }); }}
+                                        className="shrink-0 opacity-0 group-hover:opacity-100 p-1.5 text-slate-600 hover:text-indigo-400 transition-all">
+                                        <Pencil className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button onClick={() => setDeleteConfirm({ open: true, id: study.id })}
+                                        className="shrink-0 opacity-0 group-hover:opacity-100 p-1.5 text-slate-600 hover:text-rose-500 transition-all">
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                {/* Inline edit form */}
+                                {editStudyId === study.id && (
+                                    <div className="border-b border-indigo-500/20 py-3 pl-5 space-y-2.5 bg-indigo-500/[0.03]">
+                                        <input value={editStudyForm.title} onChange={e => setEditStudyForm(f => ({ ...f, title: e.target.value }))} className="w-full bg-transparent border-b border-white/10 py-1.5 text-sm font-bold text-slate-200 outline-none" placeholder="과목명" />
+                                        <div className="flex gap-2">
+                                            <input type="number" min="1" value={editStudyForm.totalDays} onChange={e => setEditStudyForm(f => ({ ...f, totalDays: e.target.value }))} className="w-20 bg-transparent border-b border-white/10 py-1.5 text-xs font-mono text-slate-300 outline-none" />
+                                            {goals.length > 0 && (
+                                                <select value={editStudyForm.linkedGoalId} onChange={e => setEditStudyForm(f => ({ ...f, linkedGoalId: e.target.value }))} className="flex-1 bg-[#0d0d0f] border-b border-white/10 py-1.5 text-xs font-bold text-slate-200 outline-none">
+                                                    <option value="">연결 목표 없음</option>
+                                                    {goals.map(g => <option key={g.id} value={g.id}>{g.icon} {g.title}</option>)}
+                                                </select>
+                                            )}
+                                        </div>
+                                        <div className="flex gap-2 justify-end">
+                                            <button onClick={() => setEditStudyId(null)} className="px-3 py-1.5 text-xs font-bold text-slate-400 border border-white/10 hover:bg-white/6" style={{ borderRadius: '3px' }}>취소</button>
+                                            <button onClick={handleEditStudySave} className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-500 hover:bg-indigo-400" style={{ borderRadius: '3px' }}>저장</button>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
-                            <button onClick={() => setPlannerDayOffset(p => p + 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>다음 →</button>
-                        </div>
+                        );
+                    })
+                )}
+            </div>
 
-                        {/* Add plan button */}
-                        <div className="flex items-center justify-between">
-                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">시간 계획</p>
-                            <button onClick={() => setPlanAddMode(p => !p)} className="px-2.5 py-1 text-[10px] font-bold border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10" style={{ borderRadius: '3px' }}>{planAddMode ? '취소' : '+ 계획 추가'}</button>
-                        </div>
-
-                        {/* Plan add form */}
-                        {planAddMode && (
-                            <div className="border-b border-white/6 py-3 space-y-2.5">
-                                <div className="grid grid-cols-2 gap-2.5">
-                                    <div className="col-span-2">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">과목</label>
-                                        <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none">
-                                            <option value="">-- 과목 선택 --</option>
-                                            {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">시작</label>
-                                        <input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">종료</label>
-                                        <input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" />
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">메모</label>
-                                        <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="메모..." className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none" onKeyDown={e => {
-                                            if (e.key === 'Enter') {
-                                                setPlanForm(p => ({ ...p, date: plannerDateStr }));
-                                                addStudyPlan();
-                                            }
-                                        }} />
-                                    </div>
-                                </div>
-                                <button onClick={() => { setPlanForm(p => ({ ...p, date: plannerDateStr })); addStudyPlan(); }} className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs" style={{ borderRadius: '3px' }}>저장</button>
-                            </div>
-                        )}
-
-                        {/* Motmot Day Grid */}
-                        <MotmotDayGrid
-                            studies={studies}
-                            studySessions={studySessions}
-                            studyPlans={studyPlans.filter(p => p.date === plannerDateStr)}
-                            timerState={timerState}
-                            timerStartRef={timerStartRef}
-                            selectedDate={plannerDate}
-                        />
-
-                        {/* Today's summary */}
-                        {dayTotals.length > 0 && (
-                            <div className="pt-3 border-t border-white/6">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">공부 요약</p>
-                                <div className="space-y-2">
-                                    {dayTotals.map(({ study, secs }) => {
-                                        const h = Math.floor(secs / 3600);
-                                        const m = Math.floor((secs % 3600) / 60);
-                                        const color = study.color || '#6366f1';
-                                        return (
-                                            <div key={study.id} className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                                                <span className="text-xs font-bold text-slate-300 flex-1 truncate">{study.title}</span>
-                                                {study.category && <span className="text-[9px] text-slate-600 border border-white/8 px-1" style={{ borderRadius: '2px' }}>{study.category}</span>}
-                                                <span className="text-xs font-mono font-bold text-indigo-400">{h > 0 ? `${h}h ` : ''}{m}m</span>
-                                            </div>
-                                        );
-                                    })}
-                                    <div className="flex items-center gap-2 pt-1 border-t border-white/6">
-                                        <span className="text-[10px] text-slate-500 flex-1 font-semibold uppercase">합계</span>
-                                        <span className="text-xs font-mono font-bold text-white">
-                                            {(() => { const total = dayTotals.reduce((s, d) => s + d.secs, 0); const h = Math.floor(total/3600); const m = Math.floor((total%3600)/60); return `${h > 0 ? h+'h ' : ''}${m}m`; })()}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Plans list for the day */}
-                        {studyPlans.filter(p => p.date === plannerDateStr).length > 0 && (
-                            <div className="pt-2 border-t border-white/6">
-                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">계획 목록</p>
-                                {studyPlans.filter(p => p.date === plannerDateStr).sort((a,b) => (a.time||'').localeCompare(b.time||'')).map(plan => {
-                                    const study = studies.find(s => s.id === plan.studyId);
-                                    const color = study?.color || '#6366f1';
-                                    return (
-                                        <div key={plan.id} className={`flex items-center gap-2 py-2 border-b border-white/6 ${plan.done ? 'opacity-50' : ''}`}>
-                                            <div className="w-1.5 h-8 shrink-0" style={{ backgroundColor: color, borderRadius: '1px' }} />
-                                            <div className="flex-1 min-w-0">
-                                                <p className={`text-xs font-bold truncate ${plan.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{study?.title || plan.subjectTitle}</p>
-                                                <p className="text-[10px] text-slate-500 font-mono">{plan.time}~{plan.endTime}{plan.note ? ` · ${plan.note}` : ''}</p>
-                                            </div>
-                                            <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 text-slate-600 hover:text-indigo-400">
-                                                {plan.done ? <CheckCircle2 className="w-4 h-4 text-indigo-500" /> : <Target className="w-4 h-4" />}
-                                            </button>
-                                            <button onClick={() => deletePlan(plan.id)} className="shrink-0 text-slate-600 hover:text-rose-500"><X className="w-3.5 h-3.5" /></button>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+            {/* ===== SECTION 2: 플래너 ===== */}
+            <div className="pt-4 space-y-3">
+                <div className="flex items-center justify-between py-2 border-b border-white/6">
+                    <button onClick={() => setPlannerDayOffset(p => p - 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>← 전날</button>
+                    <div className="text-center">
+                        <p className="text-xs font-bold text-slate-200">{plannerDate.getMonth() + 1}월 {plannerDate.getDate()}일 ({dayOfWeekKr}){plannerDayOffset === 0 ? ' 🟢' : ''}</p>
+                        {plannerDayOffset !== 0 && <button onClick={() => setPlannerDayOffset(0)} className="text-[10px] text-indigo-400 hover:text-indigo-300">오늘로</button>}
                     </div>
-                );
-            })()}
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => setPlanAddMode(p => !p)} className="px-2 py-1 text-[10px] font-bold border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10" style={{ borderRadius: '3px' }}>+ 계획</button>
+                        <button onClick={() => setPlannerDayOffset(p => p + 1)} className="px-2.5 py-1.5 text-xs font-bold border border-white/10 text-slate-400 hover:bg-white/[0.05]" style={{ borderRadius: '3px' }}>다음 →</button>
+                    </div>
+                </div>
+
+                {planAddMode && (
+                    <div className="border-b border-white/6 py-3 space-y-2.5">
+                        <select value={planForm.studyId} onChange={e => setPlanForm(p => ({ ...p, studyId: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-200 outline-none">
+                            <option value="">-- 과목 선택 --</option>
+                            {studies.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}
+                        </select>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div><label className="text-[10px] text-slate-600 uppercase block mb-1">시작</label><input type="time" value={planForm.time} onChange={e => setPlanForm(p => ({ ...p, time: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" /></div>
+                            <div><label className="text-[10px] text-slate-600 uppercase block mb-1">종료</label><input type="time" value={planForm.endTime} onChange={e => setPlanForm(p => ({ ...p, endTime: e.target.value }))} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-xs font-bold text-slate-400 outline-none [color-scheme:dark]" /></div>
+                        </div>
+                        <input type="text" value={planForm.note} onChange={e => setPlanForm(p => ({ ...p, note: e.target.value }))} placeholder="메모 (선택)" className="w-full bg-transparent border-b border-white/10 py-2 text-xs font-bold text-slate-200 outline-none placeholder:text-slate-600" onKeyDown={e => { if (e.key === 'Enter') { setPlanForm(p => ({ ...p, date: plannerDateStr })); addStudyPlan(); } }} />
+                        <button onClick={() => { setPlanForm(p => ({ ...p, date: plannerDateStr })); addStudyPlan(); }} className="w-full py-2 bg-indigo-500 hover:bg-indigo-400 text-white font-bold text-xs" style={{ borderRadius: '3px' }}>저장</button>
+                    </div>
+                )}
+
+                <MotmotDayGrid
+                    studies={studies}
+                    studySessions={studySessions}
+                    studyPlans={studyPlans.filter(p => p.date === plannerDateStr)}
+                    timerState={timerState}
+                    timerStartRef={timerStartRef}
+                    selectedDate={plannerDate}
+                />
+
+                {dayTotals.length > 0 && (
+                    <div className="pt-3 border-t border-white/6">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">공부 요약</p>
+                        <div className="space-y-1.5">
+                            {dayTotals.map(({ study, secs }) => {
+                                const h = Math.floor(secs / 3600); const m = Math.floor((secs % 3600) / 60);
+                                const color = study.color || '#6366f1';
+                                return (
+                                    <div key={study.id} className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                        <span className="text-xs font-bold text-slate-300 flex-1 truncate">{study.title}</span>
+                                        {study.category && <span className="text-[9px] text-slate-600 border border-white/[0.06] px-1" style={{ borderRadius: '2px' }}>{study.category}</span>}
+                                        <span className="text-xs font-mono font-bold text-indigo-400">{h > 0 ? `${h}h ` : ''}{m}m</span>
+                                    </div>
+                                );
+                            })}
+                            <div className="flex items-center gap-2 pt-1.5 border-t border-white/6">
+                                <span className="text-[10px] text-slate-500 flex-1 font-semibold uppercase">총 공부시간</span>
+                                <span className="text-xs font-mono font-bold text-white">{(() => { const total = dayTotals.reduce((s, d) => s + d.secs, 0); const h = Math.floor(total/3600); const m = Math.floor((total%3600)/60); return `${h > 0 ? h+'h ' : ''}${m}m`; })()}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {studyPlans.filter(p => p.date === plannerDateStr).length > 0 && (
+                    <div className="pt-2 border-t border-white/6">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">계획</p>
+                        {studyPlans.filter(p => p.date === plannerDateStr).sort((a,b) => (a.time||'').localeCompare(b.time||'')).map(plan => {
+                            const study = studies.find(s => s.id === plan.studyId);
+                            const color = study?.color || '#6366f1';
+                            return (
+                                <div key={plan.id} className={`flex items-center gap-2 py-2 border-b border-white/6 ${plan.done ? 'opacity-50' : ''}`}>
+                                    <div className="w-[3px] h-8 shrink-0" style={{ backgroundColor: color, borderRadius: '1px' }} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className={`text-xs font-bold truncate ${plan.done ? 'line-through text-slate-500' : 'text-slate-200'}`}>{study?.title || plan.subjectTitle}</p>
+                                        <p className="text-[10px] text-slate-500 font-mono tabular-nums">{plan.time}~{plan.endTime}{plan.note ? ` · ${plan.note}` : ''}</p>
+                                    </div>
+                                    <button onClick={() => togglePlanDone(plan.id)} className="shrink-0 text-slate-600 hover:text-indigo-400">
+                                        {plan.done ? <CheckCircle2 className="w-4 h-4 text-indigo-500" /> : <Target className="w-4 h-4" />}
+                                    </button>
+                                    <button onClick={() => deletePlan(plan.id)} className="shrink-0 text-slate-600 hover:text-rose-500">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+})()}
 
             {/* #59 Exam scores tab */}
             {activeSubTab === 'scores' && (
@@ -1360,9 +1471,9 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                 </div>
             )}
 
-            {activeSubTab === 'tracker' && (
+            {false && (
                 <>
-                    {/* Live Leaderboard */}
+                    {/* tracker tab — REMOVED (merged into 오늘 tab) */}
                     <div className="mb-3">
                         <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pt-4 pb-1.5 border-b border-white/8 flex items-center gap-2 mb-2">
                             <Trophy className="w-3.5 h-3.5 text-orange-500" /> 오늘의 공부 라이브 랭킹
