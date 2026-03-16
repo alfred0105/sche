@@ -27,7 +27,7 @@ import InputModal from './components/InputModal';
 import ReviewView from './views/ReviewView';
 import SearchModal from './components/SearchModal';
 import QuickExpenseSheet from './components/QuickExpenseSheet';
-import { Toaster, toast } from 'react-hot-toast';
+import { Toaster, toast, ToastBar } from 'react-hot-toast';
 import LoginView from './views/LoginView';
 import { supabase } from './supabaseClient';
 import { TABS } from './constants';
@@ -199,7 +199,7 @@ export default function App() {
     document.title = `올라운더 — ${currentTabLabel}`;
   }, [currentTab]);
 
-  const { LayoutDashboard, Plus, ChevronLeft, ChevronRight, Search } = IconMap;
+  const { LayoutDashboard, Plus, ChevronLeft, ChevronRight, Search, X } = IconMap;
   const displayDate = `${currentDate.getFullYear()}년 ${currentDate.getMonth() + 1}월 ${currentDate.getDate()}일`;
 
   if (authLoading) {
@@ -220,17 +220,37 @@ export default function App() {
       <Toaster
         position="top-right"
         toastOptions={{
+          duration: 2500,
           style: {
             background: 'var(--toast-bg, #1a1a1e)',
             color: 'var(--toast-text, #e2e8f0)',
             borderRadius: '4px',
-            padding: '8px 14px',
+            padding: '8px 10px 8px 14px',
             border: '1px solid rgba(255,255,255,0.1)',
             fontSize: '12px',
             boxShadow: 'none',
           },
         }}
-      />
+      >
+        {(t) => (
+          <ToastBar toast={t}>
+            {({ icon, message }) => (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                {icon}
+                {message}
+                {t.type !== 'loading' && (
+                  <button
+                    onClick={() => toast.dismiss(t.id)}
+                    style={{ marginLeft: 2, padding: '2px', opacity: 0.5, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit' }}
+                  >
+                    <X style={{ width: 12, height: 12 }} />
+                  </button>
+                )}
+              </div>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
 
       {/* Top bar — Linear style */}
       <div className="sticky top-0 z-30 bg-[#090909]" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>

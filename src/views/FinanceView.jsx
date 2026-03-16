@@ -49,7 +49,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         }
     }, [pendingShareData]);
 
-    const [filterType, setFilterType] = useState('daily');
+    const [filterType, setFilterType] = useState('monthly');
     const [activeSubTab, setActiveSubTab] = useState('list');
     const [expandedAccId, setExpandedAccId] = useState(null);
 

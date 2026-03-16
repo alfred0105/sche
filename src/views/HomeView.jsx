@@ -77,6 +77,22 @@ function loadHiddenWidgets() {
 export default function HomeView({ schedules, setSchedules, transactions, totalAssets, setCurrentTab, currentDate, goals, studies = [], studyTimes = {}, budgets = {}, setTransactions, reviews = [] }) {
     const { CheckCircle2, Circle, ChevronRight, Flag, CalendarCheck, TrendingUp, TrendingDown, Activity, Plus, X, ClipboardList, Settings } = IconMap;
 
+    // Todo state
+    const [todos, setTodos] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('homeTodos') || '[]'); } catch { return []; }
+    });
+    const [newTodo, setNewTodo] = useState('');
+    useEffect(() => {
+        try { localStorage.setItem('homeTodos', JSON.stringify(todos)); } catch { }
+    }, [todos]);
+    const addTodo = () => {
+        if (!newTodo.trim()) return;
+        setTodos(prev => [...prev, { id: generateId(), text: newTodo.trim(), done: false }]);
+        setNewTodo('');
+    };
+    const toggleTodo = (id) => setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+    const deleteTodo = (id) => setTodos(prev => prev.filter(t => t.id !== id));
+
     // #76 Widget visibility
     const [hiddenWidgets, setHiddenWidgets] = useState(loadHiddenWidgets);
     const [showWidgetSettings, setShowWidgetSettings] = useState(false);
@@ -757,6 +773,52 @@ export default function HomeView({ schedules, setSchedules, transactions, totalA
                     </div>
                 </section>
             )}
+
+            {/* Todo */}
+            <section aria-label="할일">
+                <div className="flex items-center justify-between py-2 border-b border-white/8">
+                    <h2 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                        <ClipboardList className="w-3.5 h-3.5 text-amber-400" aria-hidden="true" /> 할일
+                        {todos.filter(t => !t.done).length > 0 && (
+                            <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-1.5 py-0.5" style={{ borderRadius: '3px' }}>
+                                {todos.filter(t => !t.done).length}
+                            </span>
+                        )}
+                    </h2>
+                </div>
+                <div className="flex items-center gap-2 py-2.5 border-b border-white/6">
+                    <input
+                        type="text"
+                        value={newTodo}
+                        onChange={e => setNewTodo(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && addTodo()}
+                        placeholder="할일 추가..."
+                        className="flex-1 bg-transparent border-b border-white/10 py-1 text-xs text-slate-200 outline-none placeholder:text-slate-600"
+                    />
+                    <button onClick={addTodo} className="shrink-0 w-6 h-6 flex items-center justify-center text-indigo-400 hover:text-indigo-300">
+                        <Plus className="w-4 h-4" />
+                    </button>
+                </div>
+                {todos.length === 0 ? (
+                    <p className="text-xs text-slate-600 py-2.5">할일을 입력해보세요.</p>
+                ) : (
+                    <div>
+                        {todos.map(t => (
+                            <div key={t.id} className="flex items-center gap-2.5 py-2.5 border-b border-white/6 hover:bg-white/[0.03] group">
+                                <button onClick={() => toggleTodo(t.id)} className="shrink-0">
+                                    {t.done
+                                        ? <CheckCircle2 className="w-4 h-4 text-indigo-500" />
+                                        : <Circle className="w-4 h-4 text-slate-600 group-hover:text-slate-400" />}
+                                </button>
+                                <span className={`flex-1 text-xs font-semibold ${t.done ? 'line-through text-slate-600' : 'text-slate-300'}`}>{t.text}</span>
+                                <button onClick={() => deleteTodo(t.id)} className="shrink-0 opacity-0 group-hover:opacity-100 text-slate-600 hover:text-rose-500">
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </section>
 
             {/* #79 Daily Quote */}
             {isVisible('quote') && <section className="border-t border-white/6 pt-3 pb-1" aria-label="오늘의 격언">

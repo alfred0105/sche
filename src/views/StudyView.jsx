@@ -47,6 +47,95 @@ const STUDY_QUOTES = [
 ];
 
 const PIE_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#64748b'];
+const STUDY_PALETTE = ['#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16'];
+const DAY_LABELS_KR = ['월', '화', '수', '목', '금', '토', '일'];
+
+// Motmot-style time-grid planner component
+function MotmotGrid({ studies, studyPlans, timerState, currentDate }) {
+    const HOURS = Array.from({ length: 18 }, (_, i) => i + 6); // 6am – 11pm
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+    const studyColorMap = useMemo(() => {
+        const m = {};
+        studies.forEach((s, i) => { m[s.id] = s.color || STUDY_PALETTE[i % STUDY_PALETTE.length]; });
+        return m;
+    }, [studies]);
+
+    // Build blocks map: "yyyy-MM-dd:H" -> studyId (covers that hour)
+    const blocks = useMemo(() => {
+        const m = {};
+        studyPlans.forEach(plan => {
+            const sh = parseInt((plan.time || '00:00').split(':')[0]);
+            const eh = parseInt((plan.endTime || '00:00').split(':')[0]);
+            for (let h = sh; h < eh; h++) {
+                m[`${plan.date}:${h}`] = plan.studyId;
+            }
+        });
+        return m;
+    }, [studyPlans]);
+
+    const now = new Date();
+    const currentHour = now.getHours();
+    const todayStr = format(now, 'yyyy-MM-dd');
+
+    return (
+        <div className="overflow-x-auto -mx-4 px-4">
+            <div style={{ minWidth: 280 }}>
+                {/* Day header row */}
+                <div className="grid mb-1" style={{ gridTemplateColumns: '28px repeat(7, 1fr)', gap: '2px' }}>
+                    <div />
+                    {weekDays.map((d, i) => {
+                        const isToday = isSameDay(d, now);
+                        return (
+                            <div key={i} className="text-center">
+                                <div className={`text-[9px] font-bold ${isToday ? 'text-indigo-400' : 'text-slate-500'}`}>{DAY_LABELS_KR[i]}</div>
+                                <div className={`text-[8px] font-mono ${isToday ? 'text-indigo-400' : 'text-slate-600'}`}>{format(d, 'M/d')}</div>
+                            </div>
+                        );
+                    })}
+                </div>
+                {/* Hour rows */}
+                {HOURS.map(h => (
+                    <div key={h} className="grid" style={{ gridTemplateColumns: '28px repeat(7, 1fr)', gap: '2px', marginBottom: '2px' }}>
+                        <div className="text-[8px] font-mono text-slate-600 text-right pr-1 flex items-center justify-end">{h}</div>
+                        {weekDays.map((d, i) => {
+                            const ds = format(d, 'yyyy-MM-dd');
+                            const key = `${ds}:${h}`;
+                            const planStudyId = blocks[key];
+                            const isActiveNow = ds === todayStr && h === currentHour && timerState.isRunning;
+                            const fillId = isActiveNow ? timerState.activeId : planStudyId;
+                            const color = fillId ? studyColorMap[fillId] : null;
+                            const isPast = d < now || (isSameDay(d, now) && h < currentHour);
+                            return (
+                                <div
+                                    key={i}
+                                    className="h-5"
+                                    style={{
+                                        backgroundColor: color ? (isActiveNow ? color : color + 'b0') : isPast ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.02)',
+                                        borderRadius: '2px',
+                                        outline: isActiveNow ? `1.5px solid ${color}` : undefined,
+                                    }}
+                                />
+                            );
+                        })}
+                    </div>
+                ))}
+                {/* Legend */}
+                {studies.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-white/6">
+                        {studies.map((s, i) => (
+                            <div key={s.id} className="flex items-center gap-1">
+                                <div className="w-2.5 h-2.5" style={{ backgroundColor: s.color || STUDY_PALETTE[i % STUDY_PALETTE.length], borderRadius: '2px' }} />
+                                <span className="text-[9px] font-bold text-slate-500">{s.title}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
 
 // Mini heatmap calendar component
 function AttendanceHeatmap({ logs, currentDate }) {
@@ -125,6 +214,9 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const [newTitle, setNewTitle] = useState('');
     const [newTarget, setNewTarget] = useState(30);
     const [newLinkedGoalId, setNewLinkedGoalId] = useState('');
+    const [newCategory, setNewCategory] = useState('');
+    const [newColor, setNewColor] = useState('');
+    const [categoryFilter, setCategoryFilter] = useState('전체');
     const [deleteConfirm, setDeleteConfirm] = useState({ open: false, id: null });
     const [activeSubTab, setActiveSubTab] = useState('tracker'); // 'tracker' | 'stats' | 'report' | 'flashcards' | 'scores' | 'planner'
 
@@ -542,19 +634,26 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
     const handleAdd = useCallback(() => {
         if (!newTitle.trim()) return toast.error('공부 목표 텍스트를 입력해주세요.');
         if (newTarget < 1) return toast.error('목표 일수는 1일 이상이어야 합니다.');
-        setStudies((prev) => [...prev, {
-            id: generateId(),
-            title: newTitle,
-            icon: 'BookOpen',
-            totalDays: parseInt(newTarget),
-            logs: [],
-            linkedGoalId: newLinkedGoalId || null,
-        }]);
+        setStudies((prev) => {
+            const autoColor = STUDY_PALETTE[prev.length % STUDY_PALETTE.length];
+            return [...prev, {
+                id: generateId(),
+                title: newTitle,
+                icon: 'BookOpen',
+                totalDays: parseInt(newTarget),
+                logs: [],
+                linkedGoalId: newLinkedGoalId || null,
+                category: newCategory.trim() || null,
+                color: newColor || autoColor,
+            }];
+        });
         setNewTitle('');
         setNewLinkedGoalId('');
+        setNewCategory('');
+        setNewColor('');
         setIsAddMode(false);
         toast.success('새로운 공부 목표가 추가되었습니다.', { icon: '🎯' });
-    }, [newTitle, newTarget, newLinkedGoalId, setStudies]);
+    }, [newTitle, newTarget, newLinkedGoalId, newCategory, newColor, setStudies]);
 
     const handleDeleteConfirm = useCallback(() => {
         setStudies((prev) => prev.filter((s) => s.id !== deleteConfirm.id));
@@ -870,11 +969,10 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                 </div>
             )}
 
-            {/* 공부 플래너 탭 */}
+            {/* 공부 플래너 탭 — Motmot style */}
             {activeSubTab === 'planner' && (() => {
                 const weekStart = startOfWeek(addDays(currentDate, planWeekOffset * 7), { weekStartsOn: 1 });
                 const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
-                const DAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
                 const weekPlans = studyPlans.filter(p => {
                     const d = parseISO(p.date);
                     return d >= weekStart && d < addDays(weekStart, 7);
@@ -890,14 +988,27 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         <div className="flex items-center justify-between border-b border-white/8 pt-4 pb-1.5">
                             <div className="flex items-center gap-2">
                                 <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">📆 공부 플래너</h3>
-                                <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5">
-                                    이번 주 {Math.floor(totalPlanMins / 60)}h {totalPlanMins % 60}m 계획
-                                </span>
+                                {totalPlanMins > 0 && (
+                                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5">
+                                        이번 주 {Math.floor(totalPlanMins / 60)}h {totalPlanMins % 60}m
+                                    </span>
+                                )}
                             </div>
                             <button onClick={() => setPlanAddMode(p => !p)} className="px-3 py-1.5 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold hover:bg-indigo-500/20 transition-colors" style={{ borderRadius: '3px' }}>
                                 {planAddMode ? '취소' : '+ 추가'}
                             </button>
                         </div>
+
+                        {/* Motmot 시간 그리드 */}
+                        <MotmotGrid
+                            studies={studies}
+                            studyPlans={studyPlans.filter(p => {
+                                const d = parseISO(p.date);
+                                return d >= weekStart && d < addDays(weekStart, 7);
+                            })}
+                            timerState={timerState}
+                            currentDate={addDays(currentDate, planWeekOffset * 7)}
+                        />
 
                         {/* 주 이동 */}
                         <div className="flex items-center justify-between text-xs font-bold text-slate-400">
@@ -953,7 +1064,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                 return (
                                     <div key={ds}>
                                         <div className={`flex items-center gap-2 px-1 mb-1`}>
-                                            <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isToday ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>{DAY_LABELS[idx]}</span>
+                                            <span className={`text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${isToday ? 'bg-indigo-500 text-white' : 'text-slate-500'}`}>{DAY_LABELS_KR[idx]}</span>
                                             <span className={`text-[10px] font-bold ${isToday ? 'text-indigo-400' : 'text-slate-600'}`}>{format(day, 'M/d')}</span>
                                             {dayPlans.length > 0 && (
                                                 <span className="text-[9px] font-bold text-slate-600">
@@ -1159,9 +1270,27 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                         <label htmlFor="study-target" className="text-xs font-bold text-slate-400 mb-1 block">목표 달성 출석일수 (일)</label>
                                         <input id="study-target" type="number" min="1" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 outline-none text-sm font-bold text-slate-200 font-mono tabular-nums" />
                                     </div>
+                                    <div className="flex gap-3">
+                                        <div className="flex-1">
+                                            <label className="text-xs font-bold text-slate-400 mb-1 block">카테고리 (선택)</label>
+                                            <input type="text" placeholder="예: 수능, 자격증, 코딩..." value={newCategory} onChange={e => setNewCategory(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 outline-none text-sm font-bold text-slate-200" />
+                                        </div>
+                                        <div className="shrink-0">
+                                            <label className="text-xs font-bold text-slate-400 mb-1 block">색상</label>
+                                            <div className="flex gap-1.5 flex-wrap pt-1">
+                                                {STUDY_PALETTE.map(c => (
+                                                    <button
+                                                        key={c}
+                                                        onClick={() => setNewColor(c)}
+                                                        style={{ width: 16, height: 16, backgroundColor: c, borderRadius: '3px', outline: newColor === c ? `2px solid white` : undefined, outlineOffset: '1px' }}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
                                     {goals.length > 0 && (
                                         <div>
-                                            <label htmlFor="study-linked-goal" className="text-xs font-bold text-slate-400 mb-1 block">연결할 목표 (선택 — 타이머 종료 시 분 단위로 목표 진행도 자동 업데이트)</label>
+                                            <label htmlFor="study-linked-goal" className="text-xs font-bold text-slate-400 mb-1 block">연결할 목표 (선택)</label>
                                             <select id="study-linked-goal" value={newLinkedGoalId} onChange={e => setNewLinkedGoalId(e.target.value)} className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 outline-none text-sm font-bold text-slate-300">
                                                 <option value="">-- 연결 안 함 --</option>
                                                 {goals.map(g => <option key={g.id} value={g.id}>{g.icon} {g.title}</option>)}
@@ -1173,6 +1302,26 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                             </div>
                         )}
 
+                    {/* Category filter chips */}
+                    {(() => {
+                        const cats = ['전체', ...new Set(studies.map(s => s.category).filter(Boolean))];
+                        if (cats.length <= 1) return null;
+                        return (
+                            <div className="flex gap-1.5 flex-wrap py-2">
+                                {cats.map(c => (
+                                    <button
+                                        key={c}
+                                        onClick={() => setCategoryFilter(c)}
+                                        className={`px-2.5 py-1 text-[10px] font-bold border transition-all ${categoryFilter === c ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-400' : 'border-white/10 text-slate-500 hover:text-slate-300'}`}
+                                        style={{ borderRadius: '3px' }}
+                                    >
+                                        {c}
+                                    </button>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
                     {/* Empty State */}
                     {(!studies || studies.length === 0) ? (
                         <div className="border-b border-white/6 py-10 flex flex-col items-center justify-center gap-3">
@@ -1182,7 +1331,7 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                         </div>
                     ) : (
                         <div className="flex flex-col gap-3">
-                            {studies.map((study) => {
+                            {studies.filter(s => categoryFilter === '전체' || s.category === categoryFilter).map((study) => {
                                 const todayStr = format(currentDate, 'yyyy-MM-dd');
                                 const isCheckedToday = study.logs.includes(todayStr);
                                 const progress = Math.min(100, Math.round((study.logs.length / study.totalDays) * 100));
@@ -1197,18 +1346,27 @@ export default function StudyView({ studies, setStudies, currentDate, studyTimes
                                     >
                                         {/* Top progress bar */}
                                         <div className="w-full h-1 bg-white/8" aria-hidden="true">
-                                            <div className={`h-1 ${progress >= 100 ? 'bg-emerald-400' : 'bg-indigo-500'} transition-all`} style={{ width: `${Math.max(progress, 2)}%` }} />
+                                            <div className={`h-1 transition-all`} style={{ width: `${Math.max(progress, 2)}%`, backgroundColor: study.color || (progress >= 100 ? '#10b981' : '#6366f1') }} />
                                         </div>
 
                                         <div className="p-3 md:p-3 md:p-3">
                                             {/* Header */}
                                             <div className="flex items-start justify-between mb-2">
                                                 <div className="flex items-start gap-3">
-                                                    <div className={`w-10 h-10 flex items-center justify-center shrink-0 transition-all ${isCheckedToday ? 'bg-indigo-500 text-white' : 'text-slate-400'}`} style={{ borderRadius: '3px' }} aria-hidden="true">
+                                                    <div
+                                                        className={`w-10 h-10 flex items-center justify-center shrink-0 transition-all ${isCheckedToday ? 'text-white' : 'text-slate-400'}`}
+                                                        style={{ borderRadius: '3px', backgroundColor: isCheckedToday ? (study.color || '#6366f1') : 'rgba(255,255,255,0.05)' }}
+                                                        aria-hidden="true"
+                                                    >
                                                         <BookOpen className="w-6 h-6" />
                                                     </div>
                                                     <div>
-                                                        <h3 className="text-lg font-bold tracking-tight text-slate-100 leading-tight">{study.title}</h3>
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="text-lg font-bold tracking-tight text-slate-100 leading-tight">{study.title}</h3>
+                                                            {study.category && (
+                                                                <span className="text-[9px] font-bold px-1.5 py-0.5 border border-white/10 text-slate-500" style={{ borderRadius: '3px' }}>{study.category}</span>
+                                                            )}
+                                                        </div>
                                                         <p className="text-[12px] font-bold text-slate-400 mt-0.5 flex items-center gap-1.5">
                                                             <CalIcon className="w-3 h-3" aria-hidden="true" /> 목표 {study.totalDays}일 중 {study.logs.length}일 출석
                                                             {remaining > 0 && <span className="text-indigo-400">· 남은 {remaining}일</span>}
