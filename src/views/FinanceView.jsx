@@ -9,7 +9,7 @@ import PropTypes from 'prop-types';
 import { IconMap } from '../components/IconMap';
 import ConfirmModal from '../components/ConfirmModal';
 import BankImportModal from '../components/BankImportModal';
-import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths } from 'date-fns';
+import { isSameDay, isSameWeek, isSameMonth, parseISO, format, subDays, getDaysInMonth, subMonths, startOfWeek, addDays } from 'date-fns';
 import { AreaChart, Area, ResponsiveContainer, PieChart, Pie, Cell, Tooltip, BarChart, Bar, XAxis, YAxis, LineChart, Line, Legend } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { PIE_COLORS, ASSET_CHART_DAYS } from '../constants';
@@ -339,6 +339,79 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         const projected = dayOfMonth > 0 ? Math.round((currentMonthExpense / dayOfMonth) * daysInMonth) : 0;
         return { avg3m: Math.round(avg3m), projected, dayOfMonth, daysInMonth };
     }, [transactions, currentDate, currentMonthExpense]);
+
+    // Period-aware spending stats for 지출 통계 tab
+    const spendingStatData = useMemo(() => {
+        if (filterType === 'all') {
+            return Array.from({ length: 6 }).map((_, i) => {
+                const monthDate = subMonths(currentDate, 5 - i);
+                const income = transactions.filter(t => t.type === 'income' && isSameMonth(parseISO(t.date), monthDate)).reduce((s, t) => s + t.amount, 0);
+                const expense = transactions.filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate)).reduce((s, t) => s + t.amount, 0);
+                return { name: format(monthDate, 'M월'), 수입: income, 지출: expense };
+            });
+        }
+        if (filterType === 'monthly') {
+            const daysInMonth = getDaysInMonth(currentDate);
+            return Array.from({ length: daysInMonth }).map((_, i) => {
+                const ds = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1), 'yyyy-MM-dd');
+                const income = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                const expense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                return { name: `${i + 1}`, 수입: income, 지출: expense };
+            });
+        }
+        if (filterType === 'weekly') {
+            const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+            return ['월', '화', '수', '목', '금', '토', '일'].map((label, i) => {
+                const ds = format(addDays(weekStart, i), 'yyyy-MM-dd');
+                const income = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                const expense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                return { name: label, 수입: income, 지출: expense };
+            });
+        }
+        // daily
+        const ds = format(currentDate, 'yyyy-MM-dd');
+        const income = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+        return [{ name: '오늘', 수입: income, 지출: expense }];
+    }, [transactions, currentDate, filterType]);
+
+    // Period-aware net worth data for 순자산 tab
+    const netWorthPeriodData = useMemo(() => {
+        if (filterType === 'all') {
+            let running = 0;
+            return Array.from({ length: 6 }).map((_, i) => {
+                const monthDate = subMonths(currentDate, 5 - i);
+                const monthIncome = transactions.filter(t => t.type === 'income' && isSameMonth(parseISO(t.date), monthDate)).reduce((s, t) => s + t.amount, 0);
+                const monthExpense = transactions.filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate)).reduce((s, t) => s + t.amount, 0);
+                running += monthIncome - monthExpense;
+                return { name: format(monthDate, 'M월'), 순자산: running };
+            });
+        }
+        if (filterType === 'monthly') {
+            const daysInMonth = getDaysInMonth(currentDate);
+            let running = 0;
+            return Array.from({ length: daysInMonth }).map((_, i) => {
+                const ds = format(new Date(currentDate.getFullYear(), currentDate.getMonth(), i + 1), 'yyyy-MM-dd');
+                const income = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                const expense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                running += income - expense;
+                return { name: `${i + 1}`, 순자산: running };
+            });
+        }
+        if (filterType === 'weekly') {
+            const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+            let running = 0;
+            return ['월', '화', '수', '목', '금', '토', '일'].map((label, i) => {
+                const ds = format(addDays(weekStart, i), 'yyyy-MM-dd');
+                const income = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                const expense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                running += income - expense;
+                return { name: label, 순자산: running };
+            });
+        }
+        // daily — return empty, we'll show stat cards
+        return [];
+    }, [transactions, currentDate, filterType]);
 
     // #33 Subscription helpers
     const subMonthlyCost = useMemo(() => {
@@ -800,7 +873,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                 {[
                     { id: 'list', label: '거래 내역', icon: 'Wallet' },
                     { id: 'category', label: '카테고리별', icon: 'PieChart' },
-                    { id: 'monthly', label: '월별 비교', icon: 'BarChart3' },
+                    { id: 'monthly', label: '지출 통계', icon: 'BarChart3' },
                     { id: 'networth', label: '순자산', icon: 'TrendingUp' },
                     { id: 'pattern', label: '소비 패턴', icon: 'BarChart3' },
                     { id: 'assets', label: '자산 현황', icon: 'BarChart3' },
@@ -996,29 +1069,47 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </div>
                     )}
 
-                    {/* #25 6-month comparison chart */}
+                    {/* 지출 통계 — period-aware income + expense chart */}
                     {activeSubTab === 'monthly' && (
                         <div className="min-h-[400px] pt-3">
                             <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pb-1.5 mb-2 border-b border-white/8 flex items-center gap-2">
-                                <BarChart3 className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 최근 6개월 지출 비교
+                                <BarChart3 className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 지출 통계
+                                <span className="ml-auto normal-case text-slate-600 font-normal text-[10px]">
+                                    {filterType === 'all' ? '최근 6개월' : filterType === 'monthly' ? `${currentDate.getMonth() + 1}월` : filterType === 'weekly' ? '이번 주' : '오늘'}
+                                </span>
                             </h3>
-                            {sixMonthData.every(d => d.지출 === 0) ? (
-                                <div className="text-center py-20 text-slate-400"><p className="font-bold">지출 데이터가 없습니다.</p></div>
+                            {filterType === 'daily' ? (
+                                <div className="grid grid-cols-3 gap-3 mt-3">
+                                    {[
+                                        { label: '수입', value: spendingStatData[0]?.수입 || 0, color: 'text-emerald-400', prefix: '+' },
+                                        { label: '지출', value: spendingStatData[0]?.지출 || 0, color: 'text-rose-400', prefix: '-' },
+                                        { label: '순', value: (spendingStatData[0]?.수입 || 0) - (spendingStatData[0]?.지출 || 0), color: ((spendingStatData[0]?.수입 || 0) - (spendingStatData[0]?.지출 || 0)) >= 0 ? 'text-emerald-400' : 'text-rose-400', prefix: '' },
+                                    ].map(({ label, value, color, prefix }) => (
+                                        <div key={label} className="text-center p-3 bg-white/[0.02] border border-white/5 rounded-md">
+                                            <p className="text-[10px] font-bold text-slate-500 mb-1">{label}</p>
+                                            <p className={`text-sm font-bold font-mono tabular-nums ${color}`}>{prefix}₩{Math.abs(value).toLocaleString()}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : spendingStatData.every(d => d.수입 === 0 && d.지출 === 0) ? (
+                                <div className="text-center py-20 text-slate-400"><p className="font-bold">데이터가 없습니다.</p></div>
                             ) : (
                                 <div className="h-64 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={sixMonthData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} />
+                                        <BarChart data={spendingStatData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <XAxis dataKey="name" tick={{ fontSize: filterType === 'monthly' ? 9 : 11, fill: '#64748b', fontWeight: 'bold' }} interval={filterType === 'monthly' ? 4 : 0} />
                                             <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                                             <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
-                                            <Bar dataKey="지출" fill="#f43f5e" radius={[6, 6, 0, 0]} />
+                                            <Legend wrapperStyle={{ fontSize: '11px', color: '#64748b' }} />
+                                            <Bar dataKey="수입" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="지출" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
                             )}
 
-                            {/* #20 Spending prediction */}
-                            {spendingPrediction.avg3m > 0 && (
+                            {/* #20 Spending prediction — only for monthly/all */}
+                            {(filterType === 'monthly' || filterType === 'all') && spendingPrediction.avg3m > 0 && (
                                 <div className="mt-2 p-3 bg-white/[0.02] border border-white/5 rounded-md">
                                     <p className="text-xs font-bold text-slate-500 mb-3">📊 이번 달 지출 예측</p>
                                     <div className="grid grid-cols-3 gap-3">
@@ -1050,23 +1141,47 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                         </div>
                     )}
 
-                    {/* #21 Net Worth Chart */}
+                    {/* #21 Net Worth Chart — period-aware */}
                     {activeSubTab === 'networth' && (
                         <div className="min-h-[400px] pt-3">
                             <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pb-1.5 mb-2 border-b border-white/8 flex items-center gap-2">
-                                <TrendingUp className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 순자산 변화 (최근 6개월)
+                                <TrendingUp className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 순자산 변화
+                                <span className="ml-auto normal-case text-slate-600 font-normal text-[10px]">
+                                    {filterType === 'all' ? '최근 6개월' : filterType === 'monthly' ? `${currentDate.getMonth() + 1}월` : filterType === 'weekly' ? '이번 주' : '오늘'}
+                                </span>
                             </h3>
-                            {netWorthData.every(d => d.순자산 === 0) ? (
+                            {filterType === 'daily' ? (
+                                (() => {
+                                    const ds = format(currentDate, 'yyyy-MM-dd');
+                                    const todayIncome = transactions.filter(t => t.type === 'income' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                                    const todayExpense = transactions.filter(t => t.type === 'expense' && t.date === ds).reduce((s, t) => s + t.amount, 0);
+                                    const todayNet = todayIncome - todayExpense;
+                                    return (
+                                        <div className="grid grid-cols-3 gap-3 mt-3">
+                                            {[
+                                                { label: '오늘 수입', value: todayIncome, color: 'text-emerald-400', prefix: '+' },
+                                                { label: '오늘 지출', value: todayExpense, color: 'text-rose-400', prefix: '-' },
+                                                { label: '오늘 순변화', value: todayNet, color: todayNet >= 0 ? 'text-indigo-400' : 'text-rose-400', prefix: todayNet >= 0 ? '+' : '' },
+                                            ].map(({ label, value, color, prefix }) => (
+                                                <div key={label} className="text-center p-3 bg-white/[0.02] border border-white/5 rounded-md">
+                                                    <p className="text-[10px] font-bold text-slate-500 mb-1">{label}</p>
+                                                    <p className={`text-sm font-bold font-mono tabular-nums ${color}`}>{prefix}₩{Math.abs(value).toLocaleString()}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()
+                            ) : netWorthPeriodData.every(d => d.순자산 === 0) ? (
                                 <div className="text-center py-20 text-slate-400"><p className="font-bold">거래 데이터가 없습니다.</p></div>
                             ) : (
                                 <div className="h-64 w-full">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={netWorthData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                                            <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 'bold' }} />
+                                        <LineChart data={netWorthPeriodData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                            <XAxis dataKey="name" tick={{ fontSize: filterType === 'monthly' ? 9 : 11, fill: '#64748b', fontWeight: 'bold' }} interval={filterType === 'monthly' ? 4 : 0} />
                                             <YAxis tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(v) => `${(v / 10000).toFixed(0)}만`} />
                                             <Tooltip formatter={(v) => `₩${v.toLocaleString()}`} contentStyle={{ borderRadius: '0.75rem', border: 'none', background: 'rgba(15,15,20,0.95)', fontSize: '12px', fontWeight: 'bold', color: '#a5b4fc' }} />
                                             <Legend wrapperStyle={{ fontSize: '11px', color: '#64748b' }} />
-                                            <Line type="monotone" dataKey="순자산" stroke="#6366f1" strokeWidth={3} dot={{ fill: '#6366f1', r: 5 }} activeDot={{ r: 7 }} />
+                                            <Line type="monotone" dataKey="순자산" stroke="#6366f1" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
                                         </LineChart>
                                     </ResponsiveContainer>
                                 </div>
