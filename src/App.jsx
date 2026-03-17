@@ -347,22 +347,22 @@ export default function App() {
       {/* Floating Action Buttons */}
       {!isModalOpen && !isQuickOpen && (
         <div className="fixed bottom-6 right-4 md:bottom-10 md:right-10 z-40 flex flex-col items-end gap-2">
-          {/* 상세 입력 (작은 버튼) */}
+          {/* 일정/목표 입력 (작은 버튼) */}
           <button
             onClick={() => setIsModalOpen(true)}
             className="flex items-center gap-1 px-2.5 py-1.5 bg-[#1a1c23] border border-white/10 text-slate-400 rounded text-xs font-medium hover:bg-white/8"
-            aria-label="상세 입력"
+            aria-label="일정·목표 입력"
           >
             <Plus className="w-3 h-3" />
-            상세
+            일정·목표
           </button>
           <button
             onClick={() => setIsQuickOpen(true)}
             className="flex items-center gap-1.5 px-3 py-2 bg-rose-500 hover:bg-rose-600 text-white rounded text-sm font-bold"
-            aria-label="빠른 지출 입력"
+            aria-label="빠른 입력"
           >
             <Plus className="w-4 h-4" />
-            지출
+            빠른입력
           </button>
         </div>
       )}

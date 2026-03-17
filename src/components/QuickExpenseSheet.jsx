@@ -33,10 +33,11 @@ export default function QuickExpenseSheet({
 }) {
     const { X } = IconMap;
 
-    const [type, setType] = useState('expense');   // 'expense' | 'income'
+    const [type, setType] = useState('expense');   // 'expense' | 'income' | 'transfer'
     const [amount, setAmount] = useState('');
     const [selectedCat, setSelectedCat] = useState('');
     const [selectedAccountId, setSelectedAccountId] = useState('');
+    const [transferToAccountId, setTransferToAccountId] = useState('');
     const [memo, setMemo] = useState('');
     const [showMemo, setShowMemo] = useState(false);
 
@@ -50,6 +51,7 @@ export default function QuickExpenseSheet({
             setShowMemo(false);
             setType('expense');
             setSelectedAccountId(accounts[0]?.id || 'cash');
+            setTransferToAccountId(accounts[1]?.id || accounts[0]?.id || 'cash');
         }
     }, [isOpen, accounts]);
 
@@ -83,40 +85,37 @@ export default function QuickExpenseSheet({
     // ── 저장 ──────────────────────────────────────────────────────────────────
     const handleSave = useCallback(() => {
         const amt = Number(amount);
-        if (!amt || amt <= 0) {
-            toast.error('금액을 입력해주세요');
-            return;
+        if (!amt || amt <= 0) { toast.error('금액을 입력해주세요'); return; }
+
+        const now = format(new Date(), 'yyyy-MM-dd');
+        const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+        if (type === 'transfer') {
+            if (selectedAccountId === transferToAccountId) { toast.error('출금·입금 계좌가 같습니다'); return; }
+            const fromAcc = accounts.find(a => a.id === selectedAccountId);
+            const toAcc = accounts.find(a => a.id === transferToAccountId);
+            const label = `이체: ${fromAcc?.name || ''} → ${toAcc?.name || ''}`;
+            const transferId = generateId();
+            setTransactions(prev => [...prev,
+                { id: generateId(), type: 'transfer_out', title: label, amount: amt, date: now, time: timeStr, category: '계좌이체', accountId: selectedAccountId, transferId, memo },
+                { id: generateId(), type: 'transfer_in', title: label, amount: amt, date: now, time: timeStr, category: '계좌이체', accountId: transferToAccountId, transferId, memo },
+            ]);
+            toast.success(`₩${amt.toLocaleString()} 이체 완료!`, { icon: '↔️', duration: 2000 });
+        } else {
+            const cat = activeCategories.find(c => c.id === selectedCat);
+            const catLabel = cat?.label || '기타';
+            setTransactions(prev => [{ id: generateId(), type, title: catLabel, category: catLabel, amount: amt, memo, date: now, time: timeStr, accountId: selectedAccountId || accounts[0]?.id || 'cash', taxDeductible: false }, ...prev]);
+            toast.success(`${catLabel} ${amt.toLocaleString()}원 저장됨`, { icon: type === 'expense' ? '💸' : '💰', duration: 2000 });
         }
 
-        const cat = activeCategories.find(c => c.id === selectedCat);
-        const catLabel = cat?.label || '기타';
-
-        const tx = {
-            id: generateId(),
-            type,
-            title: catLabel,
-            category: catLabel,
-            amount: amt,
-            memo,
-            date: format(new Date(), 'yyyy-MM-dd'),
-            time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            accountId: selectedAccountId || accounts[0]?.id || 'cash',
-            taxDeductible: false,
-        };
-
-        setTransactions(prev => [tx, ...prev]);
-        toast.success(`${catLabel} ${amt.toLocaleString()}원 저장됨`, {
-            icon: type === 'expense' ? '💸' : '💰',
-            duration: 2000,
-        });
         setAmount('');
         setMemo('');
         setShowMemo(false);
         onClose();
-    }, [amount, type, selectedCat, memo, accounts, activeCategories, setTransactions, onClose]);
+    }, [amount, type, selectedCat, memo, accounts, activeCategories, selectedAccountId, transferToAccountId, setTransactions, onClose]);
 
     const displayAmount = amount ? Number(amount).toLocaleString('ko-KR') : '0';
-    const accentColor = type === 'expense' ? 'rose' : 'blue';
+    const amtColorClass = type === 'expense' ? 'text-rose-400' : type === 'transfer' ? 'text-amber-400' : 'text-blue-400';
 
     if (!isOpen) return null;
 
@@ -154,37 +153,27 @@ export default function QuickExpenseSheet({
                             </div>
                         </div>
 
-                        {/* 지출 / 수입 토글 */}
+                        {/* 지출 / 수입 / 이체 토글 */}
                         <div className="flex gap-2 px-3 pt-2 pb-3">
-                            <button
-                                onClick={() => setType('expense')}
-                                className={`flex-1 py-2.5 text-sm font-bold transition-all active:scale-95 ${
-                                    type === 'expense'
-                                        ? 'bg-rose-500 text-white'
-                                        : 'bg-white/5 text-slate-400'
-                                }`}
-                                style={{ borderRadius: '3px' }}
-                            >
-                                💸 지출
-                            </button>
-                            <button
-                                onClick={() => setType('income')}
-                                className={`flex-1 py-2.5 text-sm font-bold transition-all active:scale-95 ${
-                                    type === 'income'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-white/5 text-slate-400'
-                                }`}
-                                style={{ borderRadius: '3px' }}
-                            >
-                                💰 수입
-                            </button>
+                            {[
+                                { id: 'expense', label: '💸 지출', active: 'bg-rose-500 text-white', inactive: 'bg-white/5 text-slate-400' },
+                                { id: 'income', label: '💰 수입', active: 'bg-blue-500 text-white', inactive: 'bg-white/5 text-slate-400' },
+                                { id: 'transfer', label: '↔ 이체', active: 'bg-amber-500 text-white', inactive: 'bg-white/5 text-slate-400' },
+                            ].map(({ id, label, active, inactive }) => (
+                                <button
+                                    key={id}
+                                    onClick={() => setType(id)}
+                                    className={`flex-1 py-2.5 text-sm font-bold transition-all active:scale-95 ${type === id ? active : inactive}`}
+                                    style={{ borderRadius: '3px' }}
+                                >
+                                    {label}
+                                </button>
+                            ))}
                         </div>
 
                         {/* 금액 표시 */}
                         <div className="px-3 py-2 text-center">
-                            <div className={`text-5xl font-black tracking-tight ${
-                                type === 'expense' ? 'text-rose-400' : 'text-blue-400'
-                            } ${!amount ? 'opacity-30' : ''}`}>
+                            <div className={`text-5xl font-black tracking-tight ${amtColorClass} ${!amount ? 'opacity-30' : ''}`}>
                                 {displayAmount}
                                 <span className="text-2xl font-bold ml-2 text-slate-500">원</span>
                             </div>
@@ -204,59 +193,77 @@ export default function QuickExpenseSheet({
                             ))}
                         </div>
 
-                        {/* 계좌 선택 칩 */}
-                        <div className="px-3 pb-1">
-                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">계좌</p>
-                            <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
-                                {accounts.map(acc => {
-                                    const emoji = ACCOUNT_EMOJI[acc.type] || '🏦';
-                                    const isSelected = selectedAccountId === acc.id;
-                                    return (
-                                        <button
-                                            key={acc.id}
-                                            onClick={() => setSelectedAccountId(acc.id)}
-                                            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${
-                                                isSelected
-                                                    ? 'bg-indigo-500 text-white'
-                                                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                                            }`}
-                                            style={{ borderRadius: '3px' }}
-                                        >
-                                            <span>{emoji}</span>
-                                            <span className="max-w-[80px] truncate">{acc.name}</span>
-                                        </button>
-                                    );
-                                })}
+                        {type === 'transfer' ? (
+                            /* 이체: 출금 → 입금 계좌 선택 */
+                            <div className="px-3 pb-3 space-y-3">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">출금 계좌 (보내는 곳)</p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                                        {accounts.map(acc => (
+                                            <button key={acc.id} onClick={() => setSelectedAccountId(acc.id)}
+                                                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${selectedAccountId === acc.id ? 'bg-rose-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                style={{ borderRadius: '3px' }}>
+                                                <span>{ACCOUNT_EMOJI[acc.type] || '🏦'}</span>
+                                                <span className="max-w-[80px] truncate">{acc.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">입금 계좌 (받는 곳)</p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                                        {accounts.map(acc => (
+                                            <button key={acc.id} onClick={() => setTransferToAccountId(acc.id)}
+                                                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${transferToAccountId === acc.id ? 'bg-emerald-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                style={{ borderRadius: '3px' }}>
+                                                <span>{ACCOUNT_EMOJI[acc.type] || '🏦'}</span>
+                                                <span className="max-w-[80px] truncate">{acc.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        ) : (
+                            <>
+                                {/* 계좌 선택 칩 */}
+                                <div className="px-3 pb-1">
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">계좌</p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 [&::-webkit-scrollbar]:hidden">
+                                        {accounts.map(acc => {
+                                            const emoji = ACCOUNT_EMOJI[acc.type] || '🏦';
+                                            const isSelected = selectedAccountId === acc.id;
+                                            return (
+                                                <button key={acc.id} onClick={() => setSelectedAccountId(acc.id)}
+                                                    className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${isSelected ? 'bg-indigo-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                    style={{ borderRadius: '3px' }}>
+                                                    <span>{emoji}</span>
+                                                    <span className="max-w-[80px] truncate">{acc.name}</span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
 
-                        {/* 카테고리 칩 */}
-                        <div className="px-3 pb-1">
-                            <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">카테고리</p>
-                        </div>
-                        <div className="flex gap-2 px-3 pb-3 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-                            {activeCategories.map(cat => {
-                                const CatIcon = IconMap[cat.icon] || IconMap['Check'];
-                                const isSelected = selectedCat === cat.id;
-                                return (
-                                    <button
-                                        key={cat.id}
-                                        onClick={() => setSelectedCat(cat.id)}
-                                        className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${
-                                            isSelected
-                                                ? type === 'expense'
-                                                    ? 'bg-rose-500 text-white'
-                                                    : 'bg-blue-500 text-white'
-                                                : 'bg-white/5 text-slate-400 hover:bg-white/10'
-                                        }`}
-                                        style={{ borderRadius: '3px' }}
-                                    >
-                                        <CatIcon size={13} />
-                                        <span>{cat.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
+                                {/* 카테고리 칩 */}
+                                <div className="px-3 pb-1">
+                                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">카테고리</p>
+                                </div>
+                                <div className="flex gap-2 px-3 pb-3 overflow-x-auto [&::-webkit-scrollbar]:hidden">
+                                    {activeCategories.map(cat => {
+                                        const CatIcon = IconMap[cat.icon] || IconMap['Check'];
+                                        const isSelected = selectedCat === cat.id;
+                                        return (
+                                            <button key={cat.id} onClick={() => setSelectedCat(cat.id)}
+                                                className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-sm font-bold transition-all active:scale-95 ${isSelected ? type === 'expense' ? 'bg-rose-500 text-white' : 'bg-blue-500 text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+                                                style={{ borderRadius: '3px' }}>
+                                                <CatIcon size={13} />
+                                                <span>{cat.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
 
                         {/* 메모 */}
                         <div className="px-3 pb-2">
@@ -303,14 +310,14 @@ export default function QuickExpenseSheet({
                                 onClick={handleSave}
                                 disabled={!amount}
                                 className={`w-full py-2.5 text-lg font-bold text-white transition-all active:scale-[0.98] disabled:opacity-30 ${
-                                    type === 'expense'
-                                        ? 'bg-rose-500 hover:bg-rose-400'
-                                        : 'bg-blue-500 hover:bg-blue-400'
+                                    type === 'expense' ? 'bg-rose-500 hover:bg-rose-400'
+                                    : type === 'transfer' ? 'bg-amber-500 hover:bg-amber-400'
+                                    : 'bg-blue-500 hover:bg-blue-400'
                                 }`}
                                 style={{ borderRadius: '3px' }}
                             >
                                 {amount
-                                    ? `${Number(amount).toLocaleString()}원 저장`
+                                    ? `${Number(amount).toLocaleString()}원 ${type === 'transfer' ? '이체' : '저장'}`
                                     : '금액을 입력하세요'}
                             </button>
                         </div>

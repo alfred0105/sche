@@ -29,7 +29,7 @@ export default function InputModal({
     const { Plus, X, Check } = IconMap;
     const modalRef = useRef(null);
 
-    const [inputMode, setInputMode] = useState('expense');
+    const [inputMode, setInputMode] = useState('schedule');
     const [activeCategoryId, setActiveCategoryId] = useState('');
     const [inputValue, setInputValue] = useState('');
     const [scheduleTime, setScheduleTime] = useState('09:00');
@@ -59,7 +59,7 @@ export default function InputModal({
     // Reset form on open
     useEffect(() => {
         if (isOpen) {
-            setInputMode('expense');
+            setInputMode('schedule');
             setInputValue('');
             setFormDate(filterDateStr);
             setScheduleTime('09:00');
@@ -258,9 +258,6 @@ export default function InputModal({
                     {/* Mode Selector */}
                     <div className="flex border-b border-white/10" role="tablist" aria-label="입력 모드 선택">
                         {[
-                            { mode: 'expense', label: '지출', activeColor: 'text-rose-500' },
-                            { mode: 'income', label: '수입', activeColor: 'text-blue-500' },
-                            { mode: 'transfer', label: '이체', activeColor: 'text-amber-400' },
                             { mode: 'schedule', label: '일정', activeColor: 'text-indigo-500' },
                             { mode: 'goal', label: '목표 등록', activeColor: 'text-purple-500' },
                         ].map(({ mode, label, activeColor }) => (
