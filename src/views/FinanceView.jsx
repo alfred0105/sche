@@ -491,8 +491,14 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
     const deleteTx = useCallback((txId) => {
         const tx = transactions.find((t) => t.id === txId);
         if (!tx) return;
+        // 이체 거래: transferId로 연결된 쌍 함께 삭제
+        if ((tx.type === 'transfer_out' || tx.type === 'transfer_in') && tx.transferId) {
+            setTransactions(prev => prev.filter(t => t.transferId !== tx.transferId));
+            toast('이체 내역(출금·입금)이 함께 삭제되었습니다.', { icon: '↔️' });
+            return;
+        }
         setDeleteConfirmState({ open: true, txId, hasGroup: !!tx.groupId });
-    }, [transactions]);
+    }, [transactions, setTransactions]);
 
     const handleDeleteConfirm = useCallback(() => {
         const { txId, hasGroup } = deleteConfirmState;
@@ -985,43 +991,53 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 <div className="text-center py-20 text-slate-400"><PieChartIcon className="w-10 h-10 mx-auto mb-3 text-white/5" aria-hidden="true" /><p className="font-bold">조건에 해당하는 거래 내역이 없습니다.</p></div>
                             ) : (
                                 <div role="list" aria-label="거래 목록">
-                                    {filteredTxs.slice(0, txVisibleCount).map((tx) => (
+                                    {filteredTxs.slice(0, txVisibleCount).map((tx) => {
+                                        const isTransfer = tx.type === 'transfer_out' || tx.type === 'transfer_in';
+                                        const dotColor = isTransfer ? '#f59e0b' : tx.type === 'income' ? '#34d399' : '#f87171';
+                                        const amtColor = isTransfer ? 'text-amber-400' : tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400';
+                                        const amtPrefix = tx.type === 'transfer_out' ? '↑' : tx.type === 'transfer_in' ? '↓' : tx.type === 'income' ? '+' : '-';
+                                        return (
                                         <div key={tx.id} className="flex items-center gap-2.5 py-2.5 border-b border-white/6 hover:bg-white/[0.03] group transition-colors" role="listitem">
-                                            <div className={`w-2 h-2 shrink-0`} style={{ backgroundColor: tx.type === 'income' ? '#34d399' : '#f87171', borderRadius: '50%' }} aria-hidden="true" />
+                                            <div className={`w-2 h-2 shrink-0`} style={{ backgroundColor: dotColor, borderRadius: '50%' }} aria-hidden="true" />
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-bold text-slate-300 truncate">{tx.title}</p>
                                                 <p className="text-[10px] text-slate-500 font-semibold flex flex-wrap gap-1.5 mt-0.5">
                                                     <span className="font-mono tabular-nums">{tx.date}</span>
                                                     <span className="text-[10px] font-semibold bg-white/5 px-1.5 py-0">{tx.category}</span>
+                                                    {isTransfer && <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0">{tx.type === 'transfer_out' ? '출금' : '입금'}</span>}
                                                     {tx.taxDeductible && <span className="text-[10px] font-semibold bg-rose-500/15 text-rose-400 px-1.5 py-0">영수증</span>}
                                                     {tx.memo && <span className="truncate max-w-[80px]">{tx.memo}</span>}
                                                 </p>
                                             </div>
-                                            <span className={`text-sm font-mono tabular-nums font-bold whitespace-nowrap ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {tx.type === 'income' ? '+' : '-'}₩{tx.amount.toLocaleString()}
+                                            <span className={`text-sm font-mono tabular-nums font-bold whitespace-nowrap ${amtColor}`}>
+                                                {amtPrefix}₩{tx.amount.toLocaleString()}
                                             </span>
                                             <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                                                <button onClick={() => openEditTx(tx)} className="text-slate-400 hover:text-indigo-400 p-1.5 transition-colors" aria-label={`${tx.title} 수정`}>
-                                                    <Pencil className="w-3.5 h-3.5" />
-                                                </button>
-                                                {/* #20 Copy transaction */}
-                                                <button
-                                                    onClick={() => {
-                                                        const copied = { ...tx, id: generateId(), date: format(new Date(), 'yyyy-MM-dd'), time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) };
-                                                        setTransactions(prev => [...prev, copied]);
-                                                        toast.success(`"${tx.title}" 오늘 날짜로 복사됐습니다!`, { icon: '📋' });
-                                                    }}
-                                                    className="text-slate-400 hover:text-indigo-400 p-1.5 transition-colors"
-                                                    aria-label={`${tx.title} 복사`}
-                                                >
-                                                    <Copy className="w-3.5 h-3.5" />
-                                                </button>
+                                                {!isTransfer && (
+                                                    <button onClick={() => openEditTx(tx)} className="text-slate-400 hover:text-indigo-400 p-1.5 transition-colors" aria-label={`${tx.title} 수정`}>
+                                                        <Pencil className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
+                                                {!isTransfer && (
+                                                    <button
+                                                        onClick={() => {
+                                                            const copied = { ...tx, id: generateId(), date: format(new Date(), 'yyyy-MM-dd'), time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) };
+                                                            setTransactions(prev => [...prev, copied]);
+                                                            toast.success(`"${tx.title}" 오늘 날짜로 복사됐습니다!`, { icon: '📋' });
+                                                        }}
+                                                        className="text-slate-400 hover:text-indigo-400 p-1.5 transition-colors"
+                                                        aria-label={`${tx.title} 복사`}
+                                                    >
+                                                        <Copy className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => deleteTx(tx.id)} className="text-slate-300 hover:text-rose-500 p-1.5 transition-colors" aria-label={`${tx.title} 거래 삭제`}>
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </div>
                                         </div>
-                                    ))}
+                                        );
+                                    })}
                                     {filteredTxs.length > txVisibleCount && (
                                         <button
                                             onClick={() => setTxVisibleCount(c => c + 20)}

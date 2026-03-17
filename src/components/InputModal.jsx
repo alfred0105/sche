@@ -37,6 +37,7 @@ export default function InputModal({
     const [formTitle, setFormTitle] = useState('');
     const [formMemo, setFormMemo] = useState('');
     const [formAccount, setFormAccount] = useState('cash');
+    const [transferToAccount, setTransferToAccount] = useState('');
     const [formLocation, setFormLocation] = useState('');
     const [scheduleEndTime, setScheduleEndTime] = useState('10:00');
     const [isRecurring, setIsRecurring] = useState(false);
@@ -67,6 +68,7 @@ export default function InputModal({
             setFormMemo('');
             setFormLocation('');
             setFormAccount(accounts[0]?.id || 'cash');
+            setTransferToAccount(accounts[1]?.id || accounts[0]?.id || '');
             setActiveCategoryId(expenseCategories[0]?.id || '');
             setIsRecurring(false);
             setExcludeHolidays(false);
@@ -89,6 +91,27 @@ export default function InputModal({
     }, [isOpen, onClose]);
 
     const activeCategories = inputMode === 'expense' ? expenseCategories : inputMode === 'income' ? incomeCategories : scheduleCategories;
+
+    const handleTransferSave = () => {
+        setHasInteracted(true);
+        const amt = Number(inputValue);
+        if (!amt || amt <= 0) return toast.error('올바른 금액을 입력해주세요!');
+        if (!formAccount) return toast.error('출금 계좌를 선택해주세요.');
+        if (!transferToAccount) return toast.error('입금 계좌를 선택해주세요.');
+        if (formAccount === transferToAccount) return toast.error('출금 계좌와 입금 계좌가 같습니다.');
+        if (!formDate) return toast.error('날짜를 지정해주세요!');
+        const fromAcc = accounts.find(a => a.id === formAccount);
+        const toAcc = accounts.find(a => a.id === transferToAccount);
+        const label = formTitle.trim() || `이체: ${fromAcc?.name || ''} → ${toAcc?.name || ''}`;
+        const transferId = generateId();
+        const now = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        setTransactions(prev => [...prev,
+            { id: generateId(), type: 'transfer_out', title: label, amount: amt, date: formDate, time: now, category: '계좌이체', accountId: formAccount, transferId, memo: formMemo },
+            { id: generateId(), type: 'transfer_in', title: label, amount: amt, date: formDate, time: now, category: '계좌이체', accountId: transferToAccount, transferId, memo: formMemo },
+        ]);
+        toast.success(`₩${amt.toLocaleString()} 이체 완료!`, { icon: '↔️' });
+        onClose();
+    };
 
     const handleModeChange = (mode) => {
         setInputMode(mode);
@@ -124,6 +147,10 @@ export default function InputModal({
         let count = 1;
         if (isRecurring && inputMode !== 'goal') {
             count = sanitizeRecurringCount(recurringCount);
+        }
+
+        if (inputMode === 'transfer') {
+            return handleTransferSave();
         }
 
         if (inputMode === 'goal') {
@@ -233,6 +260,7 @@ export default function InputModal({
                         {[
                             { mode: 'expense', label: '지출', activeColor: 'text-rose-500' },
                             { mode: 'income', label: '수입', activeColor: 'text-blue-500' },
+                            { mode: 'transfer', label: '이체', activeColor: 'text-amber-400' },
                             { mode: 'schedule', label: '일정', activeColor: 'text-indigo-500' },
                             { mode: 'goal', label: '목표 등록', activeColor: 'text-purple-500' },
                         ].map(({ mode, label, activeColor }) => (
@@ -349,6 +377,49 @@ export default function InputModal({
                         </div>
                     )}
 
+                    {/* Transfer form */}
+                    {inputMode === 'transfer' && (
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">이체 금액 *</label>
+                                <div className={`flex items-center bg-[#0d0d0f] border-b overflow-hidden transition-all outline-none ${hasInteracted && (!inputValue || Number(inputValue) <= 0) ? 'border-red-500' : 'border-white/10 focus-within:border-amber-500'}`}>
+                                    <input
+                                        type="text"
+                                        autoFocus
+                                        value={inputValue ? Number(inputValue).toLocaleString() : ''}
+                                        onChange={handleAmountChange}
+                                        placeholder="0"
+                                        className="w-full bg-transparent py-2.5 text-xl md:text-2xl font-bold tracking-tight text-amber-400 outline-none"
+                                    />
+                                    <span className="font-bold text-slate-400 pl-2 select-none">원</span>
+                                </div>
+                                <div className="flex gap-2 flex-wrap mt-2">
+                                    {[1, 5, 10, 30, 50].map(wan => (
+                                        <button key={wan} type="button"
+                                            onClick={() => setInputValue(prev => String((Number(prev) || 0) + wan * 10000))}
+                                            className="flex-1 min-w-0 py-2 text-xs font-bold bg-[#111113] border border-white/10 text-slate-400 hover:border-amber-500/50 hover:text-amber-400 transition-all" style={{ borderRadius: '3px' }}>
+                                            +{wan}만
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">출금 계좌 (보내는 곳)</label>
+                                <select value={formAccount} onChange={e => setFormAccount(e.target.value)}
+                                    className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-rose-400 focus:border-amber-500 outline-none transition-colors">
+                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">입금 계좌 (받는 곳)</label>
+                                <select value={transferToAccount} onChange={e => setTransferToAccount(e.target.value)}
+                                    className="w-full bg-[#0d0d0f] border-b border-white/10 px-0 py-2 text-sm font-bold text-emerald-400 focus:border-amber-500 outline-none transition-colors">
+                                    {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                </select>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Goal Type Selector */}
                     {inputMode === 'goal' && (
                         <div className="border-b border-white/6 py-3 space-y-2.5">
@@ -383,7 +454,7 @@ export default function InputModal({
                     )}
 
                     {/* Categories */}
-                    {inputMode !== 'goal' && (
+                    {inputMode !== 'goal' && inputMode !== 'transfer' && (
                         <>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">카테고리 선택 *</label>
@@ -442,7 +513,7 @@ export default function InputModal({
                     </div>
 
                     {/* Recurring */}
-                    {inputMode !== 'goal' && (
+                    {inputMode !== 'goal' && inputMode !== 'transfer' && (
                         <div className="border-b border-white/10 py-3 flex flex-col gap-3">
                             <label className="flex items-center gap-2 cursor-pointer select-none">
                                 <input type="checkbox" checked={isRecurring} onChange={(e) => setIsRecurring(e.target.checked)} className="w-4 h-4 text-indigo-500 rounded border-slate-300 focus:ring-indigo-500" />
@@ -505,7 +576,7 @@ export default function InputModal({
                 </div>
 
                 <div className="p-3 bg-[#111113] border-t border-white/10 shrink-0">
-                    <button onClick={handleConfirmSave} className={`w-full py-2.5 font-bold tracking-tight text-white text-base transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-rose-500 hover:bg-rose-400' : inputMode === 'income' ? 'bg-blue-500 hover:bg-blue-400' : inputMode === 'goal' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-indigo-500 hover:bg-indigo-400'}`} style={{ borderRadius: '3px' }}>
+                    <button onClick={handleConfirmSave} className={`w-full py-2.5 font-bold tracking-tight text-white text-base transition-all active:scale-[0.98] ${inputMode === 'expense' ? 'bg-rose-500 hover:bg-rose-400' : inputMode === 'income' ? 'bg-blue-500 hover:bg-blue-400' : inputMode === 'transfer' ? 'bg-amber-500 hover:bg-amber-400' : inputMode === 'goal' ? 'bg-purple-500 hover:bg-purple-400' : 'bg-indigo-500 hover:bg-indigo-400'}`} style={{ borderRadius: '3px' }}>
                         기록 추가 등록하기
                     </button>
                 </div>

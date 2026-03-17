@@ -216,6 +216,8 @@ export function useAppData(session) {
             if (!balances[t.accountId]) balances[t.accountId] = 0;
             if (t.type === 'income') balances[t.accountId] += t.amount;
             else if (t.type === 'expense') balances[t.accountId] -= t.amount;
+            else if (t.type === 'transfer_out') balances[t.accountId] -= t.amount;
+            else if (t.type === 'transfer_in') balances[t.accountId] += t.amount;
         });
         return balances;
     }, [initialBalances, transactions]);
