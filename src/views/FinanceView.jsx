@@ -135,7 +135,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             const tDate = parseISO(t.date);
             const dateOk = (() => {
                 if (filterType === 'daily') return isSameDay(tDate, currentDate);
-                if (filterType === 'weekly') return isSameWeek(tDate, currentDate);
+                if (filterType === 'weekly') return isSameWeek(tDate, currentDate, { weekStartsOn: 1 });
                 if (filterType === 'monthly') return isSameMonth(tDate, currentDate);
                 return true;
             })();
@@ -197,28 +197,22 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         return data;
     }, [transactions, totalAssets, currentDate]);
 
-    // Category pie chart
+    // Category pie chart — follows filterType
     const categoryData = useMemo(() => {
         const catMap = {};
-        transactions.filter((t) => t.type === 'expense' && isSameMonth(parseISO(t.date), currentDate)).forEach((t) => {
+        transactions.filter((t) => {
+            if (t.type !== 'expense') return false;
+            const d = parseISO(t.date);
+            if (filterType === 'daily') return isSameDay(d, currentDate);
+            if (filterType === 'weekly') return isSameWeek(d, currentDate, { weekStartsOn: 1 });
+            if (filterType === 'monthly') return isSameMonth(d, currentDate);
+            return true;
+        }).forEach((t) => {
             catMap[t.category] = (catMap[t.category] || 0) + t.amount;
         });
         return Object.entries(catMap).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-    }, [transactions, currentDate]);
+    }, [transactions, currentDate, filterType]);
 
-    // #25 Last 6 months expense bar chart
-    const sixMonthData = useMemo(() => {
-        return Array.from({ length: 6 }).map((_, i) => {
-            const monthDate = subMonths(currentDate, 5 - i);
-            const total = transactions
-                .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate))
-                .reduce((s, t) => s + t.amount, 0);
-            return {
-                name: format(monthDate, 'M월'),
-                지출: total,
-            };
-        });
-    }, [transactions, currentDate]);
 
     // #24 Financial health score
     const financialHealthScore = useMemo(() => {
@@ -277,21 +271,6 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         return { todayExpense, dailyAvg, isAnomaly };
     }, [transactions, currentDate]);
 
-    // #21 Net worth line chart — last 6 months running total
-    const netWorthData = useMemo(() => {
-        let running = 0;
-        return Array.from({ length: 6 }).map((_, i) => {
-            const monthDate = subMonths(currentDate, 5 - i);
-            const monthIncome = transactions
-                .filter(t => t.type === 'income' && isSameMonth(parseISO(t.date), monthDate))
-                .reduce((s, t) => s + t.amount, 0);
-            const monthExpense = transactions
-                .filter(t => t.type === 'expense' && isSameMonth(parseISO(t.date), monthDate))
-                .reduce((s, t) => s + t.amount, 0);
-            running += monthIncome - monthExpense;
-            return { name: format(monthDate, 'M월'), 순자산: running };
-        });
-    }, [transactions, currentDate]);
 
     // #26 Spending pattern by weekday
     const weekdaySpendingData = useMemo(() => {
@@ -480,13 +459,15 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         return Object.entries(budgets)
             .filter(([, limit]) => limit > 0)
             .map(([catId, limit]) => {
-                const spent = catSpend[catId] || 0;
+                const catDef = expenseCategories?.find(c => c.id === catId);
+                const catLabel = catDef?.label || catId;
+                const spent = catSpend[catLabel] || 0;
                 const pct = Math.min(Math.round((spent / limit) * 100), 100);
-                return { catId, limit, spent, pct, exceeded: spent > limit };
+                return { catId, catLabel, limit, spent, pct, exceeded: spent > limit };
             })
             .sort((a, b) => b.pct - a.pct)
             .slice(0, 5);
-    }, [budgets, transactions, currentDate]);
+    }, [budgets, transactions, currentDate, expenseCategories]);
 
     const deleteTx = useCallback((txId) => {
         const tx = transactions.find((t) => t.id === txId);
@@ -615,7 +596,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                 <select value={editTxForm.category} onChange={e => setEditTxForm(p => ({ ...p, category: e.target.value }))}
                                     className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
                                     <option value="">-- 분류 선택 --</option>
-                                    {allCategories.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                                    {allCategories.map(c => <option key={c.id} value={c.label}>{c.label}</option>)}
                                 </select>
                             </div>
                             {accounts.length > 0 && (
@@ -929,10 +910,10 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             {/* #21 Budget gauge bars */}
                             {budgetGauges.length > 0 && (
                                 <div className="py-2 space-y-2 border-b border-white/6">
-                                    {budgetGauges.map(({ catId, limit, spent, pct, exceeded }) => (
+                                    {budgetGauges.map(({ catId, catLabel, limit, spent, pct, exceeded }) => (
                                         <div key={catId}>
                                             <div className="flex items-center justify-between text-[11px] font-semibold mb-1">
-                                                <span className="text-slate-400">{catId}</span>
+                                                <span className="text-slate-400">{catLabel}</span>
                                                 <span className={`font-mono tabular-nums ${exceeded ? 'text-rose-400' : 'text-slate-500'}`}>{spent.toLocaleString()} / {limit.toLocaleString()}원</span>
                                             </div>
                                             <div className="w-full h-1 bg-white/8">
@@ -1054,10 +1035,13 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                     {activeSubTab === 'category' && (
                         <div className="min-h-[400px] pt-3">
                             <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest pb-1.5 mb-2 border-b border-white/8 flex items-center gap-2">
-                                <PieChartIcon className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 이번 달 카테고리별 지출
+                                <PieChartIcon className="w-3.5 h-3.5 text-indigo-500" aria-hidden="true" /> 카테고리별 지출
+                                <span className="ml-auto normal-case text-slate-600 font-normal text-[10px]">
+                                    {filterType === 'all' ? '전체 기간' : filterType === 'monthly' ? `${currentDate.getMonth() + 1}월` : filterType === 'weekly' ? '이번 주' : '오늘'}
+                                </span>
                             </h3>
                             {categoryData.length === 0 ? (
-                                <div className="text-center py-20 text-slate-400"><p className="font-bold">이번 달 지출 데이터가 없습니다.</p></div>
+                                <div className="text-center py-20 text-slate-400"><p className="font-bold">해당 기간 지출 데이터가 없습니다.</p></div>
                             ) : (
                                 <div className="flex flex-col md:flex-row items-center gap-8">
                                     <div className="w-56 h-56" role="img" aria-label="카테고리별 지출 파이 차트">
@@ -1076,7 +1060,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                                                 <div className="w-2 h-2 shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length], borderRadius: '50%' }} aria-hidden="true" />
                                                 <span className="text-sm font-bold text-slate-200 flex-1 truncate">{cat.name}</span>
                                                 <span className="text-sm font-mono tabular-nums font-bold text-slate-100">₩{cat.value.toLocaleString()}</span>
-                                                <span className="text-[10px] font-mono tabular-nums font-semibold text-slate-400 w-10 text-right">{Math.round((cat.value / currentMonthExpense) * 100)}%</span>
+                                                <span className="text-[10px] font-mono tabular-nums font-semibold text-slate-400 w-10 text-right">{Math.round((cat.value / totalExpense) * 100)}%</span>
                                             </div>
                                         ))}
                                     </div>
