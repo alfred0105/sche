@@ -71,7 +71,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
             date: tx.date || '',
             type: tx.type || 'expense',
             category: tx.category || '',
-            account: tx.account || '',
+            accountId: tx.accountId || '',
             memo: tx.memo || '',
             taxDeductible: tx.taxDeductible || false,
         });
@@ -84,7 +84,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         if (!amt || amt <= 0) return toast.error('올바른 금액을 입력하세요.');
         setTransactions(prev => prev.map(t =>
             t.id === editTxModal.tx.id
-                ? { ...t, ...editTxForm, amount: amt }
+                ? { ...t, title: editTxForm.title, amount: amt, date: editTxForm.date, type: editTxForm.type, category: editTxForm.category, accountId: editTxForm.accountId, memo: editTxForm.memo, taxDeductible: editTxForm.taxDeductible }
                 : t
         ));
         setEditTxModal({ open: false, tx: null });
@@ -602,7 +602,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
                             {accounts.length > 0 && (
                                 <div className="col-span-2">
                                     <label className="text-[10px] font-bold text-slate-500 uppercase mb-1 block">계좌</label>
-                                    <select value={editTxForm.account} onChange={e => setEditTxForm(p => ({ ...p, account: e.target.value }))}
+                                    <select value={editTxForm.accountId} onChange={e => setEditTxForm(p => ({ ...p, accountId: e.target.value }))}
                                         className="w-full bg-[#09090b] border border-white/10 rounded-md px-3 py-2.5 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500">
                                         <option value="">-- 계좌 선택 --</option>
                                         {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}

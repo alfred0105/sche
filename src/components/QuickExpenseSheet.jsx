@@ -40,6 +40,7 @@ export default function QuickExpenseSheet({
     const [transferToAccountId, setTransferToAccountId] = useState('');
     const [memo, setMemo] = useState('');
     const [showMemo, setShowMemo] = useState(false);
+    const [txDate, setTxDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     const activeCategories = type === 'expense' ? expenseCategories : incomeCategories;
 
@@ -50,6 +51,7 @@ export default function QuickExpenseSheet({
             setMemo('');
             setShowMemo(false);
             setType('expense');
+            setTxDate(format(new Date(), 'yyyy-MM-dd'));
             setSelectedAccountId(accounts[0]?.id || 'cash');
             setTransferToAccountId(accounts[1]?.id || accounts[0]?.id || 'cash');
         }
@@ -87,7 +89,7 @@ export default function QuickExpenseSheet({
         const amt = Number(amount);
         if (!amt || amt <= 0) { toast.error('금액을 입력해주세요'); return; }
 
-        const now = format(new Date(), 'yyyy-MM-dd');
+        const now = txDate;
         const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
         if (type === 'transfer') {
@@ -112,7 +114,7 @@ export default function QuickExpenseSheet({
         setMemo('');
         setShowMemo(false);
         onClose();
-    }, [amount, type, selectedCat, memo, accounts, activeCategories, selectedAccountId, transferToAccountId, setTransactions, onClose]);
+    }, [amount, type, selectedCat, memo, accounts, activeCategories, selectedAccountId, transferToAccountId, txDate, setTransactions, onClose]);
 
     const displayAmount = amount ? Number(amount).toLocaleString('ko-KR') : '0';
     const amtColorClass = type === 'expense' ? 'text-rose-400' : type === 'transfer' ? 'text-amber-400' : 'text-blue-400';
@@ -169,6 +171,17 @@ export default function QuickExpenseSheet({
                                     {label}
                                 </button>
                             ))}
+                        </div>
+
+                        {/* 날짜 선택 */}
+                        <div className="flex items-center justify-between px-3 pb-2">
+                            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">날짜</span>
+                            <input
+                                type="date"
+                                value={txDate}
+                                onChange={e => setTxDate(e.target.value)}
+                                className="bg-transparent border-b border-white/10 px-2 py-1 text-sm font-bold text-slate-300 outline-none focus:border-indigo-500 transition-colors [color-scheme:dark]"
+                            />
                         </div>
 
                         {/* 금액 표시 */}
