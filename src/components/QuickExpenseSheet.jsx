@@ -2,7 +2,7 @@
  * @fileoverview QuickExpenseSheet — iPhone 최적화 빠른 지출/수입 입력
  * 바텀 시트 + 커스텀 숫자 패드 방식으로 3초 내 입력 완료
  */
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { generateId } from '../utils/helpers';
@@ -43,7 +43,6 @@ export default function QuickExpenseSheet({
     const [showMemo, setShowMemo] = useState(false);
     const [txDate, setTxDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-    const hiddenInputRef = useRef(null);
     const activeCategories = type === 'expense' ? expenseCategories : incomeCategories;
 
     // ── 사용 빈도 기반 정렬 ────────────────────────────────────────────────────
@@ -65,7 +64,7 @@ export default function QuickExpenseSheet({
         return [...activeCategories].sort((a, b) => (freq[b.label] || 0) - (freq[a.label] || 0));
     }, [activeCategories, transactions, type]);
 
-    // 열릴 때 초기화 + 숨겨진 input 자동 포커스
+    // 열릴 때 초기화
     useEffect(() => {
         if (isOpen) {
             setAmount('');
@@ -73,10 +72,8 @@ export default function QuickExpenseSheet({
             setShowMemo(false);
             setType('expense');
             setTxDate(format(new Date(), 'yyyy-MM-dd'));
-            setSelectedAccountId(sortedAccounts[0]?.id || 'cash');
-            setTransferToAccountId(sortedAccounts[1]?.id || sortedAccounts[0]?.id || 'cash');
-            // 열리자마자 포커스
-            setTimeout(() => hiddenInputRef.current?.focus(), 50);
+            setSelectedAccountId(sortedAccounts[0]?.id || '');
+            setTransferToAccountId(sortedAccounts[1]?.id || sortedAccounts[0]?.id || '');
         }
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -138,6 +135,29 @@ export default function QuickExpenseSheet({
         setShowMemo(false);
         onClose();
     }, [amount, type, selectedCat, memo, accounts, activeCategories, selectedAccountId, transferToAccountId, txDate, setTransactions, onClose]);
+
+    // ── 컴퓨터 키보드 입력 ────────────────────────────────────────────────────
+    useEffect(() => {
+        if (!isOpen) return;
+        const onKey = (e) => {
+            // 날짜·메모·기타 input/textarea에 포커스 있으면 무시
+            const tag = e.target.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+            if (e.metaKey || e.ctrlKey || e.altKey) return;
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                setAmount(prev => { const n = prev + e.key; return n.length > 9 ? prev : n; });
+            } else if (e.key === 'Backspace') {
+                e.preventDefault();
+                setAmount(prev => prev.slice(0, -1));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                handleSave();
+            }
+        };
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [isOpen, handleSave]);
 
     const displayAmount = amount ? Number(amount).toLocaleString('ko-KR') : '0';
     const amtColorClass = type === 'expense' ? 'text-rose-400' : type === 'transfer' ? 'text-amber-400' : 'text-blue-400';
@@ -204,23 +224,8 @@ export default function QuickExpenseSheet({
                     />
                 </div>
 
-                {/* 금액 표시 — 숨겨진 input이 키보드 입력 캡처 */}
-                <div className="px-3 py-2 relative" onClick={() => hiddenInputRef.current?.focus()}>
-                    {/* 실제로 키보드 입력 받는 숨겨진 input */}
-                    <input
-                        ref={hiddenInputRef}
-                        type="number"
-                        inputMode="numeric"
-                        value={amount}
-                        onChange={e => {
-                            const v = e.target.value.replace(/[^0-9]/g, '');
-                            if (v.length <= 9) setAmount(v);
-                        }}
-                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
-                        className="absolute opacity-0 pointer-events-none w-0 h-0"
-                        tabIndex={-1}
-                        aria-hidden="true"
-                    />
+                {/* 금액 표시 */}
+                <div className="px-3 py-2">
                     <div className={`text-5xl font-black tracking-tight text-center ${amtColorClass} ${!amount ? 'opacity-30' : ''}`}>
                         {displayAmount}
                         <span className="text-2xl font-bold ml-2 text-slate-500">원</span>
@@ -336,7 +341,7 @@ export default function QuickExpenseSheet({
                     {NUMPAD_ROWS.flat().map((key, i) => (
                         <button
                             key={i}
-                            onClick={() => { handleNumpad(key); hiddenInputRef.current?.focus(); }}
+                            onClick={() => handleNumpad(key)}
                             className={`h-14 font-bold text-xl transition-all active:scale-95 select-none ${
                                 key === '⌫'
                                     ? 'bg-white/5 text-rose-400 text-2xl'
