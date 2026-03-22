@@ -42,9 +42,8 @@ export default function QuickExpenseSheet({
     const [memo, setMemo] = useState('');
     const [showMemo, setShowMemo] = useState(false);
     const [txDate, setTxDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-    const [useKeyboard, setUseKeyboard] = useState(false);
 
-    const keyboardInputRef = useRef(null);
+    const hiddenInputRef = useRef(null);
     const activeCategories = type === 'expense' ? expenseCategories : incomeCategories;
 
     // ── 사용 빈도 기반 정렬 ────────────────────────────────────────────────────
@@ -64,17 +63,18 @@ export default function QuickExpenseSheet({
         return [...activeCategories].sort((a, b) => (freq[b.label] || 0) - (freq[a.label] || 0));
     }, [activeCategories, transactions, type]);
 
-    // 열릴 때 초기화
+    // 열릴 때 초기화 + 숨겨진 input 자동 포커스
     useEffect(() => {
         if (isOpen) {
             setAmount('');
             setMemo('');
             setShowMemo(false);
             setType('expense');
-            setUseKeyboard(false);
             setTxDate(format(new Date(), 'yyyy-MM-dd'));
             setSelectedAccountId(sortedAccounts[0]?.id || 'cash');
             setTransferToAccountId(sortedAccounts[1]?.id || sortedAccounts[0]?.id || 'cash');
+            // 열리자마자 포커스
+            setTimeout(() => hiddenInputRef.current?.focus(), 50);
         }
     }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -82,13 +82,6 @@ export default function QuickExpenseSheet({
     useEffect(() => {
         setSelectedCat(sortedCategories[0]?.id || '');
     }, [type, sortedCategories]);
-
-    // 키보드 모드 전환 시 자동 포커스
-    useEffect(() => {
-        if (useKeyboard && keyboardInputRef.current) {
-            keyboardInputRef.current.focus();
-        }
-    }, [useKeyboard]);
 
     // ── 숫자패드 ──────────────────────────────────────────────────────────────
     const handleNumpad = useCallback((key) => {
@@ -209,39 +202,26 @@ export default function QuickExpenseSheet({
                     />
                 </div>
 
-                {/* 금액 표시 / 키보드 입력 */}
-                <div className="px-3 py-2">
-                    {useKeyboard ? (
-                        <div className="flex items-center gap-2">
-                            <input
-                                ref={keyboardInputRef}
-                                type="number"
-                                value={amount}
-                                onChange={e => {
-                                    const v = e.target.value.replace(/[^0-9]/g, '');
-                                    if (v.length <= 9) setAmount(v);
-                                }}
-                                onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
-                                placeholder="0"
-                                className={`flex-1 bg-transparent text-5xl font-black tracking-tight text-center outline-none ${amtColorClass} [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none`}
-                            />
-                            <span className="text-2xl font-bold text-slate-500 shrink-0">원</span>
-                        </div>
-                    ) : (
-                        <div className={`text-5xl font-black tracking-tight text-center ${amtColorClass} ${!amount ? 'opacity-30' : ''}`}>
-                            {displayAmount}
-                            <span className="text-2xl font-bold ml-2 text-slate-500">원</span>
-                        </div>
-                    )}
-
-                    {/* 입력 모드 전환 버튼 */}
-                    <div className="flex justify-center mt-1">
-                        <button
-                            onClick={() => setUseKeyboard(v => !v)}
-                            className="text-[10px] font-bold text-slate-600 hover:text-slate-400 transition-colors px-2 py-0.5 border border-white/5 rounded"
-                        >
-                            {useKeyboard ? '⌨ 키패드로 전환' : '⌨ 키보드로 입력'}
-                        </button>
+                {/* 금액 표시 — 숨겨진 input이 키보드 입력 캡처 */}
+                <div className="px-3 py-2 relative" onClick={() => hiddenInputRef.current?.focus()}>
+                    {/* 실제로 키보드 입력 받는 숨겨진 input */}
+                    <input
+                        ref={hiddenInputRef}
+                        type="number"
+                        inputMode="numeric"
+                        value={amount}
+                        onChange={e => {
+                            const v = e.target.value.replace(/[^0-9]/g, '');
+                            if (v.length <= 9) setAmount(v);
+                        }}
+                        onKeyDown={e => { if (e.key === 'Enter') handleSave(); }}
+                        className="absolute opacity-0 pointer-events-none w-0 h-0"
+                        tabIndex={-1}
+                        aria-hidden="true"
+                    />
+                    <div className={`text-5xl font-black tracking-tight text-center ${amtColorClass} ${!amount ? 'opacity-30' : ''}`}>
+                        {displayAmount}
+                        <span className="text-2xl font-bold ml-2 text-slate-500">원</span>
                     </div>
                 </div>
 
@@ -349,25 +329,23 @@ export default function QuickExpenseSheet({
                     )}
                 </div>
 
-                {/* 숫자 패드 — 키보드 모드일 때 숨김 */}
-                {!useKeyboard && (
-                    <div className="grid grid-cols-3 gap-2 px-3 pb-3">
-                        {NUMPAD_ROWS.flat().map((key, i) => (
-                            <button
-                                key={i}
-                                onClick={() => handleNumpad(key)}
-                                className={`h-14 font-bold text-xl transition-all active:scale-95 select-none ${
-                                    key === '⌫'
-                                        ? 'bg-white/5 text-rose-400 text-2xl'
-                                        : 'bg-white/8 text-white hover:bg-white/15'
-                                }`}
-                                style={{ borderRadius: '3px' }}
-                            >
-                                {key}
-                            </button>
-                        ))}
-                    </div>
-                )}
+                {/* 숫자 패드 */}
+                <div className="grid grid-cols-3 gap-2 px-3 pb-3">
+                    {NUMPAD_ROWS.flat().map((key, i) => (
+                        <button
+                            key={i}
+                            onClick={() => { handleNumpad(key); hiddenInputRef.current?.focus(); }}
+                            className={`h-14 font-bold text-xl transition-all active:scale-95 select-none ${
+                                key === '⌫'
+                                    ? 'bg-white/5 text-rose-400 text-2xl'
+                                    : 'bg-white/8 text-white hover:bg-white/15'
+                            }`}
+                            style={{ borderRadius: '3px' }}
+                        >
+                            {key}
+                        </button>
+                    ))}
+                </div>
 
                 {/* 저장 버튼 */}
                 <div className="px-3 pb-10">
