@@ -437,7 +437,7 @@ export default function FinanceView({ transactions, setTransactions, getCalculat
         const seen = {};
         const dupes = [];
         transactions
-            .filter(t => isSameMonth(parseISO(t.date), currentDate))
+            .filter(t => isSameMonth(parseISO(t.date), currentDate) && t.type !== 'transfer_out' && t.type !== 'transfer_in')
             .forEach(t => {
                 const key = `${t.date}-${t.amount}-${t.category}`;
                 if (seen[key]) {

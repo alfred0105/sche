@@ -72,6 +72,8 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState('home');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isQuickOpen, setIsQuickOpen] = useState(false);
+  const isQuickOpenRef = useRef(false);
+  useEffect(() => { isQuickOpenRef.current = isQuickOpen; }, [isQuickOpen]);
   const [isSettingOpen, setIsSettingOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
@@ -113,6 +115,7 @@ export default function App() {
   // Cmd+K → search, ? → shortcuts, 1-6 → tab navigation, N → new entry
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (isQuickOpenRef.current) return; // 빠른 입력 시트 열려있으면 전역 단축키 비활성
       const tag = document.activeElement?.tagName;
       const isInputFocused = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
 

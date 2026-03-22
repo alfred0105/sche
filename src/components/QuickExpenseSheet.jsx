@@ -52,7 +52,14 @@ export default function QuickExpenseSheet({
             const id = t.accountId || t.account;
             if (id) freq[id] = (freq[id] || 0) + 1;
         });
-        return [...accounts].sort((a, b) => (freq[b.id] || 0) - (freq[a.id] || 0));
+        return [...accounts].sort((a, b) => {
+            const diff = (freq[b.id] || 0) - (freq[a.id] || 0);
+            if (diff !== 0) return diff;
+            // freq 동점이면 cash는 항상 뒤로
+            if (a.type === 'cash') return 1;
+            if (b.type === 'cash') return -1;
+            return 0;
+        });
     }, [accounts, transactions]);
 
     const sortedCategories = useMemo(() => {
@@ -140,18 +147,21 @@ export default function QuickExpenseSheet({
     useEffect(() => {
         if (!isOpen) return;
         const onKey = (e) => {
-            // 날짜·메모·기타 input/textarea에 포커스 있으면 무시
+            // 날짜·메모·기타 input/textarea/select에 포커스 있으면 무시
             const tag = e.target.tagName;
             if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
             if (e.metaKey || e.ctrlKey || e.altKey) return;
             if (e.key >= '0' && e.key <= '9') {
                 e.preventDefault();
+                e.stopPropagation(); // App.jsx window 리스너(탭 전환)로 전달 차단
                 setAmount(prev => { const n = prev + e.key; return n.length > 9 ? prev : n; });
             } else if (e.key === 'Backspace') {
                 e.preventDefault();
+                e.stopPropagation();
                 setAmount(prev => prev.slice(0, -1));
             } else if (e.key === 'Enter') {
                 e.preventDefault();
+                e.stopPropagation();
                 handleSave();
             }
         };
