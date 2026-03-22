@@ -389,6 +389,7 @@ export default function App() {
         onClose={() => setIsQuickOpen(false)}
         onOpenDetail={() => { setIsQuickOpen(false); setIsModalOpen(true); }}
         setTransactions={setTransactions}
+        transactions={transactions}
         accounts={accounts}
         expenseCategories={expenseCategories}
         incomeCategories={incomeCategories}
