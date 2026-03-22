@@ -48,9 +48,11 @@ export default function QuickExpenseSheet({
 
     // ── 사용 빈도 기반 정렬 ────────────────────────────────────────────────────
     const sortedAccounts = useMemo(() => {
-        if (!transactions?.length) return accounts;
         const freq = {};
-        transactions.forEach(t => { if (t.accountId) freq[t.accountId] = (freq[t.accountId] || 0) + 1; });
+        transactions?.forEach(t => {
+            const id = t.accountId || t.account;
+            if (id) freq[id] = (freq[id] || 0) + 1;
+        });
         return [...accounts].sort((a, b) => (freq[b.id] || 0) - (freq[a.id] || 0));
     }, [accounts, transactions]);
 
